@@ -100,7 +100,7 @@ public:
   enum eIoType {
     kLocal = 0x0,
     kXrdCl = 0x1,
-    kRados = 0x2,
+    kRadosFs = 0x2,
     kKinetic = 0x3,
     kDavix = 0x4
   };
@@ -113,8 +113,8 @@ public:
       return kXrdCl;
     if (spath.beginswith("kinetic:"))
       return kKinetic;
-    if (spath.beginswith("rados:"))
-      return kRados;
+    if (spath.beginswith("radosfs:"))
+      return kRadosFs;
     if (spath.beginswith("http:"))
       return kDavix;
     if (spath.beginswith("https:"))

@@ -109,7 +109,7 @@ public:
       return NULL;
     }
     else
-      if (ioType == LayoutId::kRados)
+      if (ioType == LayoutId::kRadosFs)
     {
 #ifdef LIBRADOSFS_FOUND
       return static_cast<FileIo*> (new RadosIo(file, client));
@@ -158,7 +158,7 @@ public:
       return NULL;
     }
     else
-      if (ioType == LayoutId::kRados)
+      if (ioType == LayoutId::kRadosFs)
     {
 #ifdef LIBRADOSFS_FOUND
       return static_cast<eos::common::Attr*> (eos::fst::RadosIo::Attr::OpenAttr(url));

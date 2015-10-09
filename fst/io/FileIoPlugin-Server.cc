@@ -61,7 +61,7 @@ FileIoPlugin::GetIoAttr (const char* url)
     return NULL;
   }
   else
-    if (ioType == LayoutId::kRados)
+    if (ioType == LayoutId::kRadosFs)
   {
 #ifdef LIBRADOSFS_FOUND
     return static_cast<eos::common::Attr*> (eos::fst::RadosIo::Attr::OpenAttr(url));
@@ -105,7 +105,7 @@ FileIoPlugin::GetIoObject (int ioType,
     return NULL;
   }
   else
-    if (ioType == LayoutId::kRados)
+    if (ioType == LayoutId::kRadosFs)
   {
 #ifdef LIBRADOSFS_FOUND
     return static_cast<FileIo*> (new RadosIo(file, client));
