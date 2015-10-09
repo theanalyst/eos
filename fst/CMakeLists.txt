@@ -40,6 +40,17 @@ else()
     set(DAVIX_HDR "")
 endif()
 
+if(LIBRADOSFS_FOUND)
+    add_definitions(-DLIBRADOSFS_FOUND)
+    set(LIBRADOSFS_SRC "io/RadosIo.cc")
+    set(LIBRADOSFS_HDR "io/RadosIo.hh")
+else()
+    set(LIBRADOSFS_INCLUDE_DIR "")
+    set(LIBRADOSFS_LIBRARIES "")
+    set(LIBRADOSFS_SRC "")
+    set(LIBRADOSFS_HDR "")
+endif()
+
 include_directories(../
                     ./
                     ${XROOTD_INCLUDE_DIR}
@@ -48,6 +59,7 @@ include_directories(../
                     ${NCURSES_INCLUDE_DIR}
                     ${Z_INCLUDE_DIR}
                     ${KINETICIO_INCLUDE_DIR}
+                    ${LIBRADOSFS_INCLUDE_DIR}
                     ${JSONC_INCLUDE_DIR}
 		    ${DAVIX_INCLUDE_DIR}
 )
@@ -78,7 +90,7 @@ add_library(EosFstIo-Static STATIC
 	    io/FsIo.cc                     io/FsIo.hh
             ${KINETICIO_SRC}               ${KINETICIO_HDR}
 	    ${DAVIX_SRC}		   ${DAVIX_HDR}
-            io/RadosIo.cc                  io/RadosIo.hh
+            ${LIBRADOSFS_SRC}              ${LIBRADOSFS_HDR}
             io/XrdIo.cc                    io/XrdIo.hh
             io/HeaderCRC.cc                io/HeaderCRC.hh
             io/AsyncMetaHandler.cc         io/AsyncMetaHandler.hh
@@ -110,6 +122,7 @@ target_link_libraries(  EosFstIo-Static
                         ${UUID_LIBRARIES}       ${ATTR_LIBRARIES}       
                         ${RT_LIBRARIES}         ${KINETICIO_LIBRARIES}
 			${DAVIX_LIBRARIES}			
+                        ${LIBRADOSFS_LIBRARIES}
                         ${CMAKE_THREAD_LIBS_INIT}                  
 )
 
@@ -120,7 +133,7 @@ add_library( EosFstIo SHARED
   	        io/FsIo.cc                     io/FsIo.hh
                 ${KINETICIO_SRC}               ${KINETICIO_HDR}
 		${DAVIX_SRC}                   ${DAVIX_HDR}
-                io/RadosIo.cc                  io/RadosIo.hh
+                ${LIBRADOSFS_SRC}              ${LIBRADOSFS_HDR}
                 io/XrdIo.cc                    io/XrdIo.hh
                 io/HeaderCRC.cc                io/HeaderCRC.hh
                 io/AsyncMetaHandler.cc         io/AsyncMetaHandler.hh
@@ -153,6 +166,7 @@ target_link_libraries(  EosFstIo
                         ${UUID_LIBRARIES}       ${ATTR_LIBRARIES}       
                         ${RT_LIBRARIES}         ${KINETICIO_LIBRARIES}
 			${DAVIX_LIBRARIES}
+                        ${LIBRADOSFS_LIBRARIES}
                         ${CMAKE_THREAD_LIBS_INIT}
 )
 
@@ -185,7 +199,7 @@ add_library(XrdEosFst SHARED
 	    io/FsIo.cc                     io/FsIo.hh
             ${KINETICIO_SRC}               ${KINETICIO_HDR}
 	    ${DAVIX_SRC}                   ${DAVIX_HDR}
-            io/RadosIo.cc                  io/RadosIo.hh
+            ${LIBRADOSFS_SRC}              ${LIBRADOSFS_HDR}
             io/XrdIo.cc                    io/XrdIo.hh
             io/HeaderCRC.cc                io/HeaderCRC.hh
             io/AsyncMetaHandler.cc         io/AsyncMetaHandler.hh
@@ -220,6 +234,7 @@ target_link_libraries(  XrdEosFst
                         ${UUID_LIBRARIES}       ${ATTR_LIBRARIES}       
                         ${RT_LIBRARIES}         ${KINETICIO_LIBRARIES}
 			${DAVIX_LIBRARIES}
+                        ${LIBRADOSFS_LIBRARIES}
                         ${CMAKE_THREAD_LIBS_INIT}
 )
 else (CLIENT)
@@ -251,7 +266,7 @@ add_library(XrdEosFst MODULE
 	    io/FsIo.cc                     io/FsIo.hh
             ${KINETICIO_SRC}               ${KINETICIO_HDR}
 	    ${DAVIX_SRC}                 ${DAVIX_HDR}
-            io/RadosIo.cc                  io/RadosIo.hh
+            ${LIBRADOSFS_SRC}              ${LIBRADOSFS_HDR}
             io/XrdIo.cc                    io/XrdIo.hh
             io/HeaderCRC.cc                io/HeaderCRC.hh
             io/AsyncMetaHandler.cc         io/AsyncMetaHandler.hh
@@ -286,6 +301,7 @@ target_link_libraries(  XrdEosFst
                         ${UUID_LIBRARIES}       ${ATTR_LIBRARIES}       
                         ${RT_LIBRARIES}         ${KINETICIO_LIBRARIES}
 			${DAVIX_LIBRARIES}
+                        ${LIBRADOSFS_LIBRARIES}
                         ${CMAKE_THREAD_LIBS_INIT}
 )
 endif (CLIENT)
@@ -348,9 +364,9 @@ target_link_libraries( FstLoad XrdUtils dl ${RT_LIBRARIES} ${CMAKE_THREAD_LIBS_I
 target_link_libraries( eos-check-blockxs eosCommon ${CMAKE_THREAD_LIBS_INIT} )
 target_link_libraries( eos-compute-blockxs eosCommon ${CMAKE_THREAD_LIBS_INIT} )
 if (MacOSX)
-target_link_libraries( eos-scan-fs eosCommon EosFstIo XrdCl ${RT_LIBRARIES} ${KINETICIO_LIBRARIES} ${DAVIX_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ) 
+target_link_libraries( eos-scan-fs eosCommon EosFstIo XrdCl ${RT_LIBRARIES} ${KINETICIO_LIBRARIES} ${DAVIX_LIBRARIES} ${LIBRADOSFS_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 else (MacOSX)
-target_link_libraries( eos-scan-fs eosCommon EosFstIo-Static XrdCl ${RT_LIBRARIES} ${KINETICIO_LIBRARIES} ${DAVIX_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ) 
+target_link_libraries( eos-scan-fs eosCommon EosFstIo-Static XrdCl ${RT_LIBRARIES} ${KINETICIO_LIBRARIES} ${DAVIX_LIBRARIES} ${LIBRADOSFS_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} )
 endif (MacOSX)
 
 target_link_libraries( eos-adler32 eosCommon ${CMAKE_THREAD_LIBS_INIT} ) 

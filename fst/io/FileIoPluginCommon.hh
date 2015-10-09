@@ -111,7 +111,11 @@ public:
     else
       if (ioType == LayoutId::kRados)
     {
+#ifdef LIBRADOSFS_FOUND
       return static_cast<FileIo*> (new RadosIo(file, client));
+#endif
+      eos_static_warning("EOS has been compiled without libradosfs support.");
+      return NULL;
     }
     else
       if (ioType == LayoutId::kDavix)
@@ -156,7 +160,11 @@ public:
     else
       if (ioType == LayoutId::kRados)
     {
+#ifdef LIBRADOSFS_FOUND
       return static_cast<eos::common::Attr*> (eos::fst::RadosIo::Attr::OpenAttr(url));
+#endif
+      eos_static_warning("EOS has been compiled without libradosfs support.");
+      return NULL;
     }
     else
       if (ioType == LayoutId::kDavix)

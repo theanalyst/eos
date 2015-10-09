@@ -63,7 +63,11 @@ FileIoPlugin::GetIoAttr (const char* url)
   else
     if (ioType == LayoutId::kRados)
   {
+#ifdef LIBRADOSFS_FOUND
     return static_cast<eos::common::Attr*> (eos::fst::RadosIo::Attr::OpenAttr(url));
+#endif /* LIBRADOSFS_FOUND */
+    eos_static_warning("EOS has been compiled without libradosfs support.");
+    return NULL;
   }
   else
     if (ioType == LayoutId::kDavix)
@@ -103,7 +107,11 @@ FileIoPlugin::GetIoObject (int ioType,
   else
     if (ioType == LayoutId::kRados)
   {
+#ifdef LIBRADOSFS_FOUND
     return static_cast<FileIo*> (new RadosIo(file, client));
+#endif /* LIBRADOSFS_FOUND */
+    eos_static_warning("EOS has been compiled without libradosfs support.");
+    return 0;
   }
   else
     if (ioType == LayoutId::kDavix)
