@@ -22,6 +22,8 @@
  ************************************************************************/
 
 /*----------------------------------------------------------------------------*/
+#include <cstdlib>
+
 #include "fst/XrdFstOfsFile.hh"
 #include "fst/io/RadosIo.hh"
 /*----------------------------------------------------------------------------*/
@@ -37,16 +39,39 @@ EOSFSTNAMESPACE_BEGIN
 // Constructor
 //------------------------------------------------------------------------------
 RadosIo::RadosIo (XrdFstOfsFile* file,
-                  const XrdSecEntity* client) :
-FileIo (),
-mLogicalFile (file),
-mSecEntity (client)
+                  const XrdSecEntity* client)
+  : FileIo()
 {
   //............................................................................
   // In this case the logical file is the same as the local physical file
   //............................................................................
   // empty
   mType = "RadosIO";
+
+  char* cephConfPath = getenv("CEPH_CONF");
+
+  if (!cephConfPath && mFsMap.empty())
+  {
+    eos_info("No configuration for RadosFs found. Please set the CEPH_CONF "
+             "env var.");
+    return;
+  }
+
+  if (mFsMap.count(cephConfPath) == 0)
+  {
+    eos_info("Adding a new RadosFs instance: %s", cephConfPath);
+    char* cephUser = getenv("CEPH_USER");
+    mFs = std::make_shared<radosfs::Filesystem>();
+
+    mFs->init(cephUser ? cephUser : "", cephConfPath);
+
+    mFsMap[cephConfPath] = mFs;
+  }
+  else
+  {
+    eos_info("Already has RadosFs instance: %s", cephConfPath);
+    mFs = mFsMap[cephConfPath];
+  }
 }
 
 
@@ -71,7 +96,23 @@ RadosIo::Open (const std::string& path,
                const std::string& opaque,
                uint16_t timeout)
 {
-  return SFS_ERROR;
+  eos_info("path=%s flags=%x", path.c_str(), flags);
+
+  std::string pool, inode;
+
+  int ret = processPath(path, pool, inode);
+
+  if (ret == SFS_OK)
+  {
+    mInode.reset(new radosfs::FileInode(mFs.get(), pool, inode));
+  }
+  else
+  {
+    eos_err("error= openofs failed opening %s errno=%d retc=%d", path.c_str(),
+	    errno, ret);
+  }
+
+  return ret;
 }
 
 
@@ -85,9 +126,12 @@ RadosIo::Read (XrdSfsFileOffset offset,
                XrdSfsXferSize length,
                uint16_t timeout)
 {
-  return SFS_ERROR;
-}
+  eos_debug("offset = %lld, length = %lld",
+            static_cast<int64_t> (offset),
+            static_cast<int64_t> (length));
 
+  return mInode->read(buffer, offset, (size_t) length);
+}
 
 //------------------------------------------------------------------------------
 // Write to file - sync
@@ -99,7 +143,27 @@ RadosIo::Write (XrdSfsFileOffset offset,
                 XrdSfsXferSize length,
                 uint16_t timeout)
 {
-  return SFS_ERROR;
+  eos_debug("offset = %lld, length = %lld",
+            static_cast<int64_t> (offset),
+            static_cast<int64_t> (length));
+
+  errno = std::abs(mInode->write(buffer, offset, (size_t) length));
+
+  int64_t ret = SFS_ERROR;
+
+  if (errno == 0)
+  {
+    // We return the length given as a parameter because
+    // radosfs::FileInode::writeSync does not return the
+    // length of the written data
+    ret = length;
+  }
+  else
+  {
+    eos_err("Error writing inode: %d", ret);
+  }
+
+  return ret;
 }
 
 
@@ -139,7 +203,17 @@ RadosIo::WriteAsync (XrdSfsFileOffset offset,
 int
 RadosIo::Truncate (XrdSfsFileOffset offset, uint16_t timeout)
 {
-  return SFS_ERROR;
+  if (!mInode)
+  {
+    eos_err("Cannot truncate: radosfs::FileInode not instanced.");
+    errno = ENOENT;
+    return SFS_ERROR;
+  }
+
+  eos_info("Truncating %s to %d", mInode->name().c_str(), offset);
+
+  errno = std::abs(mInode->truncate(offset));
+  return (errno == 0 ? SFS_OK : SFS_ERROR);
 }
 
 
@@ -150,7 +224,8 @@ RadosIo::Truncate (XrdSfsFileOffset offset, uint16_t timeout)
 int
 RadosIo::Fallocate (XrdSfsFileOffset length)
 {
-  return SFS_ERROR;
+  eos_debug("N/A");
+  return SFS_OK;
 }
 
 
@@ -162,7 +237,8 @@ int
 RadosIo::Fdeallocate (XrdSfsFileOffset fromOffset,
                       XrdSfsFileOffset toOffset)
 {
-  return SFS_ERROR;
+  eos_debug("N/A");
+  return SFS_OK;
 }
 
 
@@ -173,7 +249,23 @@ RadosIo::Fdeallocate (XrdSfsFileOffset fromOffset,
 int
 RadosIo::Sync (uint16_t timeout)
 {
-  return SFS_ERROR;
+  int ret = SFS_ERROR;
+
+  if (!mInode)
+  {
+    eos_err("Cannot sync: radosfs::FileInode not instanced.");
+    errno = ENOENT;
+  }
+  else
+  {
+    eos_debug("Syncing radosfs::FileInode '%s'", mInode->name());
+    errno = std::abs(mInode->sync());
+  }
+
+  if (errno == 0)
+    ret = SFS_OK;
+
+  return ret;
 }
 
 
@@ -184,9 +276,27 @@ RadosIo::Sync (uint16_t timeout)
 int
 RadosIo::Stat (struct stat* buf, uint16_t timeout)
 {
-  return SFS_ERROR;
-}
+  u_int64_t size = 0;
+  int ret = ENOENT;
 
+  if (!mInode)
+  {
+    errno = ENOENT;
+    return SFS_ERROR;
+  }
+
+  mInode->sync();
+  ret = mInode->getSize(size);
+
+  if (ret != 0)
+  {
+    errno = std::abs(ret);
+    return SFS_ERROR;
+  }
+
+  buf->st_size = static_cast<off_t>(size);
+  return SFS_OK;
+}
 
 //------------------------------------------------------------------------------
 // Close file
@@ -195,7 +305,12 @@ RadosIo::Stat (struct stat* buf, uint16_t timeout)
 int
 RadosIo::Close (uint16_t timeout)
 {
-  return SFS_ERROR;
+  if (mInode)
+  {
+    mInode->sync();
+  }
+
+  return SFS_OK;
 }
 
 
@@ -206,7 +321,17 @@ RadosIo::Close (uint16_t timeout)
 int
 RadosIo::Remove (uint16_t timeout)
 {
-  return SFS_ERROR;
+  if (!mInode)
+  {
+    eos_err("Cannot remove: radosfs::FileInode not instanced.");
+    errno = ENOENT;
+    return SFS_ERROR;
+  }
+
+  eos_info("Removing %s", mInode->name().c_str());
+
+  errno = std::abs(mInode->remove());
+  return (errno == 0 ? SFS_OK : SFS_ERROR);
 }
 
 
@@ -220,6 +345,93 @@ RadosIo::GetAsyncHandler ()
   return NULL;
 }
 
+int
+RadosIo::Exists(const char* path)
+{
+  std::string pool, inode;
+  int ret = processPath(path, pool, inode);
+
+  if (ret == SFS_OK)
+  {
+    radosfs::FileInode fInode(mFs.get(), pool, inode);
+    fInode.sync();
+    u_int64_t size;
+    errno = std::abs(fInode.getSize(size));
+
+    if (errno != 0)
+      ret = SFS_ERROR;
+  }
+
+  return ret;
+}
+
+int
+RadosIo::Delete(const char* path)
+{
+  std::string pool, inode;
+  int ret = processPath(path, pool, inode);
+
+  if (ret == SFS_OK)
+  {
+    radosfs::FileInode fInode(mFs.get(), pool, inode);
+    errno = std::abs(fInode.remove());
+
+    if (errno != 0)
+      ret = SFS_ERROR;
+  }
+
+  return ret;
+}
+
+bool
+RadosIo::parsePoolsFromPath(const std::string &path, std::string &pool,
+			    std::string &inode)
+{
+  std::vector<std::string> tokens;
+  eos::common::StringConversion::Tokenize(path, tokens, ":");
+
+  if (tokens.size() < 3)
+    return false;
+
+  pool = tokens[1];
+  inode = tokens[2];
+
+  eos_debug("Tokens from path '%s': %s|%s|%s|", path.c_str(), tokens[0].c_str(),
+	   tokens[1].c_str(), tokens[2].c_str());
+  return true;
+}
+
+int
+RadosIo::processPath(const std::string &path, std::string &pool,
+		     std::string &inode)
+{
+  errno = 0;
+
+  if (!mFs)
+  {
+    eos_err("RadosFs not set...");
+    errno = ENODEV;
+    return SFS_ERROR;
+  }
+
+  if (!parsePoolsFromPath(path, pool, inode))
+  {
+    eos_err("Cannot parse pool or inode info from path: %s", path.c_str());
+    errno = EINVAL;
+    return SFS_ERROR;
+  }
+
+  if (mFs->dataPoolSize(pool) < 0)
+  {
+    errno = std::abs(mFs->addDataPool(pool, "/"));
+    if (errno != 0)
+    {
+      eos_err("Error adding pool: %s (retcode=%d)", pool.c_str(), errno);
+      return SFS_ERROR;
+    }
+  }
+
+  return SFS_OK;
+}
+
 EOSFSTNAMESPACE_END
-
-

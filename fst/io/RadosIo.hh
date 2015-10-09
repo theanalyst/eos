@@ -26,11 +26,15 @@
 #define __EOSFST_RADOSFILEIO__HH__
 
 /*----------------------------------------------------------------------------*/
+#include <libradosfs.hh>
+
 #include "fst/io/FileIo.hh"
 
 /*----------------------------------------------------------------------------*/
 
 EOSFSTNAMESPACE_BEGIN
+
+typedef std::map<std::string, std::shared_ptr<radosfs::Filesystem>> ConfRadosFsMap;
 
 //------------------------------------------------------------------------------
 //! Class used for doing local IO operations
@@ -230,7 +234,7 @@ public:
   //!
   //! @return 0 on success, -1 otherwise and error code is set
   //--------------------------------------------------------------------------
-  virtual int Exists(const char* path) { return -1;}
+  virtual int Exists(const char* path);
 
   //--------------------------------------------------------------------------
   //! Delete a file
@@ -238,8 +242,9 @@ public:
   //! @param path to the file to be deleted
   //!
   //! @return 0 on success, -1 otherwise and error code is set
-  //--------------------------------------------------------------------------                                                                                                                               
-  virtual int Delete(const char* path) { return -1; }
+  //--------------------------------------------------------------------------
+
+  virtual int Delete(const char* path);
 
   //--------------------------------------------------------------------------
   //! Get pointer to async meta handler object
@@ -334,8 +339,10 @@ public:
 
 private:
 
-  XrdFstOfsFile* mLogicalFile; ///< handler to logical file
-  const XrdSecEntity* mSecEntity; ///< security entity
+  ConfRadosFsMap mFsMap;
+  std::shared_ptr<radosfs::Filesystem> mFs;
+  std::unique_ptr<radosfs::File> mFile;
+  std::unique_ptr<radosfs::FileInode> mInode;
 
   //--------------------------------------------------------------------------
   //! Disable copy constructor
@@ -348,7 +355,10 @@ private:
   //--------------------------------------------------------------------------
   RadosIo& operator = (const RadosIo&) = delete;
 
+  bool parsePoolsFromPath(const std::string &path, std::string &pool,
+			  std::string &inode);
 
+  int processPath(const std::string &path, std::string &pool, std::string &inode);
 };
 
 EOSFSTNAMESPACE_END
