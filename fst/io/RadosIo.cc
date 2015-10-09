@@ -1,11 +1,11 @@
 //------------------------------------------------------------------------------
 // File: RadosIo.cc
-// Author: Elvin-Alin Sindrilaru - CERN
+// Author: Joaquim Rocha <joaquim.rocha@cern.ch>
 //------------------------------------------------------------------------------
 
 /************************************************************************
  * EOS - the CERN Disk Storage System                                   *
- * Copyright (C) 2011 CERN/Switzerland                                  *
+ * Copyright (C) 2011-2015 CERN/Switzerland                             *
  *                                                                      *
  * This program is free software: you can redistribute it and/or modify *
  * it under the terms of the GNU General Public License as published by *
