@@ -234,6 +234,14 @@ RadosIo::Read (XrdSfsFileOffset offset,
                XrdSfsXferSize length,
                uint16_t timeout)
 {
+  errno = 0;
+  if (!mInode)
+  {
+    eos_err("Cannot read: radosfs::FileInode not instanced.");
+    errno = ENOENT;
+    return SFS_ERROR;
+  }
+
   eos_debug("offset = %lld, length = %lld",
             static_cast<int64_t> (offset),
             static_cast<int64_t> (length));
@@ -251,6 +259,13 @@ RadosIo::Write (XrdSfsFileOffset offset,
                 XrdSfsXferSize length,
                 uint16_t timeout)
 {
+  if (!mInode)
+  {
+    eos_err("Cannot write: radosfs::FileInode not instanced.");
+    errno = ENOENT;
+    return SFS_ERROR;
+  }
+
   eos_debug("offset = %lld, length = %lld",
             static_cast<int64_t> (offset),
             static_cast<int64_t> (length));
