@@ -35,6 +35,26 @@
 EOSFSTNAMESPACE_BEGIN
 
 typedef std::map<std::string, std::shared_ptr<radosfs::Filesystem>> ConfRadosFsMap;
+typedef std::map<std::string, std::shared_ptr<radosfs::FileInode>> RadosFsFileInodeMap;
+
+class RadosFsManager : public eos::common::LogId {
+public:
+  RadosFsManager();
+  virtual ~RadosFsManager();
+
+  std::shared_ptr<radosfs::FileInode> getInode(const std::string &name);
+  std::shared_ptr<radosfs::Filesystem> getFilesystem();
+  std::shared_ptr<radosfs::Filesystem> getFilesystem(const std::string &cephConfPath);
+
+private:
+  static ConfRadosFsMap mFsMap;
+  static RadosFsFileInodeMap mFileInodeMap;
+
+  bool parsePoolsFromPath(const std::string &path, std::string &pool,
+                          std::string &inode);
+
+  int processPath(const std::string &path, std::string &pool, std::string &inode);
+};
 
 //------------------------------------------------------------------------------
 //! Class used for doing local IO operations
@@ -339,10 +359,8 @@ public:
 
 private:
 
-  ConfRadosFsMap mFsMap;
-  std::shared_ptr<radosfs::Filesystem> mFs;
-  std::unique_ptr<radosfs::File> mFile;
-  std::unique_ptr<radosfs::FileInode> mInode;
+  RadosFsManager mRadosFsMgr;
+  std::shared_ptr<radosfs::FileInode> mInode;
 
   //--------------------------------------------------------------------------
   //! Disable copy constructor
@@ -354,11 +372,6 @@ private:
   //! Disable assign operator
   //--------------------------------------------------------------------------
   RadosIo& operator = (const RadosIo&) = delete;
-
-  bool parsePoolsFromPath(const std::string &path, std::string &pool,
-			  std::string &inode);
-
-  int processPath(const std::string &path, std::string &pool, std::string &inode);
 };
 
 EOSFSTNAMESPACE_END

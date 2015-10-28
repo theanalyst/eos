@@ -35,6 +35,151 @@
 
 EOSFSTNAMESPACE_BEGIN
 
+ConfRadosFsMap RadosFsManager::mFsMap;
+RadosFsFileInodeMap RadosFsManager::mFileInodeMap;
+
+RadosFsManager::RadosFsManager()
+{}
+
+RadosFsManager::~RadosFsManager()
+{}
+
+std::shared_ptr<radosfs::FileInode>
+RadosFsManager::getInode(const std::string &path)
+{
+  std::shared_ptr<radosfs::FileInode> inode;
+
+  auto mapIt = mFileInodeMap.find(path);
+  if (mapIt != mFileInodeMap.end())
+  {
+    eos_debug("Found FileInode in map: %s", (*mapIt).first.c_str());
+    return (*mapIt).second;
+  }
+
+  std::string pool, inodeName;
+  int ret = processPath(path, pool, inodeName);
+
+  if (ret == SFS_OK)
+  {
+    auto fs = getFilesystem();
+
+    if (!fs)
+    {
+      eos_err("Cannot get radosfs::Filesystem instance when making "
+              "inode %s, %p, %p", path.c_str(), this, fs.get());
+      errno = ENODEV;
+      return inode;
+    }
+
+    inode = std::make_shared<radosfs::FileInode>(fs.get(), pool, inodeName);
+    mFileInodeMap[path] = inode;
+    eos_debug("Instantiating a new FileInode '%s' from %s", inodeName.c_str(),
+              pool.c_str());
+  }
+
+  return inode;
+}
+
+std::shared_ptr<radosfs::Filesystem>
+RadosFsManager::getFilesystem()
+{
+  char* cephConfPath = getenv("CEPH_CONF");
+  return getFilesystem(cephConfPath);
+}
+
+std::shared_ptr<radosfs::Filesystem>
+RadosFsManager::getFilesystem(const std::string &cephConfPath)
+{
+  std::shared_ptr<radosfs::Filesystem> fs;
+
+  if (cephConfPath.empty() && mFsMap.empty())
+  {
+    eos_info("No configuration for RadosFs found. Please set the CEPH_CONF "
+             "env var.");
+    return fs;
+  }
+
+  if (mFsMap.count(cephConfPath) == 0)
+  {
+    eos_info("Adding a new RadosFs instance: %s %p", cephConfPath.c_str(),
+             this);
+    char* cephUser = getenv("CEPH_USER");
+    fs = std::make_shared<radosfs::Filesystem>();
+    int ret = fs->init(cephUser ? cephUser : "", cephConfPath);
+
+    if (ret != 0)
+    {
+      eos_err("Cannot initialize radosfs::Filesystem with conf file '%s' "
+              "and user name '%s'", cephConfPath.c_str(),
+              (cephUser ? cephUser : ""));
+      errno = ret;
+      fs.reset();
+    }
+    else
+    {
+      mFsMap[cephConfPath] = fs;
+    }
+  }
+  else
+  {
+    fs = mFsMap[cephConfPath];
+  }
+
+  return fs;
+}
+
+bool
+RadosFsManager::parsePoolsFromPath(const std::string &path, std::string &pool,
+                                   std::string &inode)
+{
+  std::vector<std::string> tokens;
+  eos::common::StringConversion::Tokenize(path, tokens, ":");
+
+  if (tokens.size() < 3)
+    return false;
+
+  pool = tokens[1];
+  inode = tokens[2];
+
+  eos_debug("Tokens from path '%s': %s|%s|%s|", path.c_str(), tokens[0].c_str(),
+            tokens[1].c_str(), tokens[2].c_str());
+  return true;
+}
+
+int
+RadosFsManager::processPath(const std::string &path, std::string &pool,
+                            std::string &inode)
+{
+  errno = 0;
+  auto fs = getFilesystem();
+
+  if (!fs)
+  {
+    eos_err("RadosFs not set...");
+    errno = ENODEV;
+    return SFS_ERROR;
+  }
+
+  if (!parsePoolsFromPath(path, pool, inode))
+  {
+    eos_err("Cannot parse pool or inode info from path: %s", path.c_str());
+    errno = EINVAL;
+    return SFS_ERROR;
+  }
+
+  if (fs->dataPoolSize(pool) < 0)
+  {
+    errno = std::abs(fs->addDataPool(pool, "/"));
+    if (errno != 0)
+    {
+      eos_err("Error adding pool: %s (retcode=%d)", pool.c_str(), errno);
+      return SFS_ERROR;
+    }
+  }
+
+  return SFS_OK;
+}
+
 //------------------------------------------------------------------------------
 // Constructor
 //------------------------------------------------------------------------------
@@ -42,36 +187,7 @@ RadosIo::RadosIo (XrdFstOfsFile* file,
                   const XrdSecEntity* client)
   : FileIo()
 {
-  //............................................................................
-  // In this case the logical file is the same as the local physical file
-  //............................................................................
-  // empty
   mType = "RadosIO";
-
-  char* cephConfPath = getenv("CEPH_CONF");
-
-  if (!cephConfPath && mFsMap.empty())
-  {
-    eos_info("No configuration for RadosFs found. Please set the CEPH_CONF "
-             "env var.");
-    return;
-  }
-
-  if (mFsMap.count(cephConfPath) == 0)
-  {
-    eos_info("Adding a new RadosFs instance: %s", cephConfPath);
-    char* cephUser = getenv("CEPH_USER");
-    mFs = std::make_shared<radosfs::Filesystem>();
-
-    mFs->init(cephUser ? cephUser : "", cephConfPath);
-
-    mFsMap[cephConfPath] = mFs;
-  }
-  else
-  {
-    eos_info("Already has RadosFs instance: %s", cephConfPath);
-    mFs = mFsMap[cephConfPath];
-  }
 }
 
 
@@ -98,21 +214,13 @@ RadosIo::Open (const std::string& path,
 {
   eos_info("path=%s flags=%x", path.c_str(), flags);
 
-  std::string pool, inode;
+  errno = 0;
+  mInode = mRadosFsMgr.getInode(path);
 
-  int ret = processPath(path, pool, inode);
+  if (!mInode)
+    return SFS_ERROR;
 
-  if (ret == SFS_OK)
-  {
-    mInode.reset(new radosfs::FileInode(mFs.get(), pool, inode));
-  }
-  else
-  {
-    eos_err("error= openofs failed opening %s errno=%d retc=%d", path.c_str(),
-	    errno, ret);
-  }
-
-  return ret;
+  return SFS_OK;
 }
 
 
@@ -203,6 +311,8 @@ RadosIo::WriteAsync (XrdSfsFileOffset offset,
 int
 RadosIo::Truncate (XrdSfsFileOffset offset, uint16_t timeout)
 {
+  errno = 0;
+
   if (!mInode)
   {
     eos_err("Cannot truncate: radosfs::FileInode not instanced.");
@@ -348,90 +458,46 @@ RadosIo::GetAsyncHandler ()
 int
 RadosIo::Exists(const char* path)
 {
-  std::string pool, inode;
-  int ret = processPath(path, pool, inode);
+  errno = 0;
+  auto inode = mRadosFsMgr.getInode(path);
+  if (!inode)
+    return SFS_ERROR;
 
-  if (ret == SFS_OK)
+  inode->sync();
+  u_int64_t size;
+  errno = std::abs(inode->getSize(size));
+
+  if (errno == 0)
   {
-    radosfs::FileInode fInode(mFs.get(), pool, inode);
-    fInode.sync();
-    u_int64_t size;
-    errno = std::abs(fInode.getSize(size));
-
-    if (errno != 0)
-      ret = SFS_ERROR;
+    return SFS_OK;
   }
 
-  return ret;
+  return SFS_ERROR;
 }
 
 int
 RadosIo::Delete(const char* path)
 {
-  std::string pool, inode;
-  int ret = processPath(path, pool, inode);
-
-  if (ret == SFS_OK)
-  {
-    radosfs::FileInode fInode(mFs.get(), pool, inode);
-    errno = std::abs(fInode.remove());
-
-    if (errno != 0)
-      ret = SFS_ERROR;
-  }
-
-  return ret;
-}
-
-bool
-RadosIo::parsePoolsFromPath(const std::string &path, std::string &pool,
-			    std::string &inode)
-{
-  std::vector<std::string> tokens;
-  eos::common::StringConversion::Tokenize(path, tokens, ":");
-
-  if (tokens.size() < 3)
-    return false;
-
-  pool = tokens[1];
-  inode = tokens[2];
-
-  eos_debug("Tokens from path '%s': %s|%s|%s|", path.c_str(), tokens[0].c_str(),
-	   tokens[1].c_str(), tokens[2].c_str());
-  return true;
-}
-
-int
-RadosIo::processPath(const std::string &path, std::string &pool,
-		     std::string &inode)
-{
   errno = 0;
 
-  if (!mFs)
-  {
-    eos_err("RadosFs not set...");
-    errno = ENODEV;
+  auto inode = mRadosFsMgr.getInode(path);
+  if (!inode)
     return SFS_ERROR;
-  }
 
-  if (!parsePoolsFromPath(path, pool, inode))
+  u_int64_t size;
+  errno = std::abs(inode->remove());
+
+  if (errno == 0)
   {
-    eos_err("Cannot parse pool or inode info from path: %s", path.c_str());
-    errno = EINVAL;
-    return SFS_ERROR;
+    return SFS_OK;
   }
-
-  if (mFs->dataPoolSize(pool) < 0)
+  else
   {
-    errno = std::abs(mFs->addDataPool(pool, "/"));
-    if (errno != 0)
-    {
-      eos_err("Error adding pool: %s (retcode=%d)", pool.c_str(), errno);
-      return SFS_ERROR;
-    }
+    eos_err("Error deleting inode '%s': %s (errno=%d)", path, strerror(errno),
+            errno);
   }
 
-  return SFS_OK;
+  return SFS_ERROR;
 }
 
 EOSFSTNAMESPACE_END
