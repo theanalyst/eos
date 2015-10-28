@@ -296,43 +296,36 @@ public:
     return 0;
   }
 
-  class Attr : public FileIo::Attr {
+  class Attr : public FileIo::Attr, public eos::common::LogId {
+   private:
+    RadosFsManager mRadosFsMgr;
+    std::shared_ptr<radosfs::FileInode> mInode;
+
+   public:
     // ------------------------------------------------------------------------
     //! Set a binary attribute
     // ------------------------------------------------------------------------
 
-    virtual bool Set (const char* name, const char* value, size_t len)
-    {
-      return false;
-    }
+    virtual bool Set (const char* name, const char* value, size_t len);
 
     // ------------------------------------------------------------------------
     //! Set a string attribute
     // ------------------------------------------------------------------------
 
-    virtual bool Set (std::string key, std::string value)
-    {
-      return false;
-    }
+    virtual bool Set (std::string key, std::string value);
 
     // ------------------------------------------------------------------------
     //! Get a binary attribute by name
     // ------------------------------------------------------------------------
 
-    virtual bool Get (const char* name, char* value, size_t &size)
-    {
-      return false;
-    }
+    virtual bool Get (const char* name, char* value, size_t &size);
 
 
     // ------------------------------------------------------------------------
     //! Get a string attribute by name (name has to start with 'user.' !!!)
     // ------------------------------------------------------------------------
 
-    virtual std::string Get (std::string name)
-    {
-      return "";
-    }
+    virtual std::string Get (std::string name);
 
     // ------------------------------------------------------------------------
     //! Non-static Factory function to create an attribute object
@@ -347,9 +340,7 @@ public:
     // Constructor
     // ------------------------------------------------------------------------
 
-    Attr (const char* path)
-    {
-    }
+    Attr (const char* path);
 
     // ------------------------------------------------------------------------
     // Destructor

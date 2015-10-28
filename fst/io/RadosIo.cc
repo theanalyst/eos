@@ -500,4 +500,73 @@ RadosIo::Delete(const char* path)
   return SFS_ERROR;
 }
 
+bool
+RadosIo::Attr::Set(const char* name, const char* value, size_t len)
+{
+  return Set(name, std::string(value, len));
+}
+
+bool
+RadosIo::Attr::Set(std::string key, std::string value)
+{
+  errno = 0;
+
+  if (!mInode)
+  {
+    eos_err("Cannot set attribute: radosfs::FileInode not instanced.");
+    errno = ENOENT;
+    return false;
+  }
+
+  return mInode->setXAttr(key, value) == 0;
+}
+
+bool
+RadosIo::Attr::Get(const char* name, char* value, size_t &size)
+{
+  std::string xattrValue = Get(name);
+
+  if (errno == 0)
+  {
+    memcpy(value, xattrValue.c_str(), size);
+    return true;
+  }
+
+  return false;
+}
+
+std::string
+RadosIo::Attr::Get(std::string name)
+{
+  errno = 0;
+
+  if (!mInode)
+  {
+    eos_err("Cannot get attribute: radosfs::FileInode not instanced.");
+    errno = ENOENT;
+    return false;
+  }
+
+  std::string xattrValue;
+  int ret = mInode->getXAttr(name, xattrValue);
+
+  if (ret < 0)
+  {
+    errno = std::abs(ret);
+  }
+
+  return xattrValue;
+}
+
+RadosIo::Attr::Attr(const char* path)
+{
+  mInode = mRadosFsMgr.getInode(path);
+
+  if (!mInode)
+    eos_err("Error getting instance of FileInode for path '%s'", path);
+}
+
+RadosIo::Attr::~Attr()
+{}
+
 EOSFSTNAMESPACE_END
