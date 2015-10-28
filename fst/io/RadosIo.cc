@@ -359,6 +359,7 @@ RadosIo::Fdeallocate (XrdSfsFileOffset fromOffset,
 int
 RadosIo::Sync (uint16_t timeout)
 {
+  errno = 0;
   int ret = SFS_ERROR;
 
   if (!mInode)
@@ -386,6 +387,7 @@ RadosIo::Sync (uint16_t timeout)
 int
 RadosIo::Stat (struct stat* buf, uint16_t timeout)
 {
+  errno = 0;
   u_int64_t size = 0;
   int ret = ENOENT;
 
@@ -431,6 +433,7 @@ RadosIo::Close (uint16_t timeout)
 int
 RadosIo::Remove (uint16_t timeout)
 {
+  errno = 0;
   if (!mInode)
   {
     eos_err("Cannot remove: radosfs::FileInode not instanced.");
