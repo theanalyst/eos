@@ -388,7 +388,7 @@ RadosIo::Sync (uint16_t timeout)
   }
   else
   {
-    eos_debug("Syncing radosfs::FileInode '%s'", mInode->name());
+    eos_debug("Syncing radosfs::FileInode '%s'", mInode->name().c_str());
     errno = std::abs(mInode->sync());
   }
 
