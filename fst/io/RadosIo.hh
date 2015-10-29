@@ -45,7 +45,8 @@ public:
 
   std::shared_ptr<radosfs::FileInode> getInode(const std::string &name);
   std::shared_ptr<radosfs::Filesystem> getFilesystem();
-  std::shared_ptr<radosfs::Filesystem> getFilesystem(const std::string &cephConfPath);
+  std::shared_ptr<radosfs::Filesystem> getFilesystem(const std::string &cephConfPath,
+                                                     const std::string &cephUser);
 
 private:
   static ConfRadosFsMap mFsMap;

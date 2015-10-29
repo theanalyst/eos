@@ -87,11 +87,13 @@ std::shared_ptr<radosfs::Filesystem>
 RadosFsManager::getFilesystem()
 {
   char* cephConfPath = getenv("CEPH_CONF");
-  return getFilesystem(cephConfPath);
+  char* cephUser = getenv("CEPH_USER");
+  return getFilesystem(cephConfPath, (cephUser ? cephUser : ""));
 }
 
 std::shared_ptr<radosfs::Filesystem>
-RadosFsManager::getFilesystem(const std::string &cephConfPath)
+RadosFsManager::getFilesystem(const std::string &cephConfPath,
+			      const std::string &cephUser)
 {
   std::shared_ptr<radosfs::Filesystem> fs;
   std::unique_lock<std::mutex> lock(mFsMapMutex);
@@ -107,15 +109,13 @@ RadosFsManager::getFilesystem(const std::string &cephConfPath)
   {
     eos_info("Adding a new RadosFs instance: %s %p", cephConfPath.c_str(),
              this);
-    char* cephUser = getenv("CEPH_USER");
     fs = std::make_shared<radosfs::Filesystem>();
-    int ret = fs->init(cephUser ? cephUser : "", cephConfPath);
+    int ret = fs->init(cephUser, cephConfPath);
 
     if (ret != 0)
     {
       eos_err("Cannot initialize radosfs::Filesystem with conf file '%s' "
-              "and user name '%s'", cephConfPath.c_str(),
-              (cephUser ? cephUser : ""));
+              "and user name '%s'", cephConfPath.c_str(), cephUser.c_str());
       errno = ret;
       fs.reset();
     }
