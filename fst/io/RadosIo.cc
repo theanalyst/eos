@@ -506,7 +506,6 @@ RadosIo::Delete(const char* path)
   if (!inode)
     return SFS_ERROR;
 
-  u_int64_t size;
   errno = std::abs(inode->remove());
 
   if (errno == 0)
