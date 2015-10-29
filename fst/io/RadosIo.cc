@@ -37,6 +37,8 @@ EOSFSTNAMESPACE_BEGIN
 
 ConfRadosFsMap RadosFsManager::mFsMap;
 RadosFsFileInodeMap RadosFsManager::mFileInodeMap;
+std::mutex RadosFsManager::mFsMapMutex;
+std::mutex RadosFsManager::mFileInodeMapMutex;
 
 RadosFsManager::RadosFsManager()
 {}
@@ -48,6 +50,7 @@ std::shared_ptr<radosfs::FileInode>
 RadosFsManager::getInode(const std::string &path)
 {
   std::shared_ptr<radosfs::FileInode> inode;
+  std::unique_lock<std::mutex> lock(mFileInodeMapMutex);
 
   auto mapIt = mFileInodeMap.find(path);
   if (mapIt != mFileInodeMap.end())
@@ -91,6 +94,7 @@ std::shared_ptr<radosfs::Filesystem>
 RadosFsManager::getFilesystem(const std::string &cephConfPath)
 {
   std::shared_ptr<radosfs::Filesystem> fs;
+  std::unique_lock<std::mutex> lock(mFsMapMutex);
 
   if (cephConfPath.empty() && mFsMap.empty())
   {

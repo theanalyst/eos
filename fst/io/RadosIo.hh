@@ -27,6 +27,7 @@
 
 /*----------------------------------------------------------------------------*/
 #include <libradosfs.hh>
+#include <mutex>
 
 #include "fst/io/FileIo.hh"
 
@@ -48,7 +49,9 @@ public:
 
 private:
   static ConfRadosFsMap mFsMap;
+  static std::mutex mFsMapMutex;
   static RadosFsFileInodeMap mFileInodeMap;
+  static std::mutex mFileInodeMapMutex;
 
   bool parsePoolsFromPath(const std::string &path, std::string &pool,
                           std::string &inode);
