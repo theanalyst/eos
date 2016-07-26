@@ -260,6 +260,8 @@ Storage::Storage (const char* metadirectory)
   {
     eos_err("unable to create transfer queue");
   }
+
+  balanceJobNotification = new XrdSysCondVar(1);
 }
 
 /*----------------------------------------------------------------------------*/

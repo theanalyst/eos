@@ -121,7 +121,7 @@ public:
   // ---------------------------------------------------------------------------
   // balancer related methods
   // ---------------------------------------------------------------------------
-  XrdSysCondVar balanceJobNotification;
+  XrdSysCondVar* balanceJobNotification;
 
   void Balancer ();
   void GetBalanceSlotVariables (unsigned long long &nparalleltx,
@@ -129,12 +129,9 @@ public:
                                 std::string configqueue);
 
 
-  unsigned long long GetScheduledBalanceJobs (unsigned long long totalscheduled,
-                                              unsigned long long &totalexecuted);
+  unsigned long long GetRunningBalanceJobs ();
 
-  unsigned long long WaitFreeBalanceSlot (unsigned long long &nparalleltx,
-                                          unsigned long long &totalscheduled,
-                                          unsigned long long &totalexecuted);
+  unsigned long long WaitFreeBalanceSlot (unsigned long long &nparalleltx);
 
   bool GetFileSystemInBalanceMode (std::vector<unsigned int> &balancefsvector,
                                    unsigned int &cycler,
@@ -207,7 +204,7 @@ public:
 
   Storage (const char* metadirectory);
 
-  ~Storage () { };
+  ~Storage () { delete balanceJobNotification;}
 
   Load fstLoad;
 

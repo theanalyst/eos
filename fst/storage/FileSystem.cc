@@ -55,9 +55,9 @@ FileSystem::FileSystem (const char* queuepath,
   
   mLocalBootStatus = eos::common::FileSystem::kDown;
   
-  mTxDrainQueue = new TransferQueue(&mDrainQueue, n1.c_str());
+  mTxDrainQueue   = new TransferQueue(&mDrainQueue, n1.c_str());
   mTxBalanceQueue = new TransferQueue(&mBalanceQueue, n2.c_str());
-  mTxExternQueue = new TransferQueue(&mExternQueue, n3.c_str());
+  mTxExternQueue  = new TransferQueue(&mExternQueue, n3.c_str());
 
   mTxMultiplexer.Add(mTxDrainQueue);
   mTxMultiplexer.Add(mTxBalanceQueue);

@@ -127,23 +127,26 @@ TransferMultiplexer::ThreadProc (void)
 
 	 fprintf(stderr,"Found %u transfers in queue %s\n", (unsigned int) mQueues[i]->GetQueue()->Size(), mQueues[i]->GetName());
 
-         mQueues[i]->GetQueue()->OpenTransaction();
-         eos::common::TransferJob* cjob = mQueues[i]->GetQueue()->Get();
-         mQueues[i]->GetQueue()->CloseTransaction();
+	 if (mQueues[i]->GetQueue())
+	 {
+	   mQueues[i]->GetQueue()->OpenTransaction();	 
+	   eos::common::TransferJob* cjob = mQueues[i]->GetQueue()->Get();
+	   mQueues[i]->GetQueue()->CloseTransaction();
 
-         if (!cjob)
-           break;
+	   if (!cjob)
+	     break;
 
-         XrdOucString out = "";
-         cjob->PrintOut(out);
-	 fprintf(stderr, "New transfer %s\n", out.c_str());
-
-         //create new TransferJob and submit it to the scheduler
-         TransferJob* job = new TransferJob(mQueues[i], cjob, mQueues[i]->GetBandwidth());
-         gOFS.TransferSchedulerMutex.Lock();
-         gOFS.TransferScheduler->Schedule(job);
-         gOFS.TransferSchedulerMutex.UnLock();
-         mQueues[i]->IncRunning();
+	   XrdOucString out = "";
+	   cjob->PrintOut(out);
+	   fprintf(stderr, "New transfer %s\n", out.c_str());
+	   
+	   //create new TransferJob and submit it to the scheduler
+	   TransferJob* job = new TransferJob(mQueues[i], cjob, mQueues[i]->GetBandwidth());
+	   gOFS.TransferSchedulerMutex.Lock();
+	   gOFS.TransferScheduler->Schedule(job);
+	   gOFS.TransferSchedulerMutex.UnLock();
+	   mQueues[i]->IncRunning();
+	 }
        }
      }
    }

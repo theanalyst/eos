@@ -301,7 +301,7 @@ Storage::Publish ()
           success &= fileSystemsVector[i]->SetString("stat.boot", fileSystemsVector[i]->GetStatusAsString(fileSystemsVector[i]->GetStatus()));
           success &= fileSystemsVector[i]->SetString("stat.geotag", lNodeGeoTag.c_str());
           success &= fileSystemsVector[i]->SetLongLong("stat.drainer.running", fileSystemsVector[i]->GetDrainQueue()->GetRunningAndQueued());
-          success &= fileSystemsVector[i]->SetLongLong("stat.balancer.running", fileSystemsVector[i]->GetBalanceQueue()->GetRunningAndQueued());
+          success &= fileSystemsVector[i]->SetLongLong("stat.balancer.running", fileSystemsVector[i]->GetBalanceQueue()->GetRunning());
 
           // copy out IOPS + bandwidth measurement
           success &= fileSystemsVector[i]->SetLongLong("stat.disk.iops", fileSystemsVector[i]->getIOPS());

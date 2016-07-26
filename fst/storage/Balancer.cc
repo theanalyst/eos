@@ -62,89 +62,60 @@ Storage::GetBalanceSlotVariables (unsigned long long &nparalleltx,
 
 /*----------------------------------------------------------------------------*/
 unsigned long long
-Storage::GetScheduledBalanceJobs (unsigned long long totalscheduled,
-                                  unsigned long long &totalexecuted)
+Storage::GetRunningBalanceJobs ()
 /*----------------------------------------------------------------------------*/
 /**
- * @brief return the number of already scheduled jobs
- * @param totalscheduled the total number of scheduled jobs
- * @param totalexecuted the total number of executed jobs
- * @return number of scheduled jobs
+ * @brief return the number of running jobs
+ * @return number of running jobs
  * 
- * The time delay from scheduling on MGM and appearing in the queue on the FST
- * creates an accounting problem. The returned value is the currently known
- * value on the FST which can be wrong e.g. too small!
  */
 /*----------------------------------------------------------------------------*/
 {
   unsigned int nfs = 0;
-  unsigned long long nscheduled = 0;
+  unsigned long long totalrunning = 0 ;
   {
     eos::common::RWMutexReadLock lock(fsMutex);
     nfs = fileSystemsVector.size();
-    totalexecuted = 0;
 
-    // sum up the current execution state e.g. 
-    // number of jobs taken from the queue
-
-    // sum up the current execution state e.g. number of jobs taken from the queue
+    // sum up the total number of running jobs
     for (unsigned int s = 0; s < nfs; s++)
     {
       if (s < fileSystemsVector.size())
       {
-        totalexecuted += fileSystemsVector[s]->GetBalanceQueue()->GetDone();
+        totalrunning += fileSystemsVector[s]->GetBalanceQueue()->GetRunning();
       }
     }
-    if (totalscheduled < totalexecuted)
-      nscheduled = 0;
-
-    else
-      nscheduled = totalscheduled - totalexecuted;
   }
-
-  return nscheduled;
+  return totalrunning;
 }
 
 /*----------------------------------------------------------------------------*/
 unsigned long long
-Storage::WaitFreeBalanceSlot (unsigned long long &nparalleltx,
-                              unsigned long long &totalscheduled,
-                              unsigned long long &totalexecuted)
+Storage::WaitFreeBalanceSlot (unsigned long long &nparalleltx)
 /*----------------------------------------------------------------------------*/
 /**
  * @brief wait that there is a free slot to schedule a new balance job
  * @param nparalleltx number of parallel transfers
- * @param totalscheduled number of total scheduled transfers
- * @param totalexecuted number of total executed transfers
- * @return number of used balance slots
+ * @return number of free slots to fill
  */
 /*----------------------------------------------------------------------------*/
 {
-  size_t sleep_count = 0;
-  unsigned long long nscheduled = 0;
+  unsigned long long totalrunning = 0;
   XrdSysTimer sleeper;
 
   while (1)
   {
-    nscheduled = GetScheduledBalanceJobs(totalscheduled, totalexecuted);
-    if (nscheduled < nparalleltx)
+    totalrunning = GetRunningBalanceJobs();
+    if (totalrunning < nparalleltx)
       break;
-    sleep_count++;
-    sleeper.Snooze(1);
-    if (sleep_count > 3600)
-    {
-      eos_static_warning(
-                         "msg=\"reset the total scheduled counter\""
-                         " oldvalue=%llu newvalue=%llu",
-                         totalscheduled,
-                         totalexecuted
-                         );
-      // reset the accounting
-      totalscheduled = totalexecuted;
-      sleep_count = 0;
-    }
+    sleeper.Wait(100);
   }
-  return nscheduled;
+  eos_static_info("total running=%d", totalrunning);
+  
+  if (nparalleltx > totalrunning)
+    return (nparalleltx-totalrunning);
+  else
+    return 0;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -198,7 +169,7 @@ Storage::GetFileSystemInBalanceMode (std::vector<unsigned int> &balancefsvector,
 
       // store our notification condition variable
       fileSystemsVector[index]->
-        GetBalanceQueue()->SetJobEndCallback(&balanceJobNotification);
+        GetBalanceQueue()->SetJobEndCallback(balanceJobNotification);
 
       // configure the proper rates and slots
       if (fileSystemsVector[index]->GetBalanceQueue()->GetBandwidth() != ratetx)
@@ -276,6 +247,7 @@ Storage::GetBalanceJob (unsigned int index)
   managerQuery += sfree;
   managerQuery += "&mgm.logid=";
   managerQuery += logId;
+  managerQuery += "&mgm.replyjob=1";
 
   XrdOucString response = "";
   int rc = gOFS.CallManager(&error,
@@ -290,14 +262,24 @@ Storage::GetBalanceJob (unsigned int index)
   }
   else
   {
-    if (response == "submitted")
+    if (response.length())
     {
-      eos_static_info("msg=\"new transfer job\" fsid=%u", id);
+      eos_static_debug("job=%s\n", response.c_str());
+      eos::common::TransferJob* cjob = new eos::common::TransferJob(response.c_str());
+      //create new TransferJob and submit it to the scheduler
+      TransferJob* job = new TransferJob(fileSystemsVector[index]->GetBalanceQueue(), cjob, fileSystemsVector[index]->GetBalanceQueue()->GetBandwidth());
+      gOFS.TransferSchedulerMutex.Lock();
+      gOFS.TransferScheduler->Schedule(job);
+      gOFS.TransferSchedulerMutex.UnLock();
+      fileSystemsVector[index]->GetBalanceQueue()->IncRunning();
+      
+      eos_static_info("msg=\"running new transfer job\" fsid=%u", id);
       return true;
     }
     else
     {
-      eos_static_debug("manager returned no file to schedule [ENODATA]");
+      eos_static_info("msg=\"no balance job available\"");
+      return false;
     }
   }
   return false;
@@ -318,9 +300,6 @@ Storage::Balancer ()
   std::string nodeconfigqueue = "";
   unsigned long long nparalleltx = 0;
   unsigned long long ratetx = 0;
-  unsigned long long nscheduled = 0;
-  unsigned long long totalscheduled = 0;
-  unsigned long long totalexecuted = 0;
   unsigned int cycler = 0;
   time_t last_config_update = 0;
 
@@ -375,7 +354,18 @@ Storage::Balancer ()
     // wait that balance slots are free
     // -------------------------------------------------------------------------
 
-    nscheduled = WaitFreeBalanceSlot(nparalleltx, totalscheduled, totalexecuted);
+    eos_static_info("wait-slot");
+
+    size_t slotstofill = WaitFreeBalanceSlot(nparalleltx);
+
+    if (!slotstofill)
+    {
+      eos_static_info("wait-wake");
+      // wait for a notification
+      balanceJobNotification->WaitMS(1000);
+    }
+
+    eos_static_info("slots-to-fill=%d n-slots=%d", slotstofill, nparalleltx);
 
     // -------------------------------------------------------------------------
     // -- 3 --
@@ -413,13 +403,11 @@ Storage::Balancer ()
       // none can schedule anymore
       // -------------------------------------------------------------------------
 
-      size_t slotstofill = ((nparalleltx - nscheduled) > 0) ?
-        (nparalleltx - nscheduled) : 0;
-
       bool stillGotOneScheduled;
 
       if (slotstofill)
       {
+	time_t next_round=0;
         do
         {
           stillGotOneScheduled = false;
@@ -431,13 +419,21 @@ Storage::Balancer ()
             if (balancefsindexSchedulingFailed[i])
               continue;
 
+	    time_t now = time(NULL);
             // ---------------------------------------------------------------------
             // skip filesystems where the scheduling has been blocked for some time
             // ---------------------------------------------------------------------
             if ((balancefsindexSchedulingTime.count(balancefsindex[i])) &&
-                (balancefsindexSchedulingTime[balancefsindex[i]] > time(NULL)))
-              continue;
-
+                (balancefsindexSchedulingTime[balancefsindex[i]] > now))
+	    {
+	      if ((!next_round) || (balancefsindexSchedulingTime[balancefsindex[i]] < next_round))
+		next_round = balancefsindexSchedulingTime[balancefsindex[i]];
+	      continue;
+	    }
+	    else
+	    {
+	      next_round=now;
+	    }
 
             // ---------------------------------------------------------------------
             // try to get a balancejob for the indexed filesystem
@@ -445,7 +441,6 @@ Storage::Balancer ()
             if (GetBalanceJob(balancefsindex[i]))
             {
               balancefsindexSchedulingTime[balancefsindex[i]] = 0;
-              totalscheduled++;
               stillGotOneScheduled = true;
               slotstofill--;
             }
@@ -466,10 +461,16 @@ Storage::Balancer ()
 	{
 	  balancefsindexSchedulingFailed[i] = false;
 	}
+
+	// wait until we have to do the next round - we don't want to have tight loops when we have scheduling failures
+	int wait_for_round = next_round - time(NULL);
+	if (wait_for_round > 0)
+	{
+	  sleeper.Snooze(wait_for_round);
+	}
       }
     }
     // ************************************************************************>
-    balanceJobNotification.WaitMS(1000);
   }
 }
 
