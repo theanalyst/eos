@@ -31,6 +31,7 @@
 #include "common/RWMutex.hh"
 #include "common/SymKeys.hh"
 #include "ProcCache.hh"
+#include "CredentialFinder.hh"
 /*----------------------------------------------------------------------------*/
 #include "XrdOuc/XrdOucString.hh"
 #include "XrdSys/XrdSysPthread.hh"
@@ -195,85 +196,50 @@ protected:
     }
 
     bool ret = false;
-    char buffer[1024];
-    char buffer2[1024];
-    // first try the session binding if it fails, try the user binding
-    const char* formats[2] = {"/var/run/eosd/credentials/uid%d_sid%d_sst%d.%s", "/var/run/eosd/credentials/uid%d.%s"};
-    // krb5 -> kerberos 5 credential cache file
-    // krk5 -> kerberos 5 credential cache not in a file (e.g. KeyRing)
-    // x509 -> gsi authentication
-    const char* suffixes[5] = {"krb5", "krk5", "x509", "krb5", "krk5"};
-    CredInfo::CredType credtypes[5] = {CredInfo::krb5, CredInfo::krk5, CredInfo::x509, CredInfo::krb5, CredInfo::krk5};
-    int sidx = 1, sn = 2;
 
-    if (!credConfig.use_user_krb5cc && credConfig.use_user_gsiproxy) {
-      sidx = 2;
-      sn = 1;
-    } else if (credConfig.use_user_krb5cc && !credConfig.use_user_gsiproxy) {
-      sidx = 0;
-      sn = 2;
-    } else if (credConfig.tryKrb5First) {
-      sidx = 0;
-      sn = 3;
-    } else {
-      sidx = 2;
-      sn = 3;
-    }
+    // get process environment
+    Environment processEnv;
+    processEnv.fromFile(SSTR("/proc/" << sid << "/environ"));
 
-    // try all the credential types according to settings and stop as soon as a credetnial is found
-    bool brk = false;
+    // try krb5
+    if(credConfig.use_user_krb5cc) {
+      std::string path = CredentialFinder::locateKerberosTicket(processEnv);
+      eos_static_debug("locate kerberos, path: %s", path.c_str());
 
-    for (int f = 0; f < 2; f++) {
-      for (int i = sidx; i < sidx + sn; i++) {
-        if (f == 0) {
-          snprintf(buffer, 1024, formats[f], (int) uid, (int) sid, (int) sst,
-                   suffixes[i]);
-        } else {
-          snprintf(buffer, 1024, formats[f], (int) uid, suffixes[i]);
-        }
+      if (::lstat(path.c_str(), &linkstat) == 0 && stat(path.c_str(), &filestat) == 0) {
+        ret = true;
+        credinfo.lname = path;
+        credinfo.fname = path;
 
-        ssize_t bsize = 0;
+        credinfo.lmtime = linkstat.MTIMESPEC.tv_sec;
+        credinfo.lctime = linkstat.CTIMESPEC.tv_sec;
+        credinfo.type = CredInfo::krb5;
 
-        //eos_static_debug("trying to stat %s", buffer);
-        if (!::lstat(buffer, &linkstat) &&
-            ((bsize = readlink(buffer, buffer2, 1023)) >= 0)) {
-          ret = true;
-          credinfo.lname = buffer;
-          credinfo.lmtime = linkstat.MTIMESPEC.tv_sec;
-          credinfo.lctime = linkstat.CTIMESPEC.tv_sec;
-          credinfo.type = credtypes[i];
-          buffer2[bsize] = 0;
-          eos_static_debug("found credential link %s for uid %d and sid %d",
-                           credinfo.lname.c_str(), (int) uid, (int) sid);
-
-          if (credinfo.type == CredInfo::krk5) {
-            credinfo.fname = buffer2;
-            break; // there is no file to stat in that case
-          }
-
-          if (!stat(buffer2, &filestat)) {
-            if (bsize > 0) {
-              buffer2[bsize] = 0;
-              credinfo.fname = buffer2;
-              eos_static_debug("found credential file %s for uid %d and sid %d",
-                               credinfo.fname.c_str(), (int) uid, (int) sid);
-            }
-          } else {
-            eos_static_debug("could not stat file %s for uid %d and sid %d",
-                             credinfo.fname.c_str(), (int) uid, (int) sid);
-          }
-
-          // we found some credential, we stop searching here
-          brk = true;
-          break;
-        }
-      }
-
-      if (brk) {
-        break;
+        eos_static_debug("found credential link %s for uid %d and sid %d", credinfo.lname.c_str(), (int) uid, (int) sid);
+        goto out;
       }
     }
 
+    // try gsi
+    if(credConfig.use_user_gsiproxy) {
+      std::string path = CredentialFinder::locateX509Proxy(processEnv, uid);
+      eos_static_debug("locate gsi proxy, path: %s", path.c_str());
+
+      if (::lstat(path.c_str(), &linkstat) == 0 && stat(path.c_str(), &filestat) == 0) {
+        ret = true;
+        credinfo.lname = path;
+        credinfo.fname = path;
+
+        credinfo.lmtime = linkstat.MTIMESPEC.tv_sec;
+        credinfo.lctime = linkstat.CTIMESPEC.tv_sec;
+        credinfo.type = CredInfo::x509;
+
+        eos_static_debug("found credential link %s for uid %d and sid %d", credinfo.lname.c_str(), (int) uid, (int) sid);
+        goto out;
+      }
+    }
+
+out:
     if (!ret) {
       eos_static_debug("could not find any credential for uid %d and sid %d",
                        (int) uid, (int) sid);

@@ -34,13 +34,23 @@ add_library(
   FuseFileTest.cc
   TestEnv.cc       TestEnv.hh)
 
+add_executable(
+  EosFuseCredTests
+  ../CredentialFinder.cc
+  CredentialFinder.cc
+)
+
 target_link_libraries(
- EosFuseTests 
+ EosFuseTests
  FuseCache-Static
  ${CPPUNIT_LIBRARIES})
+
+target_link_libraries(
+  EosFuseCredTests
+  FuseCache-Static
+  gtest_main)
 
 install(
   TARGETS EosFuseTests
   LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR})
-	  
