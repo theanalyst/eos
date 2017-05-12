@@ -46,7 +46,7 @@ add_executable(
   main.cc eosfuse.cc   eosfuse.hh
   filesystem.cc        filesystem.hh
   FuseCacheEntry.cc    FuseCacheEntry.hh
-  AuthIdManager.cc     xrdutils.cc)
+  AuthIdManager.cc     xrdutils.cc
   CredentialFinder.cc  CredentialFinder.hh )
 
 if(MacOSX)
