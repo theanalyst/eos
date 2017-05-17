@@ -113,10 +113,7 @@ public:
     };
 
     CredType type;     // krb5 , krk5 or x509
-    std::string lname; // link to credential file
     std::string fname; // credential file
-    time_t lmtime;     // link to credential file mtime
-    time_t lctime;     // link to credential file mtime
     std::string identity; // identity in the credential file
     std::string cachedStrongLogin;
   };
@@ -188,7 +185,7 @@ protected:
   pthread_t mCleanupThread;
 
   bool
-  findCred(CredInfo& credinfo, struct stat& linkstat, struct stat& filestat,
+  findCred(CredInfo& credinfo, struct stat& filestat,
            uid_t uid, pid_t sid, time_t& sst)
   {
     if (!(credConfig.use_user_gsiproxy || credConfig.use_user_krb5cc)) {
@@ -206,16 +203,13 @@ protected:
       std::string path = CredentialFinder::locateKerberosTicket(processEnv);
       eos_static_debug("locate kerberos, path: %s", path.c_str());
 
-      if (::lstat(path.c_str(), &linkstat) == 0 && stat(path.c_str(), &filestat) == 0) {
+      if (::stat(path.c_str(), &filestat) == 0) {
         ret = true;
-        credinfo.lname = path;
         credinfo.fname = path;
 
-        credinfo.lmtime = linkstat.MTIMESPEC.tv_sec;
-        credinfo.lctime = linkstat.CTIMESPEC.tv_sec;
         credinfo.type = CredInfo::krb5;
 
-        eos_static_debug("found credential link %s for uid %d and sid %d", credinfo.lname.c_str(), (int) uid, (int) sid);
+        eos_static_debug("found credential %s for uid %d and sid %d", credinfo.fname.c_str(), (int) uid, (int) sid);
         goto out;
       }
     }
@@ -225,16 +219,13 @@ protected:
       std::string path = CredentialFinder::locateX509Proxy(processEnv, uid);
       eos_static_debug("locate gsi proxy, path: %s", path.c_str());
 
-      if (::lstat(path.c_str(), &linkstat) == 0 && stat(path.c_str(), &filestat) == 0) {
+      if (::stat(path.c_str(), &filestat) == 0) {
         ret = true;
-        credinfo.lname = path;
         credinfo.fname = path;
 
-        credinfo.lmtime = linkstat.MTIMESPEC.tv_sec;
-        credinfo.lctime = linkstat.CTIMESPEC.tv_sec;
         credinfo.type = CredInfo::x509;
 
-        eos_static_debug("found credential link %s for uid %d and sid %d", credinfo.lname.c_str(), (int) uid, (int) sid);
+        eos_static_debug("found credential %s for uid %d and sid %d", credinfo.fname.c_str(), (int) uid, (int) sid);
         goto out;
       }
     }
@@ -289,14 +280,9 @@ out:
   }
 
   bool
-  checkCredSecurity(const struct stat& linkstat, const struct stat& filestat,
-                    uid_t uid, CredInfo::CredType credtype)
+  checkCredSecurity(const struct stat& filestat, uid_t uid, CredInfo::CredType credtype)
   {
-    //eos_static_debug("linkstat.st_uid=%d  filestat.st_uid=%d  filestat.st_mode=%o  requiredmode=%o",(int)linkstat.st_uid,(int)filestat.st_uid,filestat.st_mode & 0777,reqMode);
-    if (
-      // check owner ship
-      linkstat.st_uid == uid) {
-      if (credtype == CredInfo::krk5) {
+    if (credtype == CredInfo::krk5) {
         return true;
       } else if (filestat.st_uid == uid &&
                  (filestat.st_mode & 0077) == 0 // no access to other users/groups
@@ -304,8 +290,6 @@ out:
                 ) {
         return true;
       }
-    }
-
     return false;
   }
 
@@ -492,12 +476,11 @@ out:
 
     // find the credentials
     CredInfo credinfo;
-    struct stat filestat, linkstat;
+    struct stat filestat;
 
-    if (!findCred(credinfo, linkstat, filestat, uid, sid, sessionSut)) {
+    if (!findCred(credinfo, filestat, uid, sid, sessionSut)) {
       if (credConfig.fallback2nobody) {
         credinfo.type = CredInfo::nobody;
-        credinfo.lmtime = credinfo.lctime = 0;
         eos_static_debug("could not find any strong credential for uid %d pid %d sid %d, falling back on 'nobody'",
                          (int)uid, (int)pid, (int)sid);
       } else {
@@ -528,11 +511,8 @@ out:
         sessionInCache = false;
         const CredInfo& ci = cacheEntry->second;
 
-        // we also check ctime to be sure that permission/ownership has not changed
-        if (ci.type == credinfo.type && ci.lmtime == credinfo.lmtime &&
-            ci.lctime == credinfo.lctime) {
+        if (ci.type == credinfo.type) {
           sessionInCache = true;
-          // we don't check the credentials file for modification because it might be modified during authentication
         }
       }
     }
@@ -583,7 +563,7 @@ out:
     } else {
       // refresh the credentials in the cache
       // check the credential security
-      if (!checkCredSecurity(linkstat, filestat, uid, credinfo.type)) {
+      if (!checkCredSecurity(filestat, uid, credinfo.type)) {
         eos_static_alert("credentials are not safe");
         return EACCES;
       }
