@@ -107,17 +107,6 @@ public:
     connectionId++;
   }
 
-  struct CredInfo {
-    enum CredType {
-      krb5, krk5, x509, nobody
-    };
-
-    CredType type;     // krb5 , krk5 or x509
-    std::string fname; // credential file
-    std::string identity; // identity in the credential file
-    std::string cachedStrongLogin;
-  };
-
   static const unsigned int proccachenbins;
   std::vector<eos::common::RWMutex> proccachemutexes;
 
@@ -531,11 +520,11 @@ out:
         cacheEntry->second.cachedStrongLogin;
 
       if (gProcCache(sid).HasEntry(sid)) {
-        std::string authmeth;
-        gProcCache(sid).GetAuthMethod(sid, authmeth);
+        TrustedCredentials trustedCreds;
+        gProcCache(sid).GetTrustedCreds(sid, trustedCreds);
 
         if (gProcCache(pid).HasEntry(pid)) {
-          gProcCache(pid).SetAuthMethod(pid, authmeth);
+          gProcCache(pid).SetTrustedCreds(pid, trustedCreds);
         }
       }
 
@@ -543,19 +532,19 @@ out:
     }
 
     uint64_t authid = 0;
-    std::string sId;
+    TrustedCredentials trustedCreds;
 
     if (credinfo.type == CredInfo::nobody) {
-      sId = "unix:nobody";
+      // trustedCreds remain empty
 
       /*** using unix authentication and user nobody ***/
       if (gProcCache(pid).HasEntry(pid)) {
-        gProcCache(pid).SetAuthMethod(pid, sId);
+        gProcCache(pid).SetTrustedCreds(pid, trustedCreds);
       }
 
       // refresh the credentials in the cache
       if (gProcCache(sid).HasEntry(sid)) {
-        gProcCache(sid).SetAuthMethod(sid, sId);
+        gProcCache(sid).SetTrustedCreds(sid, trustedCreds);
       }
 
       // update pid2StrongLogin (no lock needed as only one thread per process can access this)
@@ -575,14 +564,12 @@ out:
 
       // update authmethods for session leader and current pid
       if (credinfo.type == CredInfo::krb5) {
-        sId = "krb5:";
+        trustedCreds.setKrb5(credinfo.fname);
       } else if (credinfo.type == CredInfo::krk5) {
-        sId = "krk5:";
+        trustedCreds.setKrk5(credinfo.fname);
       } else {
-        sId = "x509:";
+        trustedCreds.setx509(credinfo.fname);
       }
-
-      std::string newauthmeth;
 
       if (credinfo.type == CredInfo::krk5 && !checkKrk5StringSafe(credinfo.fname)) {
         eos_static_err("deny user %d using of unsafe in memory krb5 credential string '%s'",
@@ -590,17 +577,13 @@ out:
         return EPERM;
       }
 
-      // using directly the value of the pointed file (which is the text in the case ofin memory credentials)
-      sId.append(credinfo.fname);
-      newauthmeth = sId;
-
-      if (newauthmeth.empty()) {
-        eos_static_err("error symlinking credential file ");
+      if (trustedCreds.empty()) {
+        eos_static_err("unknown error, should never happen");
         return EACCES;
       }
 
-      gProcCache(pid).SetAuthMethod(pid, newauthmeth);
-      gProcCache(sid).SetAuthMethod(sid, newauthmeth);
+      gProcCache(pid).SetTrustedCreds(pid, trustedCreds);
+      gProcCache(sid).SetTrustedCreds(sid, trustedCreds);
       authid = getNewConId(uid, gid, pid);
 
       if (!authid) {
@@ -631,8 +614,8 @@ out:
       unlock_w_pcache(sid, pid);
     }
 
-    eos_static_info("qualifiedidentity [%s] used for pid %d, xrdlogin is %s (%d/%d)",
-                    sId.c_str(), (int)pid,
+    eos_static_info("trustedCredentials [%s] used for pid %d, xrdlogin is %s (%d/%d)",
+                    trustedCreds.toXrdParams().c_str(), (int)pid,
                     pid2StrongLogin[pid % proccachenbins][pid].c_str(), (int)uid, (int)authid);
     return errCode;
   }

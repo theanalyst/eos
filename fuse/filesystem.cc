@@ -4081,46 +4081,16 @@ filesystem::rename(const char* oldpath, const char* newpath, uid_t uid,
 std::string
 filesystem::strongauth_cgi(pid_t pid)
 {
-  XrdOucString str = "";
+  std::string str;
 
-  if (fuse_shared && (credConfig.use_user_krb5cc ||
-                      credConfig.use_user_gsiproxy)) {
-    std::string authmet;
-
+  if (fuse_shared && (credConfig.use_user_krb5cc || credConfig.use_user_gsiproxy)) {
     if (gProcCache(pid).HasEntry(pid)) {
-      gProcCache(pid).GetAuthMethod(pid, authmet);
-    }
-
-    for (size_t i = 0; i < authmet.size(); i++) {
-      if (authmet[i] == '&' || authmet[i] == '=') {
-        eos_static_alert("rejecting credential filename for using forbidden characters: %s",
-                         authmet.c_str());
-        str += "xrd.wantprot=unix";
-        goto bye;
-      }
-    }
-
-    if (authmet.compare(0, 5, "krb5:") == 0) {
-      str += "xrd.k5ccname=";
-      str += (authmet.c_str() + 5);
-      str += "&xrd.wantprot=krb5,unix";
-    } else if (authmet.compare(0, 5, "krk5:") == 0) {
-      str += "xrd.k5ccname=";
-      str += (authmet.c_str() + 5);
-      str += "&xrd.wantprot=krb5,unix";
-    } else if (authmet.compare(0, 5, "x509:") == 0) {
-      str += "xrd.gsiusrpxy=";
-      str += authmet.c_str() + 5;
-      str += "&xrd.wantprot=gsi,unix";
-    } else if (authmet.compare(0, 5, "unix:") == 0) {
-      str += "xrd.wantprot=unix";
-    } else {
-      eos_static_err("don't know what to do with qualifiedid [%s]", authmet.c_str());
-      goto bye;
+      TrustedCredentials trustedCreds;
+      gProcCache(pid).GetTrustedCreds(pid, trustedCreds);
+      str += trustedCreds.toXrdParams();
     }
   }
 
-bye:
   eos_static_debug("pid=%lu sep=%s", (unsigned long) pid, str.c_str());
   return str.c_str();
 }

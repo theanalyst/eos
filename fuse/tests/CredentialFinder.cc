@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "../CredentialFinder.hh"
 #include <gtest/gtest.h>
+#include "../CredentialFinder.hh"
 
 TEST(Environment, basic_sanity) {
   Environment env;
@@ -53,4 +53,32 @@ TEST(Environment, basic_sanity) {
   ASSERT_EQ(env2.getAll(), expected);
   ASSERT_EQ(env2.get("KEY1"), "VALUE");
   ASSERT_EQ(env2.get("Key2"), "SomeValue");
+}
+
+TEST(TrustedCredentials, basic_sanity) {
+  TrustedCredentials emptycreds;
+  ASSERT_TRUE(emptycreds.empty());
+  ASSERT_EQ(emptycreds.toXrdParams(), "xrd.wantprot=unix");
+
+  TrustedCredentials cred1;
+  ASSERT_TRUE(cred1.empty());
+  cred1.setKrb5("/tmp/some-file");
+  ASSERT_FALSE(cred1.empty());
+  ASSERT_THROW(cred1.setx509("/tmp/some-other-file"), FatalException);
+  ASSERT_EQ(cred1.toXrdParams(), "xrd.k5ccname=/tmp/some-file&xrd.wantprot=krb5,unix");
+
+  TrustedCredentials cred2;
+  cred2.setKrk5("keyring-name");
+  ASSERT_FALSE(cred2.empty());
+  ASSERT_EQ(cred2.toXrdParams(), "xrd.k5ccname=keyring-name&xrd.wantprot=krb5,unix");
+
+  TrustedCredentials cred3;
+  cred3.setx509("/tmp/some-file");
+  ASSERT_FALSE(cred3.empty());
+  ASSERT_EQ(cred3.toXrdParams(), "xrd.gsiusrpxy=/tmp/some-file&xrd.wantprot=gsi,unix");
+
+  TrustedCredentials cred4;
+  cred4.setx509("/tmp/some-evil&file=");
+  ASSERT_FALSE(cred4.empty());
+  ASSERT_EQ(cred4.toXrdParams(), "xrd.wantprot=unix");
 }

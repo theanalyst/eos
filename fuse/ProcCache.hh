@@ -35,6 +35,7 @@
 #include <unistd.h>
 #include <krb5.h>
 #include "common/Logging.hh"
+#include "CredentialFinder.hh"
 
 /*----------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
@@ -192,7 +193,8 @@ class ProcCacheEntry
   std::string pProcPrefix;
   std::string pCmdLineStr;
   std::vector<std::string> pCmdLineVect;
-  std::string pAuthMethod;
+
+  TrustedCredentials trustedCreds;
   mutable int pError;
   mutable std::string pErrMessage;
 
@@ -218,22 +220,22 @@ public:
   }
 
   //
-  bool GetAuthMethod(std::string& value) const
+  bool GetTrustedCreds(TrustedCredentials& value) const
   {
     eos::common::RWMutexReadLock lock(pMutex);
 
-    if (pAuthMethod.empty() || pAuthMethod == "none") {
+    if ( trustedCreds.empty()) {
       return false;
     }
 
-    value = pAuthMethod;
+    value = trustedCreds;
     return true;
   }
 
-  bool SetAuthMethod(const std::string& value)
+  bool SetTrustedCreds(const TrustedCredentials& value)
   {
     eos::common::RWMutexWriteLock lock(pMutex);
-    pAuthMethod = value;
+    trustedCreds = value;
     return true;
   }
 
@@ -418,7 +420,7 @@ public:
     }
   }
 
-  bool GetAuthMethod(int pid, std::string& value)
+  bool GetTrustedCreds(int pid, TrustedCredentials& creds)
   {
     eos::common::RWMutexReadLock lock(pMutex);
     auto entry = pCatalog.find(pid);
@@ -427,7 +429,7 @@ public:
       return false;
     }
 
-    return entry->second->GetAuthMethod(value);
+    return entry->second->GetTrustedCreds(creds);
   }
 
   bool GetStartupTime(int pid, time_t& sut)
@@ -494,7 +496,7 @@ public:
     return entry->second->GetSid(sid);
   }
 
-  bool SetAuthMethod(int pid, const std::string& value)
+  bool SetTrustedCreds(int pid, const TrustedCredentials& creds)
   {
     eos::common::RWMutexWriteLock lock(pMutex);
     auto entry = pCatalog.find(pid);
@@ -503,7 +505,7 @@ public:
       return false;
     }
 
-    return entry->second->SetAuthMethod(value);
+    return entry->second->SetTrustedCreds(creds);
   }
 };
 

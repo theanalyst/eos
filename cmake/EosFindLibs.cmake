@@ -105,6 +105,8 @@ if(NOT PACKAGEONLY)
         GIT_TAG             master
         ${UPDATE_DISCONNECTED_IF_AVAILABLE})
       set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+      # fix clash with google sparsehash
+      add_definitions(-DGTEST_USE_OWN_TR1_TUPLE=0)
       add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR} EXCLUDE_FROM_ALL)
     else()
       find_package(CPPUnit)
