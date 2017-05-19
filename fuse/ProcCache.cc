@@ -473,7 +473,7 @@ int ProcCacheEntry::UpdateIfPsChanged()
   Jiffies procStartTime = 0;
   // TODO: find a way not to open and close this proc file every time we call this function if possible
   pciPsStat.SetFilename(pProcPrefix + "/stat");
-  pciPsStat.ReadContent(pInfo.startTime, pInfo.ppid, pInfo.sid);
+  pciPsStat.ReadContent(procStartTime, pInfo.ppid, pInfo.sid);
   pciPsStat.Close();
 
   if (procStartTime > pInfo.getStartTime()) {
