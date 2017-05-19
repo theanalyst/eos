@@ -175,7 +175,7 @@ protected:
 
   bool
   findCred(CredInfo& credinfo, struct stat& filestat,
-           uid_t uid, pid_t sid, time_t& sst)
+           uid_t uid, pid_t sid, Jiffies& sst)
   {
     if (!(credConfig.use_user_gsiproxy || credConfig.use_user_krb5cc)) {
       return false;
