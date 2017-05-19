@@ -37,6 +37,8 @@
 #include "common/Logging.hh"
 #include "CredentialFinder.hh"
 
+typedef int64_t Jiffies;
+
 /*----------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
 class ProcCache;
@@ -254,10 +256,10 @@ public:
     return true;
   }
 
-  bool GetStartupTime(time_t& sut) const
+  bool GetStartupTime(Jiffies &sut) const
   {
     eos::common::RWMutexReadLock lock(pMutex);
-    sut = pStartTime / sysconf(_SC_CLK_TCK);
+    sut = pStartTime;
     return true;
   }
 
@@ -432,7 +434,7 @@ public:
     return entry->second->GetTrustedCreds(creds);
   }
 
-  bool GetStartupTime(int pid, time_t& sut)
+  bool GetStartupTime(int pid, Jiffies& sut)
   {
     eos::common::RWMutexReadLock lock(pMutex);
     auto entry = pCatalog.find(pid);

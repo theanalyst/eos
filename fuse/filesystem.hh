@@ -999,7 +999,7 @@ private:
   // order to decide if his operation is denied or not.
   //------------------------------------------------------------------------------
   eos::common::RWMutex mMapPidDenyRmMutex;
-  std::map<pid_t, std::pair<time_t, bool> > mMapPidDenyRm;
+  std::map<pid_t, std::pair<Jiffies, bool> > mMapPidDenyRm;
 
   FuseWriteCache* XFC;
 

@@ -436,7 +436,7 @@ out:
     }
 
     // get the startuptime of the process
-    time_t processSut = 0;
+    Jiffies processSut = 0;
     gProcCache(pid).GetStartupTime(pid, processSut);
     // get the session id
     pid_t sid = 0;
@@ -457,7 +457,7 @@ out:
     }
 
     // get the startuptime of the leader of the session
-    time_t sessionSut = 0;
+    Jiffies sessionSut = 0;
 
     if (!gProcCache(sid).GetStartupTime(sid, sessionSut)) {
       sessionSut = 0;

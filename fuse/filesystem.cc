@@ -4131,7 +4131,7 @@ filesystem::is_toplevel_rm(int pid, const char* local_dir)
     return 0;
   }
 
-  time_t psstime = 0;
+  Jiffies psstime = 0;
 
   if (!gProcCache(pid).HasEntry(pid) ||
       !gProcCache(pid).GetStartupTime(pid, psstime)) {
@@ -4165,8 +4165,7 @@ filesystem::is_toplevel_rm(int pid, const char* local_dir)
                        (int) it_map->second.first, (int) psstime);
     }
   }
-  eos_static_debug("no entry found or outdated entry, creating entry with psstime %d",
-                   (int) psstime);
+  eos_static_debug("no entry found or outdated entry, creating entry with psstime %jd", psstime);
   auto entry = std::make_pair(psstime, false);
   // Try to print the command triggering the unlink
   std::ostringstream oss;
