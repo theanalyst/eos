@@ -653,6 +653,13 @@ out:
   std::string
   mapUser(uid_t uid, gid_t gid, pid_t pid, uint64_t conid);
 
+  std::string
+  getXrdLogin(pid_t pid)
+  {
+    eos::common::RWMutexReadLock lock(proccachemutexes[pid % proccachenbins]);
+    return pid2StrongLogin[pid % proccachenbins][pid];
+  }
+
 public:
   bool
   StartCleanupThread()
@@ -679,13 +686,6 @@ public:
   {
     eos::common::RWMutexWriteLock lock(proccachemutexes[pid % proccachenbins]);
     return updateProcCache(uid, gid, pid, true);
-  }
-
-  std::string
-  getXrdLogin(pid_t pid)
-  {
-    eos::common::RWMutexReadLock lock(proccachemutexes[pid % proccachenbins]);
-    return pid2StrongLogin[pid % proccachenbins][pid];
   }
 
   std::string

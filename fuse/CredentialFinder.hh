@@ -29,22 +29,7 @@
 #include <vector>
 #include <sstream>
 #include "common/Logging.hh"
-
-class FatalException : public std::exception {
-public:
-  FatalException(const std::string &m) : msg(m) {}
-  virtual ~FatalException() {}
-
-  virtual const char* what() const noexcept {
-    return msg.c_str();
-  }
-
-private:
-  std::string msg;
-};
-
-#define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
-#define THROW(message) throw FatalException(SSTR(message))
+#include "Utils.hh"
 
 struct CredInfo {
   enum CredType {

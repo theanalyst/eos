@@ -36,8 +36,7 @@
 #include <krb5.h>
 #include "common/Logging.hh"
 #include "CredentialFinder.hh"
-
-typedef int64_t Jiffies;
+#include "ProcessInfo.hh"
 
 /*----------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
@@ -110,7 +109,7 @@ public:
   }
   void SetFilename(const std::string& filename);
   void Close();
-  int ReadContent(long long unsigned& startTime, pid_t& ppid, pid_t& sid);
+  int ReadContent(Jiffies& startTime, pid_t& ppid, pid_t& sid);
 };
 
 /*----------------------------------------------------------------------------*/
@@ -186,15 +185,8 @@ class ProcCacheEntry
   ProcReaderPsStat pciPsStat;
 
   // internal values
-  pid_t pPid;
-  pid_t pPPid;
-  pid_t pSid;
-  uid_t pFsUid;
-  gid_t pFsGid;
-  unsigned long long pStartTime;
+  ProcessInfo pInfo;
   std::string pProcPrefix;
-  std::string pCmdLineStr;
-  std::vector<std::string> pCmdLineVect;
 
   TrustedCredentials trustedCreds;
   mutable int pError;
@@ -208,11 +200,12 @@ class ProcCacheEntry
   UpdateIfPsChanged();
 
 public:
-  ProcCacheEntry(unsigned int pid, const char* procpath = 0) :
-    pPid(pid), pPPid(), pSid(), pFsUid(-1), pFsGid(-1), pStartTime(0), pError(0)
+  ProcCacheEntry(unsigned int pid, const char* procpath = 0) : pError(0)
   {
+    pInfo.pid = pid;
+
     std::stringstream ss;
-    ss << (procpath ? procpath : "/proc/") << pPid;
+    ss << (procpath ? procpath : "/proc/") << pInfo.pid;
     pProcPrefix = ss.str();
     pMutex.SetBlocking(true);
   }
@@ -244,22 +237,22 @@ public:
   bool GetFsUidGid(uid_t& uid, gid_t& gid) const
   {
     eos::common::RWMutexReadLock lock(pMutex);
-    uid = pFsUid;
-    gid = pFsGid;
+    uid = pInfo.getFsUid();
+    gid = pInfo.getFsGid();
     return true;
   }
 
   bool GetSid(pid_t& sid) const
   {
     eos::common::RWMutexReadLock lock(pMutex);
-    sid = pSid;
+    sid = pInfo.getSid();
     return true;
   }
 
   bool GetStartupTime(Jiffies &sut) const
   {
     eos::common::RWMutexReadLock lock(pMutex);
-    sut = pStartTime;
+    sut = pInfo.getStartTime();
     return true;
   }
 
@@ -267,14 +260,14 @@ public:
   GetArgsVec() const
   {
     eos::common::RWMutexReadLock lock(pMutex);
-    return pCmdLineVect;
+    return pInfo.getCmd();
   }
 
   const std::string&
   GetArgsStr() const
   {
     eos::common::RWMutexReadLock lock(pMutex);
-    return pCmdLineStr;
+    return pInfo.cmdStr; // TODO(gbitzes): Maybe remove this function eventually?
   }
 
   bool HasError() const
@@ -289,14 +282,6 @@ public:
     eos::common::RWMutexReadLock lock(pMutex);
     return pErrMessage;
   }
-
-  time_t
-  GetProcessStartTime() const
-  {
-    eos::common::RWMutexReadLock lock(pMutex);
-    return pStartTime;
-  }
-
 };
 
 /*----------------------------------------------------------------------------*/

@@ -24,27 +24,7 @@
 #include <iostream>
 #include <sstream>
 #include "CredentialFinder.hh"
-
-static std::vector<std::string> split(std::string data, std::string token) {
-    std::vector<std::string> output;
-    size_t pos = std::string::npos;
-    do {
-        pos = data.find(token);
-        output.push_back(data.substr(0, pos));
-        if(std::string::npos != pos)
-            data = data.substr(pos + token.size());
-    } while (std::string::npos != pos);
-    return output;
-}
-
-static bool startswith(const std::string &str, const std::string &prefix) {
-  if(prefix.size() > str.size()) return false;
-
-  for(size_t i = 0; i < prefix.size(); i++) {
-    if(str[i] != prefix[i]) return false;
-  }
-  return true;
-}
+#include "Utils.hh"
 
 void Environment::fromFile(const std::string &path) {
   std::ostringstream ss;

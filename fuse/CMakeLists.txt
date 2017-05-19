@@ -46,8 +46,11 @@ add_executable(
   main.cc eosfuse.cc   eosfuse.hh
   filesystem.cc        filesystem.hh
   FuseCacheEntry.cc    FuseCacheEntry.hh
-  AuthIdManager.cc     xrdutils.cc
-  CredentialFinder.cc  CredentialFinder.hh )
+  AuthIdManager.cc     AuthIdManager.hh
+  CredentialFinder.cc  CredentialFinder.hh
+                       ProcessInfo.hh
+  xrdutils.cc          xrdutils.hh
+)
 
 if(MacOSX)
   target_link_libraries(

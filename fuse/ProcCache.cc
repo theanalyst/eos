@@ -20,6 +20,8 @@
  * You should have received a copy of the GNU General Public License    *
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
+
+#define __STDC_FORMAT_MACROS
 #include <signal.h>
 #define __PROCCACHE__NOGPROCCACHE__
 #include "ProcCache.hh"
@@ -32,6 +34,7 @@
 #include <openssl/pem.h>
 #include <openssl/bio.h>
 #include <sys/stat.h>
+#include <inttypes.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <ctime>
@@ -167,7 +170,7 @@ void ProcReaderPsStat::Close()
 }
 
 
-int ProcReaderPsStat::ReadContent(long long unsigned& startTime, pid_t& ppid,
+int ProcReaderPsStat::ReadContent(Jiffies& startTime, pid_t& ppid,
                                   pid_t& sid)
 {
   int retval = 1;
@@ -229,7 +232,7 @@ int ProcReaderPsStat::ReadContent(long long unsigned& startTime, pid_t& ppid,
           case 21:
             over = true;
 
-            if (sscanf(buffer + tokStart, "%llu", &startTime))
+            if (sscanf(buffer + tokStart, "%" PRId64, &startTime))
               // we parsed everything
             {
               retval = 0;
@@ -436,8 +439,8 @@ int ProcCacheEntry::ReadContentFromFiles()
   ProcReaderFsUid pciFsUid(pProcPrefix +
                            "/status");   // this one does NOT get locked by the kernel when exeve is called
   int retc, finalret = 0;
-  pCmdLineVect.clear();
-  retc = pciCmd.ReadContent(pCmdLineVect);
+  pInfo.cmd.clear();
+  retc = pciCmd.ReadContent(pInfo.cmd);
 
   if (retc > 1) {
     pError = ESRCH;
@@ -446,20 +449,11 @@ int ProcCacheEntry::ReadContentFromFiles()
   } else if (retc == 1) {
     finalret = 1;
     eos_static_notice("could not read command line for process %d because the proc file is locked, the cache is not updated",
-                      (int)this->pPid);
+                      (int)this->pInfo.getPid());
   }
 
-  pCmdLineStr.clear();
-
-  for (auto it = pCmdLineVect.begin(); it != pCmdLineVect.end(); it++) {
-    if (it != pCmdLineVect.begin()) {
-      pCmdLineStr.append(" ");
-    }
-
-    pCmdLineStr.append(*it);
-  }
-
-  retc = pciFsUid.ReadContent(pFsUid, pFsGid);
+  pInfo.cmdStr = join(pInfo.cmd, " ");
+  retc = pciFsUid.ReadContent(pInfo.fsuid, pInfo.fsgid);
 
   if (retc > 1) {
     pError = ESRCH;
@@ -468,7 +462,7 @@ int ProcCacheEntry::ReadContentFromFiles()
   } else if (retc == 1) {
     finalret = 1;
     eos_static_notice("could not read fsuid and fsgid for process %d because the proc file is locked, the cache is not updated",
-                      (int)this->pPid);
+                      (int)pInfo.getPid());
   }
 
   return finalret;
@@ -476,20 +470,20 @@ int ProcCacheEntry::ReadContentFromFiles()
 
 int ProcCacheEntry::UpdateIfPsChanged()
 {
-  unsigned long long procStartTime = 0;
+  Jiffies procStartTime = 0;
   // TODO: find a way not to open and close this proc file every time we call this function if possible
   pciPsStat.SetFilename(pProcPrefix + "/stat");
-  pciPsStat.ReadContent(procStartTime, pPPid, pSid);
+  pciPsStat.ReadContent(pInfo.startTime, pInfo.ppid, pInfo.sid);
   pciPsStat.Close();
 
-  if (procStartTime > pStartTime) {
+  if (procStartTime > pInfo.getStartTime()) {
     int retc = ReadContentFromFiles();
 
     if (retc == 0) {
-      pStartTime = procStartTime;
+      pInfo.startTime = procStartTime;
       return 0;
     } else if (retc == 1) {
-      pStartTime = 0; // to retry to get the environment on the next call
+      pInfo.startTime = 0; // to retry to get the environment on the next call
       return 0;
     }
 
