@@ -28,6 +28,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <iostream>
 
 class FatalException : public std::exception {
 public:
@@ -42,6 +43,7 @@ private:
   std::string msg;
 };
 
+#define DBG(message) std::cerr << __FILE__ << ":" << __LINE__ << " -- " << #message << " = " << message << std::endl
 #define SSTR(message) static_cast<std::ostringstream&>(std::ostringstream().flush() << message).str()
 #define THROW(message) throw FatalException(SSTR(message))
 
@@ -88,5 +90,7 @@ inline bool startswith(const std::string &str, const std::string &prefix) {
   }
   return true;
 }
+
+bool readFile(const std::string &path, std::string &ret);
 
 #endif

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// File: CredentialFinder.cc
+// File: utils.cc
 // Author: Georgios Bitzes - CERN
 //------------------------------------------------------------------------------
 
@@ -21,59 +21,18 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include <iostream>
-#include <sstream>
-#include "CredentialFinder.hh"
-#include "Utils.hh"
+#include <gtest/gtest.h>
+#include "../Utils.hh"
 
-void Environment::fromFile(const std::string &path) {
-  std::string contents;
-  if(readFile(path, contents)) {
-    fromString(contents);
-  }
-}
+TEST(Utils, read_file) {
+  const std::string filename("/tmp/fuse-testfile");
+  const std::string mystr("The quick brown fox jumps over the lazy dog");
 
-void Environment::fromString(const std::string &str) {
-  contents = split_on_nullbyte(str);
-}
+  FILE *out = fopen(filename.c_str(), "w");
+  fwrite(mystr.c_str(), 1, mystr.size(), out);
+  fclose(out);
 
-void Environment::fromVector(const std::vector<std::string> &vec) {
-  contents = vec;
-}
-
-std::string Environment::get(const std::string &key) const {
-  std::string keyWithEquals = key + "=";
-
-  for(size_t i = 0; i < contents.size(); i++) {
-    if(startswith(contents[i], keyWithEquals)) {
-      return contents[i].substr(keyWithEquals.size());
-    }
-  }
-
-  return "";
-}
-
-std::vector<std::string> Environment::getAll() const {
-  return contents;
-}
-
-std::string CredentialFinder::locateKerberosTicket(const Environment &env) {
-  std::string krb5ccname = env.get("KRB5CCNAME");
-  const std::string prefix = "FILE:";
-
-  if(startswith(krb5ccname, prefix)) {
-    krb5ccname = krb5ccname.substr(prefix.size());
-  }
-
-  return krb5ccname;
-}
-
-std::string CredentialFinder::locateX509Proxy(const Environment &env, uid_t uid) {
-  std::string proxyPath = env.get("X509_USER_PROXY");
-
-  if(proxyPath.empty()) {
-    proxyPath = SSTR("/tmp/x509up_u" << uid);
-  }
-
-  return proxyPath;
+  std::string tmp;
+  ASSERT_TRUE(readFile(filename, tmp));
+  ASSERT_EQ(tmp, mystr);
 }

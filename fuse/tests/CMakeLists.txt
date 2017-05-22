@@ -40,7 +40,9 @@ add_library(
 add_executable(
   EosFuseCredTests
   ../CredentialFinder.cc
+  ../Utils.cc
   CredentialFinder.cc
+  utils.cc
 )
 
 target_link_libraries(

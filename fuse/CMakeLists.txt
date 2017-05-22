@@ -50,6 +50,7 @@ add_executable(
   CredentialFinder.cc  CredentialFinder.hh
                        ProcessInfo.hh
   xrdutils.cc          xrdutils.hh
+  Utils.cc             Utils.hh
 )
 
 if(MacOSX)
