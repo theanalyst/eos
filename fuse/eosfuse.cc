@@ -960,6 +960,7 @@ EosFuse::unlink(fuse_req_t req, fuse_ino_t parent, const char* name)
 #ifndef __APPLE__
 
   if (me.fs().is_toplevel_rm(fuse_req_ctx(req)->pid,
+                             fuse_req_ctx(req)->uid, fuse_req_ctx(req)->gid,
                              me.config.mount_point.c_str()) == 1) {
     fuse_reply_err(req, EPERM);
     return;
@@ -1021,8 +1022,8 @@ EosFuse::rmdir(fuse_req_t req, fuse_ino_t parent, const char* name)
   unsigned long long ino;
   UPDATEPROCCACHE;
 
-  if (me.fs().is_toplevel_rm(fuse_req_ctx(req)->pid,
-                             me.config.mount_point.c_str()) == 1) {
+  if (me.fs().is_toplevel_rm(fuse_req_ctx(req)->pid, fuse_req_ctx(req)->uid,
+                             fuse_req_ctx(req)->gid, me.config.mount_point.c_str()) == 1) {
     fuse_reply_err(req, EPERM);
     return;
   }

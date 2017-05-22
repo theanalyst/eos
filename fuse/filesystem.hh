@@ -641,7 +641,7 @@ public:
   //!
   //! @return 0 if false, otherwise 1
   //----------------------------------------------------------------------------
-  int is_toplevel_rm(pid_t pid, const char* local_dir);
+  int is_toplevel_rm(pid_t pid, uid_t uid, gid_t gid, const char* local_dir);
 
   //----------------------------------------------------------------------------
   //! Get the configured overlay mode
@@ -1004,10 +1004,10 @@ private:
   FuseWriteCache* XFC;
 
   int
-  mylstat(const char* __restrict name, struct stat* __restrict __buf, pid_t pid);
+  mylstat(const char* __restrict name, struct stat* __restrict __buf, pid_t pid, uid_t uid, gid_t gid);
 
   char*
-  myrealpath(const char* __restrict path, char* __restrict resolved, pid_t pid);
+  myrealpath(const char* __restrict path, char* __restrict resolved, pid_t pid, uid_t uid, gid_t gid);
 
   bool get_features(const std::string& url,
                     std::map<std::string, std::string>* features);

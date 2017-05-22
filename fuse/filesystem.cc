@@ -4123,7 +4123,7 @@ filesystem::user_url(uid_t uid, gid_t gid, pid_t pid)
 // anywhere whithin the EOS_FUSE_RMLVL_PROTECT levels from the root directory
 //------------------------------------------------------------------------------
 int
-filesystem::is_toplevel_rm(int pid, const char* local_dir)
+filesystem::is_toplevel_rm(int pid, uid_t uid, gid_t gid, const char* local_dir)
 {
   eos_static_debug("is_toplevel_rm for pid %d and mountpoint %s", pid, local_dir);
 
@@ -4279,7 +4279,7 @@ filesystem::is_toplevel_rm(int pid, const char* local_dir)
         path2resolve = scwd + path2resolve;
       }
 
-      if (myrealpath(path2resolve.c_str(), resolved_path, pid)) {
+      if (myrealpath(path2resolve.c_str(), resolved_path, pid, uid, gid)) {
         rm_entries2.insert(resolved_path);
         eos_static_debug("path %s resolves to realpath %s", path2resolve.c_str(),
                          resolved_path);
@@ -4985,20 +4985,13 @@ strlcat(char* dst, const char* src, size_t siz)
 //------------------------------------------------------------------------------
 int
 filesystem::mylstat(const char* __restrict name, struct stat* __restrict __buf,
-                    pid_t pid)
+                    pid_t pid, uid_t uid, gid_t gid)
 {
   std::string path(name);
 
   if ((path.length() >= mount_dir.length()) &&
       (path.find(mount_dir) == 0)) {
     eos_static_debug("name=%s\n", name);
-    uid_t uid = 0;
-    gid_t gid = 0 ;
-
-    if (!gProcCache(pid).HasEntry(pid) ||
-        !gProcCache(pid).GetFsUidGid(pid, uid, gid)) {
-      return ESRCH;
-    }
 
     mutex_inode_path.LockRead();
     unsigned long long ino = path2inode.count(name) ? path2inode[name] : 0;
@@ -5015,7 +5008,7 @@ filesystem::mylstat(const char* __restrict name, struct stat* __restrict __buf,
 //------------------------------------------------------------------------------
 char*
 filesystem::myrealpath(const char* __restrict path, char* __restrict resolved,
-                       pid_t pid)
+                       pid_t pid, uid_t uid, gid_t gid)
 {
   struct stat sb;
   char* p, *q, *s;
@@ -5162,7 +5155,7 @@ filesystem::myrealpath(const char* __restrict path, char* __restrict resolved,
       return (NULL);
     }
 
-    if (mylstat(resolved, &sb, pid) != 0) {
+    if (mylstat(resolved, &sb, pid, uid, gid) != 0) {
       if (errno == ENOENT && p == NULL) {
         errno = serrno;
         return (resolved);
