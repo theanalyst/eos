@@ -31,7 +31,7 @@ typedef int64_t Jiffies;
 // Holds information about a specific process.
 class ProcessInfo {
 public:
-  ProcessInfo() : /*empty(true),*/ pid(0), ppid(0), sid(0), fsuid(-1), fsgid(-1), startTime(-1) {}
+  ProcessInfo() : /*empty(true),*/ pid(0), ppid(0), sid(0), startTime(-1) {}
 
   // void fill(pid_t pid, pid_t ppid, pid_t sid, uid_t fsuid, gid_t fsgid, Jiffies startTime, const std::vector<std::string> &cmd) {
   //   if(!empty) THROW("ProcessInfo can only be filled once");
@@ -62,14 +62,6 @@ public:
     return sid;
   }
 
-  uid_t getFsUid() const {
-    return fsuid;
-  }
-
-  gid_t getFsGid() const {
-    return fsgid;
-  }
-
   Jiffies getStartTime() const {
     return startTime;
   }
@@ -86,8 +78,6 @@ public:
   pid_t pid;
   pid_t ppid;
   pid_t sid;
-  uid_t fsuid;
-  gid_t fsgid;
   Jiffies startTime;
   std::vector<std::string> cmd;
   std::string cmdStr; // TODO(gbitzes): remove this eventually?

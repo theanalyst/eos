@@ -64,27 +64,6 @@ public:
 
 /*----------------------------------------------------------------------------*/
 /**
- * @brief Class to read the fsuid and the fsgid of a pid through proc files
- *
- */
-/*----------------------------------------------------------------------------*/
-class ProcReaderFsUid
-{
-  std::string pFileName;
-public:
-  ProcReaderFsUid(const std::string& filename) :
-    pFileName(filename)
-  {
-  }
-  ~ProcReaderFsUid()
-  {
-  }
-  int Read();
-  int ReadContent(uid_t& fsUid, gid_t& fsGid);
-};
-
-/*----------------------------------------------------------------------------*/
-/**
  * @brief Class to read /proc/<pid>/stat file starting time , ppid and sid
  *
  */
@@ -231,14 +210,6 @@ public:
   {
     eos::common::RWMutexWriteLock lock(pMutex);
     trustedCreds = value;
-    return true;
-  }
-
-  bool GetFsUidGid(uid_t& uid, gid_t& gid) const
-  {
-    eos::common::RWMutexReadLock lock(pMutex);
-    uid = pInfo.getFsUid();
-    gid = pInfo.getFsGid();
     return true;
   }
 
@@ -429,18 +400,6 @@ public:
     }
 
     return entry->second->GetStartupTime(sut);
-  }
-
-  bool GetFsUidGid(int pid, uid_t& uid, gid_t& gid)
-  {
-    eos::common::RWMutexReadLock lock(pMutex);
-    auto entry = pCatalog.find(pid);
-
-    if (entry == pCatalog.end()) {
-      return false;
-    }
-
-    return entry->second->GetFsUidGid(uid, gid);
   }
 
   const std::vector<std::string>&

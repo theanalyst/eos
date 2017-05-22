@@ -89,64 +89,6 @@ int ProcReaderCmdLine::ReadContent(std::vector<std::string>& cmdLine)
   return ret;
 }
 
-int ProcReaderFsUid::ReadContent(uid_t& fsUid, gid_t& fsGid)
-{
-  int retval = 1;
-  int fd = open(pFileName.c_str(), O_RDONLY & O_NONBLOCK);
-
-  if (fd >= 0) {
-    FILE* file = fdopen(fd, "r");
-
-    if (!file) {
-      return 2;
-    }
-
-    std::string token, line;
-    const int bufsize = 16384;
-    char* buffer = new char[bufsize];
-
-    while (fgets(buffer, bufsize, file)) {
-      line = buffer;
-      istringstream iss(line);
-      iss >> token;
-
-      if (token == "Uid:") {
-        for (int i = 0; i < 3; i++) { /// fsUid is the 5th token
-          iss >> token;
-        }
-
-        iss >> fsUid;
-
-        if (iss.fail()) {
-          retval = 2;
-          break;
-        }
-      }
-
-      if (token == "Gid:") {
-        for (int i = 0; i < 3; i++) { /// fsGid is the 5th token
-          iss >> token;
-        }
-
-        iss >> fsGid;
-
-        if (iss.fail()) {
-          retval = 2;
-          break;
-        }
-
-        retval = 0;
-        break;
-      }
-    }
-
-    (void) fclose(file);
-    delete[] buffer;
-  }
-
-  return retval;
-}
-
 void ProcReaderPsStat::SetFilename(const std::string& filename)
 {
   pFileName = filename;
@@ -436,8 +378,6 @@ int ProcCacheEntry::ReadContentFromFiles()
   eos::common::RWMutexWriteLock lock(pMutex);
   ProcReaderCmdLine pciCmd(pProcPrefix +
                            "/cmdline");  // this one does NOT gets locked by the kernel when exeve is called
-  ProcReaderFsUid pciFsUid(pProcPrefix +
-                           "/status");   // this one does NOT get locked by the kernel when exeve is called
   int retc, finalret = 0;
   pInfo.cmd.clear();
   retc = pciCmd.ReadContent(pInfo.cmd);
@@ -453,18 +393,6 @@ int ProcCacheEntry::ReadContentFromFiles()
   }
 
   pInfo.cmdStr = join(pInfo.cmd, " ");
-  retc = pciFsUid.ReadContent(pInfo.fsuid, pInfo.fsgid);
-
-  if (retc > 1) {
-    pError = ESRCH;
-    pErrMessage = "error reading content of proc file " + pProcPrefix + "/status";
-    return 2;
-  } else if (retc == 1) {
-    finalret = 1;
-    eos_static_notice("could not read fsuid and fsgid for process %d because the proc file is locked, the cache is not updated",
-                      (int)pInfo.getPid());
-  }
-
   return finalret;
 }
 
