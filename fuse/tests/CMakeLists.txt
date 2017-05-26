@@ -41,8 +41,10 @@ add_executable(
   EosFuseCredTests
   ../CredentialFinder.cc
   ../Utils.cc
+  ../ProcessInfo.cc
   CredentialFinder.cc
   utils.cc
+  process-info.cc
 )
 
 target_link_libraries(

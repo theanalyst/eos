@@ -44,55 +44,6 @@ class ProcCache;
 
 /*----------------------------------------------------------------------------*/
 /**
- * @brief Class to read the command line of a pid through proc files
- *
- */
-/*----------------------------------------------------------------------------*/
-class ProcReaderCmdLine
-{
-  std::string pFileName;
-public:
-  ProcReaderCmdLine(const std::string& filename) :
-    pFileName(filename)
-  {
-  }
-  ~ProcReaderCmdLine()
-  {
-  }
-  int ReadContent(std::vector<std::string>& cmdLine);
-};
-
-/*----------------------------------------------------------------------------*/
-/**
- * @brief Class to read /proc/<pid>/stat file starting time , ppid and sid
- *
- */
-/*----------------------------------------------------------------------------*/
-class ProcReaderPsStat
-{
-  std::string pFileName;
-  int fd;
-  FILE* file;
-
-public:
-  ProcReaderPsStat() : fd(-1), file(NULL) {}
-  ProcReaderPsStat(const std::string& filename)
-  {
-    fd = -1;
-    file = NULL;
-    SetFilename(filename);
-  }
-  ~ProcReaderPsStat()
-  {
-    Close();
-  }
-  void SetFilename(const std::string& filename);
-  void Close();
-  int ReadContent(Jiffies& startTime, pid_t& ppid, pid_t& sid);
-};
-
-/*----------------------------------------------------------------------------*/
-/**
  * @brief Class to read the Krb5 login in a credential cache file
  *
  */
@@ -160,8 +111,7 @@ class ProcCacheEntry
   // RWMutex to protect entry
   mutable eos::common::RWMutex pMutex;
 
-  // internal values
-  ProcReaderPsStat pciPsStat;
+  const pid_t pid;
 
   // internal values
   ProcessInfo pInfo;
@@ -171,18 +121,13 @@ class ProcCacheEntry
   mutable int pError;
   mutable std::string pErrMessage;
 
-  //! return true fs success, false if failure
-  int
-  ReadContentFromFiles();
   //! return true if the information is up-to-date after the call, false else
   int
   UpdateIfPsChanged();
 
 public:
-  ProcCacheEntry(unsigned int pid, const char* procpath = 0) : pError(0)
+  ProcCacheEntry(pid_t pid_init, const char* procpath = 0) : pid(pid_init), pError(0)
   {
-    pInfo.pid = pid;
-
     std::stringstream ss;
     ss << (procpath ? procpath : "/proc/") << pInfo.pid;
     pProcPrefix = ss.str();

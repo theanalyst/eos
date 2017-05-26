@@ -48,7 +48,7 @@ add_executable(
   FuseCacheEntry.cc    FuseCacheEntry.hh
   AuthIdManager.cc     AuthIdManager.hh
   CredentialFinder.cc  CredentialFinder.hh
-                       ProcessInfo.hh
+  ProcessInfo.cc       ProcessInfo.hh
   xrdutils.cc          xrdutils.hh
   Utils.cc             Utils.hh
 )

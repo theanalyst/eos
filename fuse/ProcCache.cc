@@ -47,159 +47,6 @@ int gProcCacheShardSize;
 
 ProcCache gProcCache;
 
-int ProcReaderCmdLine::ReadContent(std::vector<std::string>& cmdLine)
-{
-  int ret = 1;
-  int fd = open(pFileName.c_str(), O_RDONLY & O_NONBLOCK);
-
-  if (fd >= 0) {
-    const int bufsize = 1677216;
-    char* buffer = new char[bufsize];
-    int r = read(fd, buffer, bufsize);
-    int beg = 0, end = 0;
-
-    if (r >= 0 && r < bufsize) {
-      while (true) {
-        while (end < r && buffer[end] != 0) {
-          end++;
-        }
-
-        if (end > beg) {
-          cmdLine.push_back(std::string(buffer + beg, end - beg));
-        }
-
-        if (end >= r) {
-          break;
-        }
-
-        end++;
-        beg = end;
-      }
-
-      ret = 0;
-    } else {
-      // read error or the buffer is too small
-      ret = 2;
-    }
-
-    close(fd);
-    delete[] buffer;
-  }
-
-  return ret;
-}
-
-void ProcReaderPsStat::SetFilename(const std::string& filename)
-{
-  pFileName = filename;
-  fd = open(pFileName.c_str(), O_RDONLY & O_NONBLOCK);
-
-  if (fd >= 0) {
-    file = fdopen(fd, "r");
-  } else {
-    eos_static_err("could not open %s", pFileName.c_str());
-  }
-}
-
-void ProcReaderPsStat::Close()
-{
-  if (file) {
-    fclose(file);
-  }
-
-  file = NULL;
-  fd = -1;
-}
-
-
-int ProcReaderPsStat::ReadContent(Jiffies& startTime, pid_t& ppid,
-                                  pid_t& sid)
-{
-  int retval = 1;
-
-  if (fd >= 0) {
-    rewind(file);
-    std::string token, line;
-    const int bufsize = 16384;
-    char buffer[bufsize];
-    int size = 0;
-
-    // read the one line of the file
-    if (!(fgets((char*) buffer, bufsize, file))) {
-      return 2;
-    }
-
-    size = strlen(buffer);
-    int tokcount = 0, tokStart = 0;
-    bool inParenth = false;
-    // read char by char
-    retval = 2;
-
-    for (int i = 0; i < size - 1; i++) {
-      if (buffer[i] == '(') {
-        inParenth = true;
-        continue;
-      }
-
-      if (buffer[i] == ')') {
-        inParenth = false;
-        continue;
-      }
-
-      if (!inParenth && buffer[i] == ' ') {
-        // process token
-        {
-          buffer[i] = 0;
-          bool over = false;
-
-          switch (tokcount) {
-          case 3:
-            if (!sscanf(buffer + tokStart, "%u", &ppid))
-              // error parsing parent process id
-            {
-              over = true;
-            }
-
-            break;
-
-          case 5:
-            if (!sscanf(buffer + tokStart, "%u", &sid))
-              // error parsing session id
-            {
-              over = true;
-            }
-
-            break;
-
-          case 21:
-            over = true;
-
-            if (sscanf(buffer + tokStart, "%" PRId64, &startTime))
-              // we parsed everything
-            {
-              retval = 0;
-            }
-
-            break;
-
-          default:
-            break;
-          }
-
-          if (over) {
-            break;
-          }
-        }
-        tokStart = i + 1;
-        tokcount++;
-        continue;
-      }
-    }
-  }
-
-  return retval;
-}
-
 krb5_context ProcReaderKrb5UserName::sKcontext;
 bool ProcReaderKrb5UserName::sKcontextOk = (!krb5_init_context(
       &ProcReaderKrb5UserName::sKcontext)) ||
@@ -373,55 +220,32 @@ time_t ProcReaderGsiIdentity::GetModifTime()
   return mktime(clock);
 }
 
-int ProcCacheEntry::ReadContentFromFiles()
-{
-  eos::common::RWMutexWriteLock lock(pMutex);
-  ProcReaderCmdLine pciCmd(pProcPrefix +
-                           "/cmdline");  // this one does NOT gets locked by the kernel when exeve is called
-  int retc, finalret = 0;
-  pInfo.cmd.clear();
-  retc = pciCmd.ReadContent(pInfo.cmd);
-
-  if (retc > 1) {
-    pError = ESRCH;
-    pErrMessage = "error reading content of proc file " + pProcPrefix + "/cmdline";
-    return 2;
-  } else if (retc == 1) {
-    finalret = 1;
-    eos_static_notice("could not read command line for process %d because the proc file is locked, the cache is not updated",
-                      (int)this->pInfo.getPid());
-  }
-
-  pInfo.cmdStr = join(pInfo.cmd, " ");
-  return finalret;
-}
-
 int ProcCacheEntry::UpdateIfPsChanged()
 {
-  Jiffies procStartTime = 0;
-  // TODO: find a way not to open and close this proc file every time we call this function if possible
-  pciPsStat.SetFilename(pProcPrefix + "/stat");
-  pciPsStat.ReadContent(procStartTime, pInfo.ppid, pInfo.sid);
-  pciPsStat.Close();
-
-  if (procStartTime > pInfo.getStartTime()) {
-    int retc = ReadContentFromFiles();
-
-    if (retc == 0) {
-      pInfo.startTime = procStartTime;
-      return 0;
-    } else if (retc == 1) {
-      pInfo.startTime = 0; // to retry to get the environment on the next call
-      return 0;
-    }
-
+  ProcessInfo current;
+  if(!ProcessInfoProvider::retrieveBasic(pid, current)) {
+    // Looks like our pid has disappeared.
     return ESRCH;
-  } else {
-    // it means that the proc start time could not be read : most likely the pid does not exist (anymore)
-    if (procStartTime == 0) {
+  }
+
+  eos::common::RWMutexWriteLock lock(pMutex);
+
+  if(pInfo.isEmpty()) {
+    // First time this function was called
+    pInfo = current;
+  }
+  else if(!pInfo.updateIfSameProcess(current)) {
+    // Looks like a different process with the same pid has replaced ours..
+    // Refresh everything.
+
+    ProcessInfo newPInfo;
+    if(!ProcessInfoProvider::retrieveFull(pid, newPInfo)) {
+      // Shouldn't normally happen..
       return ESRCH;
     }
 
-    return 0; // just does not need an update
+    pInfo = newPInfo;
   }
+
+  return 0;
 }

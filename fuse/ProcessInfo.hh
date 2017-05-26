@@ -29,26 +29,51 @@
 typedef int64_t Jiffies;
 
 // Holds information about a specific process.
+// Stat information (pid, ppid, sid, starttime) must be present for such an
+// object to be considered non-empty.
 class ProcessInfo {
 public:
-  ProcessInfo() : /*empty(true),*/ pid(0), ppid(0), sid(0), startTime(-1) {}
+  ProcessInfo() : empty(true), pid(0), ppid(0), sid(0), startTime(-1) {}
 
-  // void fill(pid_t pid, pid_t ppid, pid_t sid, uid_t fsuid, gid_t fsgid, Jiffies startTime, const std::vector<std::string> &cmd) {
-  //   if(!empty) THROW("ProcessInfo can only be filled once");
-  //   empty = false;
-  //
-  //   this->pid = pid;
-  //   this->ppid = ppid;
-  //   this->sid = sid;
-  //   this->fsuid = fsuid;
-  //   this->fsgid = fsgid;
-  //   this->startTime = startTime;
-  //   this->cmd = cmd;
-  // }
-  //
-  // bool isEmpty() const {
-  //   return empty;
-  // }
+  // Fill stat information as obtained from /proc/<pid>/stat
+  void fillStat(pid_t pid, pid_t ppid, pid_t sid, Jiffies startTime) {
+    if(!empty) THROW("ProcessInfo stat information can only be filled once");
+    empty = false;
+
+    this->pid = pid;
+    this->ppid = ppid;
+    this->sid = sid;
+    this->startTime = startTime;
+  }
+
+  // Certain information can change over the lifetime of a process, such as ppid
+  // (parent dying and PID 1 taking over), or sid.
+  // This function updates the current object to the new information, if and
+  // only if it can be guaranteed they both refer to the same process.
+  // (ie same pid, same start time)
+  // Return value: false if they're not the same process, true otherwise.
+  bool updateIfSameProcess(const ProcessInfo &src) {
+    if(empty || src.empty) THROW("updateIfSameProcess can only be used on filled ProcessInfo objects.");
+
+    if(pid != src.pid || startTime != src.startTime) {
+      return false;
+    }
+
+    ppid = src.ppid;
+    sid = src.sid;
+
+    return true;
+  }
+
+  // Fill cmdline information as obtained from /proc/<pid>/cmdline
+  void fillCmdline(const std::vector<std::string> &contents) {
+    cmd = contents;
+    cmdStr = join(cmd, " ");
+  }
+
+  bool isEmpty() const {
+    return empty;
+  }
 
   pid_t getPid() const {
     return pid;
@@ -71,16 +96,35 @@ public:
   }
 
 private:
-  // bool empty;
+  bool empty;
 
 // TODO(gbitzes): Make these private once ProcessInfoProvider is implemented
 public:
+  // from /proc/<pid>/stat
   pid_t pid;
   pid_t ppid;
   pid_t sid;
   Jiffies startTime;
+
+  // from /proc/<pid>/cmdline
   std::vector<std::string> cmd;
   std::string cmdStr; // TODO(gbitzes): remove this eventually?
+};
+
+// Parses the contents of /proc/<pid>/stat, converting it to a ProcessInfo
+class ProcessInfoProvider {
+public:
+  static bool fromString(const std::string &stat, const std::string &cmd, ProcessInfo &ret);
+
+  // retrieves information about a process from the kernel.
+  // Does not fill cmdline, thus only reading a single file.
+  static bool retrieveBasic(pid_t pid, ProcessInfo &ret);
+
+  // retrieves information about a process from the kernel, including cmdline.
+  static bool retrieveFull(pid_t pid, ProcessInfo &ret);
+private:
+  static bool parseStat(const std::string &stat, ProcessInfo &ret);
+  static void parseCmdline(const std::string &cmdline, ProcessInfo &ret);
 };
 
 #endif
