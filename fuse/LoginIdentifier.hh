@@ -25,6 +25,7 @@
 #define __LOGIN_IDENTIFIER__HH__
 
 #include <string>
+#include <sys/types.h>
 
 // We have to juggle many different xrootd logins.
 // This class identifies them with a unique ID, which is provided in
