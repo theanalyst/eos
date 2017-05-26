@@ -42,7 +42,9 @@ add_executable(
   ../CredentialFinder.cc
   ../Utils.cc
   ../ProcessInfo.cc
-  CredentialFinder.cc
+  ../LoginIdentifier.cc
+  credential-finder.cc
+  login-identifier.cc
   utils.cc
   process-info.cc
 )

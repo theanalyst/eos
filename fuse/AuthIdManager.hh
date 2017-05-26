@@ -32,6 +32,7 @@
 #include "common/SymKeys.hh"
 #include "ProcCache.hh"
 #include "CredentialFinder.hh"
+#include "LoginIdentifier.hh"
 /*----------------------------------------------------------------------------*/
 #include "XrdOuc/XrdOucString.hh"
 #include "XrdSys/XrdSysPthread.hh"
@@ -99,6 +100,13 @@ public:
 
   int connectionId;
   XrdSysMutex connectionIdMutex;
+
+  int
+  GetConnectionId()
+  {
+    XrdSysMutexHelper l(connectionIdMutex);
+    return connectionId;
+  }
 
   void
   IncConnectionId()
@@ -289,7 +297,7 @@ out:
     return credConfig.use_unsafe_krk5;
   }
 
-  inline uint64_t getNewConId(uid_t uid, gid_t gid, pid_t pid)
+  inline LoginIdentifier getNewConId(uid_t uid, gid_t gid, pid_t pid)
   {
     //NOTE: we have (2^6)^7 ~= 5e12 connections which is basically infinite
     //      fot the moment, we don't reuse connections at all, we leave them behind
@@ -298,7 +306,7 @@ out:
       return 0;
     }
 
-    return AtomicInc(sConIdCount) + 1;
+    return LoginIdentifier(AtomicInc(sConIdCount) + 1);
   }
 
   inline void releaseConId(uint64_t conid)
@@ -531,7 +539,7 @@ out:
       return 0;
     }
 
-    uint64_t authid = 0;
+    LoginIdentifier loginId(0);
     TrustedCredentials trustedCreds;
 
     if (credinfo.type == CredInfo::nobody) {
@@ -584,19 +592,16 @@ out:
 
       gProcCache(pid).SetTrustedCreds(pid, trustedCreds);
       gProcCache(sid).SetTrustedCreds(sid, trustedCreds);
-      authid = getNewConId(uid, gid, pid);
+      loginId = getNewConId(uid, gid, pid);
 
-      if (!authid) {
+      if (loginId.getConnectionID() == 0) {
         eos_static_alert("running out of XRootD connections");
         errCode = EBUSY;
         return errCode;
       }
 
       // update pid2StrongLogin (no lock needed as only one thread per process can access this)
-      map_user xrdlogin(uid, gid, authid);
-      std::string mapped = mapUser(uid, gid, 0, authid);
-      pid2StrongLogin[pid % proccachenbins][pid] = std::string(xrdlogin.base64(
-            mapped));
+      pid2StrongLogin[pid % proccachenbins][pid] = loginId.getStringID();
     }
 
     // update uidsid2credinfo
@@ -616,42 +621,13 @@ out:
 
     eos_static_info("trustedCredentials [%s] used for pid %d, xrdlogin is %s (%d/%d)",
                     trustedCreds.toXrdParams().c_str(), (int)pid,
-                    pid2StrongLogin[pid % proccachenbins][pid].c_str(), (int)uid, (int)authid);
+                    pid2StrongLogin[pid % proccachenbins][pid].c_str(), (int)uid, (int)loginId.getConnectionID());
     return errCode;
   }
-
-  struct map_user {
-    uid_t uid;
-    gid_t gid;
-    uint64_t conid;
-    char base64buf[9];
-    bool base64computed;
-    map_user(uid_t _uid, gid_t _gid, uint64_t _authid) :
-      uid(_uid), gid(_gid), conid(_authid), base64computed(false)
-    {
-    }
-
-    char*
-    base64(std::string& mapped)
-    {
-      if (!base64computed) {
-        // pid is actually meaningless
-        strncpy(base64buf, mapped.c_str(), 8);
-        base64buf[8] = 0;
-        base64computed = true;
-      }
-
-      return base64buf;
-    }
-  };
-
 
   //------------------------------------------------------------------------------
   // Get user name from the uid and change the effective user ID of the thread
   //------------------------------------------------------------------------------
-
-  std::string
-  mapUser(uid_t uid, gid_t gid, pid_t pid, uint64_t conid);
 
   std::string
   getXrdLogin(pid_t pid)
@@ -691,8 +667,11 @@ public:
   std::string
   getLogin(uid_t uid, gid_t gid, pid_t pid)
   {
-    return (credConfig.use_user_krb5cc ||
-            credConfig.use_user_gsiproxy) ? getXrdLogin(pid) : mapUser(uid, gid, pid, 0);
+    if(credConfig.use_user_krb5cc || credConfig.use_user_gsiproxy) {
+      return getXrdLogin(pid);
+    }
+
+    return LoginIdentifier(uid, gid, pid, GetConnectionId()).getStringID();
   }
 
 };

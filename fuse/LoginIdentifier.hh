@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
-// File: AuthIdManager.cc
-// Author: Geoffray Adde - CERN
+// File: LoginIdentifier.hh
+// Author: Georgios Bitzes - CERN
 //------------------------------------------------------------------------------
 
 /************************************************************************
@@ -21,23 +21,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-/*----------------------------------------------------------------------------*/
-#include "common/Macros.hh"
-#include "AuthIdManager.hh"
-/*----------------------------------------------------------------------------*/
+#ifndef __LOGIN_IDENTIFIER__HH__
+#define __LOGIN_IDENTIFIER__HH__
 
-const unsigned int AuthIdManager::proccachenbins = 32768;
+#include <string>
 
-//------------------------------------------------------------------------------
-// Get user name from the uid and change the effective user ID of the thread
-//------------------------------------------------------------------------------
-void*
-AuthIdManager::CleanupThread (void* arg)
-{
-  AuthIdManager* am = static_cast<AuthIdManager*> (arg);
-  am->CleanupLoop();
-  return static_cast<void*> (am);
-}
-;
+// We have to juggle many different xrootd logins.
+// This class identifies them with a unique ID, which is provided in
+// the user part of an xrootd URL: root://user@host/path
+// We're only limited to 8 chars..
+// Each object is immutable after construction, no need for locking.
+class LoginIdentifier {
+public:
+  LoginIdentifier(uint64_t connId);
+  LoginIdentifier(uid_t uid, gid_t gid, pid_t pid, uint64_t connId);
 
-uint64_t AuthIdManager::sConIdCount=0;
+  std::string getStringID() const {
+    return stringId;
+  }
+
+  uint64_t getConnectionID() const {
+    return connId;
+  }
+
+private:
+  uint64_t connId;
+  std::string stringId;
+
+  static std::string encode(char prefix, uint64_t bituser);
+};
+
+
+#endif

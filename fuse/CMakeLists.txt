@@ -42,15 +42,16 @@ add_subdirectory(FuseCache)
 #-------------------------------------------------------------------------------
 add_executable(
   eosd
-  ProcCache.cc         ProcCache.hh
-  main.cc eosfuse.cc   eosfuse.hh
-  filesystem.cc        filesystem.hh
-  FuseCacheEntry.cc    FuseCacheEntry.hh
-  AuthIdManager.cc     AuthIdManager.hh
-  CredentialFinder.cc  CredentialFinder.hh
-  ProcessInfo.cc       ProcessInfo.hh
-  xrdutils.cc          xrdutils.hh
-  Utils.cc             Utils.hh
+  ProcCache.cc              ProcCache.hh
+  main.cc eosfuse.cc        eosfuse.hh
+  filesystem.cc             filesystem.hh
+  FuseCacheEntry.cc         FuseCacheEntry.hh
+  AuthIdManager.cc          AuthIdManager.hh
+  CredentialFinder.cc       CredentialFinder.hh
+  LoginIdentifier.cc        LoginIdentifier.hh
+  ProcessInfo.cc            ProcessInfo.hh
+  xrdutils.cc               xrdutils.hh
+  Utils.cc                  Utils.hh
 )
 
 if(MacOSX)

@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
-// File: AuthIdManager.cc
-// Author: Geoffray Adde - CERN
+// File: login-identifier.cc
+// Author: Georgios Bitzes - CERN
 //------------------------------------------------------------------------------
 
 /************************************************************************
@@ -21,23 +21,15 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-/*----------------------------------------------------------------------------*/
-#include "common/Macros.hh"
-#include "AuthIdManager.hh"
-/*----------------------------------------------------------------------------*/
+#include <gtest/gtest.h>
+#include "../LoginIdentifier.hh"
 
-const unsigned int AuthIdManager::proccachenbins = 32768;
+TEST(LoginIdentifier, basic_sanity) {
+  ASSERT_EQ(LoginIdentifier(1).getStringID(), "AAAAAAAE");
+  ASSERT_EQ(LoginIdentifier(2).getStringID(), "AAAAAAAI");
+  ASSERT_EQ(LoginIdentifier(3).getStringID(), "AAAAAAAM");
 
-//------------------------------------------------------------------------------
-// Get user name from the uid and change the effective user ID of the thread
-//------------------------------------------------------------------------------
-void*
-AuthIdManager::CleanupThread (void* arg)
-{
-  AuthIdManager* am = static_cast<AuthIdManager*> (arg);
-  am->CleanupLoop();
-  return static_cast<void*> (am);
+  ASSERT_EQ(LoginIdentifier(1000, 1000, 178, 3).getStringID(), "*APoA-gM");
+
+  ASSERT_EQ(LoginIdentifier(41).getStringID(), "AAAAAACk");
 }
-;
-
-uint64_t AuthIdManager::sConIdCount=0;
