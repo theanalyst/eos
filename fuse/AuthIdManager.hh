@@ -426,9 +426,6 @@ out:
       return 0;
     }
 
-    // get the startuptime of the process
-    Jiffies processSut = 0;
-    gProcCache(pid).GetStartupTime(pid, processSut);
     // get the session id
     pid_t sid = 0;
     gProcCache(pid).GetSid(pid, sid);
@@ -555,11 +552,11 @@ out:
 
       // update authmethods for session leader and current pid
       if (credinfo.type == CredInfo::krb5) {
-        trustedCreds.setKrb5(credinfo.fname);
+        trustedCreds.setKrb5(credinfo.fname, uid, gid);
       } else if (credinfo.type == CredInfo::krk5) {
-        trustedCreds.setKrk5(credinfo.fname);
+        trustedCreds.setKrk5(credinfo.fname, uid, gid);
       } else {
-        trustedCreds.setx509(credinfo.fname);
+        trustedCreds.setx509(credinfo.fname, uid, gid);
       }
 
       if (credinfo.type == CredInfo::krk5 && !checkKrk5StringSafe(credinfo.fname)) {

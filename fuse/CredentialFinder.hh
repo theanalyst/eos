@@ -31,6 +31,12 @@
 #include "common/Logging.hh"
 #include "Utils.hh"
 
+// Credentials as given by the user. Not trusted by default, the user could
+// play games with race conditions if those were passed on to XrdCl.
+//
+// These are immutable for a pid + startupTime, for its entire lifetime - even
+// if the underlying credential file changes. It's just mapped to a different
+// TrustedCredentials object if that happens.
 struct CredInfo {
   enum CredType {
     krb5, krk5, x509, nobody
@@ -55,9 +61,9 @@ struct CredInfo {
 // TODO(gbitzes): actually satisfy the above when instantiating such an object ;>
 class TrustedCredentials {
 public:
-  TrustedCredentials() : initialized(false), type(CredInfo::nobody) {}
+  TrustedCredentials() : initialized(false), type(CredInfo::nobody), uid(-2), gid(-2) {}
 
-  void setKrb5(const std::string &filename) {
+  void setKrb5(const std::string &filename, uid_t uid, gid_t gid) {
     if(initialized) THROW("already initialized");
 
     initialized = true;
@@ -65,7 +71,7 @@ public:
     contents = filename;
   }
 
-  void setKrk5(const std::string &keyring) {
+  void setKrk5(const std::string &keyring, uid_t uid, gid_t gid) {
     if(initialized) THROW("already initialized");
 
     initialized = true;
@@ -73,12 +79,18 @@ public:
     contents = keyring;
   }
 
-  void setx509(const std::string &filename) {
+  void setx509(const std::string &filename, uid_t uid, gid_t gid) {
     if(initialized) THROW("already initialized");
 
     initialized = true;
     type = CredInfo::x509;
     contents = filename;
+  }
+
+  bool access(uid_t requid, gid_t reqgid) const {
+    if(requid == uid) return true;
+    if(reqgid == gid) return true;
+    return false;
   }
 
   std::string toXrdParams() const {
@@ -115,6 +127,8 @@ private:
   bool initialized;
   CredInfo::CredType type;
   std::string contents;
+  uid_t uid;
+  gid_t gid;
 };
 
 // A class to read and parse environment values
