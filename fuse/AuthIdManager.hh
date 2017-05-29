@@ -343,23 +343,6 @@ out:
     (void) closedir(dirp);
     return true;
   }
-  // check if we are using strong authentication
-  bool cleanProcCachePid(pid_t pid)
-  {
-    bool result = false;
-
-    if (!runningPids.count(pid)) {
-      result = gProcCache(pid).RemoveEntry(pid);
-
-      if (!result) {
-        eos_static_err("error removing proccache entry for pid=%d", (int)pid);
-      }
-    }
-
-    // returns true if the entry was removed
-    return result;
-  }
-
   void cleanProcCacheBin(unsigned int i, int& cleancountProcCache,
                          int& cleancountStrongLogin, int& cleancountCredInfo)
   {
