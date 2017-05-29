@@ -115,9 +115,8 @@ class ProcCacheEntry
 
   // internal values
   ProcessInfo pInfo;
-  std::string pProcPrefix;
 
-  TrustedCredentials trustedCreds;
+  BoundIdentity boundIdentity;
   mutable int pError;
   mutable std::string pErrMessage;
 
@@ -126,11 +125,8 @@ class ProcCacheEntry
   UpdateIfPsChanged();
 
 public:
-  ProcCacheEntry(pid_t pid_init, const char* procpath = 0) : pid(pid_init), pError(0)
+  ProcCacheEntry(pid_t pid_init) : pid(pid_init), pError(0)
   {
-    std::stringstream ss;
-    ss << (procpath ? procpath : "/proc/") << pInfo.pid;
-    pProcPrefix = ss.str();
     pMutex.SetBlocking(true);
   }
 
@@ -139,22 +135,22 @@ public:
   }
 
   //
-  bool GetTrustedCreds(TrustedCredentials& value) const
+  bool GetBoundIdentity(BoundIdentity& value) const
   {
     eos::common::RWMutexReadLock lock(pMutex);
 
-    if ( trustedCreds.empty()) {
+    if ( boundIdentity.getCreds()->empty()) {
       return false;
     }
 
-    value = trustedCreds;
+    value = boundIdentity;
     return true;
   }
 
-  bool SetTrustedCreds(const TrustedCredentials& value)
+  bool SetBoundIdentity(const BoundIdentity& value)
   {
     eos::common::RWMutexWriteLock lock(pMutex);
-    trustedCreds = value;
+    boundIdentity = value;
     return true;
   }
 
@@ -263,8 +259,7 @@ public:
     }
 
     if (!HasEntry(pid)) {
-      //eos_static_debug("There and pid is %d",pid);
-      pCatalog[pid] = new ProcCacheEntry(pid, pProcPath.c_str());
+      pCatalog[pid] = new ProcCacheEntry(pid);
     }
 
     auto entry = GetEntry(pid);
@@ -323,7 +318,7 @@ public:
     }
   }
 
-  bool GetTrustedCreds(int pid, TrustedCredentials& creds)
+  bool GetBoundIdentity(int pid, BoundIdentity& identity)
   {
     eos::common::RWMutexReadLock lock(pMutex);
     auto entry = pCatalog.find(pid);
@@ -332,7 +327,7 @@ public:
       return false;
     }
 
-    return entry->second->GetTrustedCreds(creds);
+    return entry->second->GetBoundIdentity(identity);
   }
 
   bool GetStartupTime(int pid, Jiffies& sut)
@@ -387,7 +382,7 @@ public:
     return entry->second->GetSid(sid);
   }
 
-  bool SetTrustedCreds(int pid, const TrustedCredentials& creds)
+  bool SetBoundIdentity(int pid, const BoundIdentity &identity)
   {
     eos::common::RWMutexWriteLock lock(pMutex);
     auto entry = pCatalog.find(pid);
@@ -396,7 +391,7 @@ public:
       return false;
     }
 
-    return entry->second->SetTrustedCreds(creds);
+    return entry->second->SetBoundIdentity(identity);
   }
 };
 

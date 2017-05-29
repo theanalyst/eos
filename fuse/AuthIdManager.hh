@@ -508,31 +508,32 @@ out:
         cacheEntry->second.cachedStrongLogin;
 
       if (gProcCache(sid).HasEntry(sid)) {
-        TrustedCredentials trustedCreds;
-        gProcCache(sid).GetTrustedCreds(sid, trustedCreds);
+        BoundIdentity identity;
+        gProcCache(sid).GetBoundIdentity(sid, identity);
 
         if (gProcCache(pid).HasEntry(pid)) {
-          gProcCache(pid).SetTrustedCreds(pid, trustedCreds);
+          gProcCache(pid).SetBoundIdentity(pid, identity);
         }
       }
 
       return 0;
     }
 
-    LoginIdentifier loginId(0);
-    TrustedCredentials trustedCreds;
+    LoginIdentifier loginId; // nobody
+    std::shared_ptr<TrustedCredentials> trustedCreds(new TrustedCredentials());
 
     if (credinfo.type == CredInfo::nobody) {
       // trustedCreds remain empty
+      BoundIdentity boundIdentity(loginId, trustedCreds);
 
       /*** using unix authentication and user nobody ***/
       if (gProcCache(pid).HasEntry(pid)) {
-        gProcCache(pid).SetTrustedCreds(pid, trustedCreds);
+        gProcCache(pid).SetBoundIdentity(pid, boundIdentity);
       }
 
       // refresh the credentials in the cache
       if (gProcCache(sid).HasEntry(sid)) {
-        gProcCache(sid).SetTrustedCreds(sid, trustedCreds);
+        gProcCache(sid).SetBoundIdentity(sid, boundIdentity);
       }
 
       // update pid2StrongLogin (no lock needed as only one thread per process can access this)
@@ -552,11 +553,11 @@ out:
 
       // update authmethods for session leader and current pid
       if (credinfo.type == CredInfo::krb5) {
-        trustedCreds.setKrb5(credinfo.fname, uid, gid);
+        trustedCreds->setKrb5(credinfo.fname, uid, gid);
       } else if (credinfo.type == CredInfo::krk5) {
-        trustedCreds.setKrk5(credinfo.fname, uid, gid);
+        trustedCreds->setKrk5(credinfo.fname, uid, gid);
       } else {
-        trustedCreds.setx509(credinfo.fname, uid, gid);
+        trustedCreds->setx509(credinfo.fname, uid, gid);
       }
 
       if (credinfo.type == CredInfo::krk5 && !checkKrk5StringSafe(credinfo.fname)) {
@@ -565,13 +566,11 @@ out:
         return EPERM;
       }
 
-      if (trustedCreds.empty()) {
+      if (trustedCreds->empty()) {
         eos_static_err("unknown error, should never happen");
         return EACCES;
       }
 
-      gProcCache(pid).SetTrustedCreds(pid, trustedCreds);
-      gProcCache(sid).SetTrustedCreds(sid, trustedCreds);
       loginId = getNewConId(uid, gid, pid);
 
       if (loginId.getConnectionID() == 0) {
@@ -579,6 +578,10 @@ out:
         errCode = EBUSY;
         return errCode;
       }
+
+      BoundIdentity boundIdentity(loginId, trustedCreds);
+      gProcCache(pid).SetBoundIdentity(pid, boundIdentity);
+      gProcCache(sid).SetBoundIdentity(sid, boundIdentity);
 
       // update pid2StrongLogin (no lock needed as only one thread per process can access this)
       pid2StrongLogin[pid % proccachenbins][pid] = loginId.getStringID();
@@ -600,7 +603,7 @@ out:
     }
 
     eos_static_info("trustedCredentials [%s] used for pid %d, xrdlogin is %s (%d/%d)",
-                    trustedCreds.toXrdParams().c_str(), (int)pid,
+                    trustedCreds->toXrdParams().c_str(), (int)pid,
                     pid2StrongLogin[pid % proccachenbins][pid].c_str(), (int)uid, (int)loginId.getConnectionID());
     return errCode;
   }
@@ -612,8 +615,9 @@ out:
   std::string
   getXrdLogin(pid_t pid)
   {
-    eos::common::RWMutexReadLock lock(proccachemutexes[pid % proccachenbins]);
-    return pid2StrongLogin[pid % proccachenbins][pid];
+    BoundIdentity boundIdentity;
+    gProcCache(pid).GetBoundIdentity(pid, boundIdentity);
+    return boundIdentity.getLogin().getStringID();
   }
 
 public:

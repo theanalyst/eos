@@ -30,6 +30,7 @@
 #include <sstream>
 #include "common/Logging.hh"
 #include "Utils.hh"
+#include "LoginIdentifier.hh"
 
 // Credentials as given by the user. Not trusted by default, the user could
 // play games with race conditions if those were passed on to XrdCl.
@@ -129,6 +130,24 @@ private:
   std::string contents;
   uid_t uid;
   gid_t gid;
+};
+
+// TrustedCredentials bound to a LoginIdentifier. We need this to talk to the MGM.
+class BoundIdentity {
+public:
+  BoundIdentity() {}
+
+  BoundIdentity(const LoginIdentifier &login_, const std::shared_ptr<TrustedCredentials> &creds_)
+  : login(login_), creds(creds_) { }
+
+  LoginIdentifier& getLogin() { return login; }
+
+  std::shared_ptr<TrustedCredentials>& getCreds() { return creds; }
+  const std::shared_ptr<TrustedCredentials>& getCreds() const { return creds; }
+
+private:
+  LoginIdentifier login;
+  std::shared_ptr<TrustedCredentials> creds;
 };
 
 // A class to read and parse environment values

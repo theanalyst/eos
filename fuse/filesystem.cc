@@ -4085,9 +4085,9 @@ filesystem::strongauth_cgi(pid_t pid)
 
   if (fuse_shared && (credConfig.use_user_krb5cc || credConfig.use_user_gsiproxy)) {
     if (gProcCache(pid).HasEntry(pid)) {
-      TrustedCredentials trustedCreds;
-      gProcCache(pid).GetTrustedCreds(pid, trustedCreds);
-      str += trustedCreds.toXrdParams();
+      BoundIdentity boundIdentity;
+      gProcCache(pid).GetBoundIdentity(pid, boundIdentity);
+      str += boundIdentity.getCreds()->toXrdParams();
     }
   }
 
