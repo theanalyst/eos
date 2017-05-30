@@ -70,4 +70,10 @@ TEST(ShardedCache, basic_sanity) {
     ASSERT_FALSE(cache.store(i, new int(i*4), false));
     ASSERT_EQ(*cache.retrieve(i).get(), i*3);
   }
+
+  // try to insert different entries with overwrite set to false, make sure it succeeds
+  for(size_t i = 2000; i < 3000; i++) {
+    ASSERT_TRUE(cache.store(i, new int(i*4), false));
+    ASSERT_EQ(*cache.retrieve(i).get(), i*4);
+  }
 }

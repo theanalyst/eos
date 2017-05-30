@@ -154,8 +154,6 @@ public:
       return true;
     }
 
-    return false;
-
     std::pair<typename std::map<Key, CacheEntry>::iterator, bool> status;
     status = contents[guard.getShard()].insert(std::pair<Key, CacheEntry>(key, entry));
     return status.second;
