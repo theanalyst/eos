@@ -47,6 +47,7 @@ add_executable(
   login-identifier.cc
   utils.cc
   process-info.cc
+  sharded-cache.cc
 )
 
 target_link_libraries(
