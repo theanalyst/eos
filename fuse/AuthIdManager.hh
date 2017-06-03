@@ -53,7 +53,7 @@
 class CredentialConfig {
 public:
   CredentialConfig() : use_user_krb5cc(false), use_user_gsiproxy(false),
-  use_unsafe_krk5(false), tryKrb5First(false), fallback2nobody(false) {}
+  use_unsafe_krk5(false), tryKrb5First(false), fallback2nobody(false), fuse_shared(false) {}
 
   //! Indicates if user krb5cc file should be used for authentication
   bool use_user_krb5cc;
@@ -66,6 +66,8 @@ public:
   //! Indicates if unix authentication (as nobody) should be used as a fallback
   //! if strong authentication is configured and none is found
   bool fallback2nobody;
+  //! Indicates if this is a shared fuse mount
+  bool fuse_shared;
 };
 
 //------------------------------------------------------------------------------

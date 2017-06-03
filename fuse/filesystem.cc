@@ -4517,6 +4517,7 @@ filesystem::initlogging()
   // Open log file
   if (getuid()) {
     fuse_shared = false; //eosfsd
+    credConfig.fuse_shared = false;
     char logfile[1024];
 
     if (getenv("EOS_FUSE_LOGFILE")) {
@@ -4534,6 +4535,7 @@ filesystem::initlogging()
     }
   } else {
     fuse_shared = true; //eosfsd
+    credConfig.fuse_shared = true;
     std::string log_path = "/var/log/eos/fuse/fuse.";
 
     // Running as root ... we log into /var/log/eos/fuse
