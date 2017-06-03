@@ -65,7 +65,7 @@ private:
   class ShardGuard {
   public:
     ShardGuard(ShardedCache *cache, const Key &key, bool write_) : write(write_) {
-      shardId = Hash::hash(key) % cache->shards;
+      shardId = cache->calculateShard(key);
       mtx = &cache->mutexes[shardId];
 
       if(write) {
@@ -101,9 +101,14 @@ private:
     return obj;
   }
 
+  int64_t calculateShard(const Key &key) {
+    return Hash::hash(key) >> shardBits;
+  }
+
 public:
   // TTL is approximate. An element can stay while unused from [ttl, 2*ttl]
-  ShardedCache(size_t size, Milliseconds ttl_) : shards(size), ttl(ttl_) {
+  ShardedCache(size_t shardBits_, Milliseconds ttl_) : shardBits(shardBits_), ttl(ttl_) {
+    shards = pow(2, shardBits);
     mutexes.resize(shards);
     contents.resize(shards);
 
@@ -119,10 +124,6 @@ public:
   ~ShardedCache() {
     XrdSysThread::Cancel(cleanupThread);
     XrdSysThread::Join(cleanupThread, NULL);
-  }
-
-  int64_t calculateShard(const Key &key) {
-    return Hash::hash(key) % shards;
   }
 
   // Retrieves an item from the cache. If there isn't any, return a null shared_ptr.
@@ -172,6 +173,7 @@ public:
 
 private:
   size_t shards;
+  size_t shardBits;
   Milliseconds ttl;
 
   struct CacheEntry {

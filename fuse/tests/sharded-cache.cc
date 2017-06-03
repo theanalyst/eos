@@ -25,7 +25,7 @@
 #include "../ShardedCache.hh"
 
 TEST(ShardedCache, basic_sanity) {
-  ShardedCache<int, int, IdentityHash<int>> cache(128, 10);
+  ShardedCache<int, int, IdentityHash<int>> cache(7, 10); // shards: 2^7 = 128
 
   for(size_t i = 0; i < 1000; i++) {
     ASSERT_TRUE(cache.store(i, new int(i*2)));
@@ -38,6 +38,10 @@ TEST(ShardedCache, basic_sanity) {
     ASSERT_EQ(*cache.retrieve(i).get(), i*2);
   }
 
+  // keep #777 around as a shared_ptr
+  std::shared_ptr<const int> item777 = cache.retrieve(777);
+  ASSERT_TRUE(item777 != nullptr);
+
   // sleep for 30ms while keeping #4 alive
   for(size_t i = 0; i < 30; i++) {
     ASSERT_TRUE(cache.retrieve(4) != nullptr);
@@ -45,9 +49,9 @@ TEST(ShardedCache, basic_sanity) {
   }
   ASSERT_TRUE(cache.retrieve(4) != nullptr);
 
-  // all entries should be evicted by now, except #4
+  // all entries should be evicted by now, except #4 and #777
   for(size_t i = 0; i < 1000; i++) {
-    if(i == 4) {
+    if(i == 4 || i == 777) {
       ASSERT_EQ(*cache.retrieve(i).get(), i*2);
     }
     else {
@@ -58,6 +62,7 @@ TEST(ShardedCache, basic_sanity) {
   // now evict #4
   ASSERT_TRUE(cache.invalidate(4));
   ASSERT_EQ(cache.retrieve(4), nullptr);
+  ASSERT_FALSE(cache.invalidate(4));
 
   // add some entries again, validate they're present
   for(size_t i = 0; i < 1000; i++) {
