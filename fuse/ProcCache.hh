@@ -72,7 +72,6 @@ public:
   {
   }
   bool ReadUserName(std::string& userName);
-  time_t GetModifTime();
   static void StaticDestroy();
 };
 
@@ -95,7 +94,6 @@ public:
   {
   }
   bool ReadIdentity(std::string& sidentity);
-  time_t GetModifTime();
   static void StaticDestroy();
 };
 

@@ -128,26 +128,6 @@ cleanup:
   return result;
 }
 
-time_t ProcReaderKrb5UserName::GetModifTime()
-{
-  struct tm* clock;
-  struct stat attrib;
-
-  if (pKrb5CcFile.substr(0, 5) != "FILE:") {
-    eos_static_err("expecting a credential cache file and got %s",
-                   pKrb5CcFile.c_str());
-    return 0;
-  }
-
-  if (stat(pKrb5CcFile.c_str() + 5, &attrib)) {
-    return 0;
-  }
-
-  clock = gmtime(&
-                 (attrib.st_mtime));      // Get the last modified time and put it into the time structure
-  return mktime(clock);
-}
-
 bool ProcReaderGsiIdentity::sInitOk = true;
 
 void ProcReaderGsiIdentity::StaticDestroy() {}
@@ -204,20 +184,6 @@ gsicleanup:
   }
 
   return result;
-}
-
-time_t ProcReaderGsiIdentity::GetModifTime()
-{
-  struct tm* clock;
-  struct stat attrib;
-
-  if (stat(pGsiProxyFile.c_str(), &attrib)) {
-    return 0;
-  }
-
-  clock = gmtime(&
-                 (attrib.st_mtime));      // Get the last modified time and put it into the time structure
-  return mktime(clock);
 }
 
 int ProcCacheEntry::UpdateIfPsChanged()
