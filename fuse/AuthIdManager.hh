@@ -614,12 +614,12 @@ out:
   // Get user name from the uid and change the effective user ID of the thread
   //------------------------------------------------------------------------------
 
-  std::string
+  LoginIdentifier
   getXrdLogin(pid_t pid)
   {
     BoundIdentity boundIdentity;
     gProcCache(pid).GetBoundIdentity(pid, boundIdentity);
-    return boundIdentity.getLogin().getStringID();
+    return boundIdentity.getLogin();
   }
 
 public:
@@ -650,14 +650,14 @@ public:
     return updateProcCache(uid, gid, pid, true);
   }
 
-  std::string
+  LoginIdentifier
   getLogin(uid_t uid, gid_t gid, pid_t pid)
   {
     if(credConfig.use_user_krb5cc || credConfig.use_user_gsiproxy) {
       return getXrdLogin(pid);
     }
 
-    return LoginIdentifier(uid, gid, pid, GetConnectionId()).getStringID();
+    return LoginIdentifier(uid, gid, pid, GetConnectionId());
   }
 
 };
