@@ -48,6 +48,7 @@ add_executable(
   filesystem.cc             filesystem.hh
   FuseCacheEntry.cc         FuseCacheEntry.hh
   AuthIdManager.cc          AuthIdManager.hh
+                            CredentialCache.hh
   CredentialFinder.cc       CredentialFinder.hh
   LoginIdentifier.cc        LoginIdentifier.hh
   ProcessInfo.cc            ProcessInfo.hh

@@ -132,7 +132,13 @@ public:
   {
   }
 
-  //
+  bool HasBoundIdentity() const
+  {
+    eos::common::RWMutexReadLock lock(pMutex);
+    if(!boundIdentity.getCreds()) return false;
+    return !boundIdentity.getCreds()->empty();
+  }
+
   bool GetBoundIdentity(BoundIdentity& value) const
   {
     eos::common::RWMutexReadLock lock(pMutex);
@@ -314,6 +320,18 @@ public:
     } else {
       return entry->second;
     }
+  }
+
+  bool HasBoundIdentity(int pid)
+  {
+    eos::common::RWMutexReadLock lock(pMutex);
+    auto entry = pCatalog.find(pid);
+
+    if (entry == pCatalog.end()) {
+      return false;
+    }
+
+    return entry->second->HasBoundIdentity();
   }
 
   bool GetBoundIdentity(int pid, BoundIdentity& identity)

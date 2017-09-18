@@ -33,6 +33,7 @@
 #include "ProcCache.hh"
 #include "CredentialFinder.hh"
 #include "LoginIdentifier.hh"
+#include "CredentialCache.hh"
 /*----------------------------------------------------------------------------*/
 #include "XrdOuc/XrdOucString.hh"
 #include "XrdSys/XrdSysPthread.hh"
@@ -96,8 +97,6 @@ public:
   resize(ssize_t size)
   {
     proccachemutexes.resize(size);
-    pid2StrongLogin.resize(size);
-    siduid2credinfo.resize(size);
   }
 
   int connectionId;
@@ -169,16 +168,8 @@ public:
   }
 
 protected:
-  // LOCKING INFORMATION
-  // The AuthIdManager is a stressed system. The credentials are checked for (almost) every single call to fuse.
-  // To speed up things, several levels of caching are implemented.
-  // On top of that, the following maps that are used for this caching are sharded to avoid contention.
-  // This sharding is made such that AuthIdManager::proccachemutexes consecutive pids don't interfere at all between each other.
-  // The size of the sharding is given by AuthIdManager::proccachenbins which is copied to gProcCacheShardingSize
-  // AuthIdManager::proccachemutexes vector of mutex each one protecting a bin in the sharding.
-  std::vector<std::map<pid_t, LoginIdentifier> > pid2StrongLogin;
-  // maps (sessionid,userid) -> ( credinfo )
-  std::vector<std::map<pid_t, std::map<uid_t, CredInfo>  >> siduid2credinfo;
+  CredentialCache credentialCache;
+
   static uint64_t sConIdCount;
   std::set<pid_t> runningPids;
   pthread_t mCleanupThread;
@@ -199,7 +190,7 @@ protected:
       std::string path = CredentialFinder::locateKerberosTicket(processEnv);
       eos_static_debug("locate kerberos, path: %s", path.c_str());
 
-      if (::stat(path.c_str(), &filestat) == 0) {
+      if (::stat(path.c_str(), &filestat) == 0 && checkCredSecurity(filestat, uid, CredInfo::krb5)) {
         credinfo.fname = path;
         credinfo.type = CredInfo::krb5;
 
@@ -213,7 +204,7 @@ protected:
       std::string path = CredentialFinder::locateX509Proxy(processEnv, uid);
       eos_static_debug("locate gsi proxy, path: %s", path.c_str());
 
-      if (::stat(path.c_str(), &filestat) == 0) {
+      if (::stat(path.c_str(), &filestat) == 0 && checkCredSecurity(filestat, uid, CredInfo::x509)) {
         credinfo.fname = path;
         credinfo.type = CredInfo::x509;
 
@@ -224,46 +215,6 @@ protected:
 
     eos_static_debug("could not find any credential for pid %d", (int) pid);
     return false;
-  }
-
-  bool
-  readCred(CredInfo& credinfo)
-  {
-    bool ret = false;
-    eos_static_debug("reading %s credential file %s",
-                     credinfo.type == CredInfo::krb5 ? "krb5" : (credinfo.type == CredInfo::krb5 ? "krk5" : "x509"),
-                     credinfo.fname.c_str());
-
-    if (credinfo.type == CredInfo::krk5) {
-      // fileless authentication cannot rely on symlinks to be able to change the cache credential file
-      // instead of the identity, we use the keyring information and each has a different xrd login
-      credinfo.identity = credinfo.fname;
-      ret = true;
-    }
-
-    if (credinfo.type == CredInfo::krb5) {
-      ProcReaderKrb5UserName reader(credinfo.fname);
-
-      if (!reader.ReadUserName(credinfo.identity)) {
-        eos_static_debug("could not read principal in krb5 cc file %s",
-                         credinfo.fname.c_str());
-      } else {
-        ret = true;
-      }
-    }
-
-    if (credinfo.type == CredInfo::x509) {
-      ProcReaderGsiIdentity reader(credinfo.fname);
-
-      if (!reader.ReadIdentity(credinfo.identity)) {
-        eos_static_debug("could not read identity in x509 proxy file %s",
-                         credinfo.fname.c_str());
-      } else {
-        ret = true;
-      }
-    }
-
-    return ret;
   }
 
   bool
@@ -333,50 +284,24 @@ protected:
     (void) closedir(dirp);
     return true;
   }
-  void cleanProcCacheBin(unsigned int i, int& cleancountProcCache,
-                         int& cleancountStrongLogin, int& cleancountCredInfo)
+  void cleanProcCacheBin(unsigned int i, int& cleancountProcCache)
   {
     eos::common::RWMutexWriteLock lock(proccachemutexes[i]);
     cleancountProcCache += gProcCacheV[i].RemoveEntries(&runningPids);
-
-    for (auto it = pid2StrongLogin[i].begin(); it != pid2StrongLogin[i].end();) {
-      if (!runningPids.count(it->first)) {
-        pid2StrongLogin[i].erase(it++);
-        ++cleancountStrongLogin;
-      } else {
-        ++it;
-      }
-    }
-
-    for (auto it = siduid2credinfo[i].begin(); it != siduid2credinfo[i].end();) {
-      if (!runningPids.count(it->first)) {
-        siduid2credinfo[i].erase(it++);
-        cleancountCredInfo++;
-      } else {
-        ++it;
-      }
-    }
   }
 
   int cleanProcCache()
   {
     int cleancountProcCache = 0;
-    int cleancountStrongLogin = 0;
-    int cleancountCredInfo = 0;
 
     if (populatePids()) {
       for (unsigned int i = 0; i < proccachenbins; i++) {
-        cleanProcCacheBin(i, cleancountProcCache, cleancountStrongLogin,
-                          cleancountCredInfo);
+        cleanProcCacheBin(i, cleancountProcCache);
       }
     }
 
     eos_static_info("ProcCache cleaning removed %d entries in gProcCache",
                     cleancountProcCache);
-    eos_static_debug("ProcCache cleaning removed %d entries in pid2StrongLogin",
-                     cleancountStrongLogin);
-    eos_static_debug("ProcCache cleaning removed %d entries in siduid2CredInfo",
-                     cleancountCredInfo);
     return 0;
   }
 
@@ -434,168 +359,63 @@ protected:
       }
     }
 
-    // get the startuptime of the leader of the session
-    Jiffies sessionSut = 0;
+    // Does this process have a bound identity already? Nothing to do
+    if (!reconnect && gProcCache(pid).HasEntry(pid) && gProcCache(pid).HasBoundIdentity(pid)) return 0;
 
-    if (!gProcCache(sid).GetStartupTime(sid, sessionSut)) {
-      sessionSut = 0;
-    }
+    // No bound identity, let's build one. First, let's check the environment
+    // of this PID for KRB5CCNAME and friends..
 
-    // find the credentials
     CredInfo credinfo;
     struct stat filestat;
 
-    if (!findCred(credinfo, filestat, pid, uid)) {
-      if (credConfig.fallback2nobody) {
-        credinfo.type = CredInfo::nobody;
-        eos_static_debug("could not find any strong credential for uid %d pid %d sid %d, falling back on 'nobody'",
-                         (int)uid, (int)pid, (int)sid);
-      } else {
-        eos_static_notice("could not find any strong credential for uid %d pid %d sid %d",
-                          (int)uid, (int)pid, (int)sid);
+    if(!findCred(credinfo, filestat, pid, uid)) {
+      // Nope, nothing here. Let's check its session leader..
+      // TODO(gbitzes): AFS does not check the environment of the session leader,
+      // as far I know.. is this necessary for us?
+      if(!findCred(credinfo, filestat, sid, uid)) {
+
+        // No credentials found..
+        if(credConfig.fallback2nobody) {
+          // Bind this process to nobody.
+          BoundIdentity identity;
+          gProcCache(pid).SetBoundIdentity(pid, identity);
+          return 0;
+        }
+
+        // Return "permission denied"
         return EACCES;
       }
     }
 
-    // check if the credentials in the credential cache cache are up to date
-    // TODO: should we implement a TTL , my guess is NO
-    bool sessionInCache = false;
+    // We found some credentials, yay. We have to bind them to an xrootd
+    // connection - does such a binding exist already? We don't want to
+    // waste too many LoginIdentifiers, so we re-use them when possible.
 
-    if (sid != pid) {
-      lock_r_pcache(sid, pid);
-    }
+    std::shared_ptr<const BoundIdentity> boundIdentity = credentialCache.retrieve(credinfo);
 
-    bool cacheEntryFound = siduid2credinfo[sid % proccachenbins].count(sid) > 0 &&
-                           siduid2credinfo[sid % proccachenbins][sid].count(uid) > 0;
-    std::map<uid_t, CredInfo>::iterator cacheEntry;
-
-    if (cacheEntryFound) {
-      // skip the cache if reconnecting
-      cacheEntry = siduid2credinfo[sid % proccachenbins][sid].find(uid);
-      sessionInCache = !reconnect;
-
-      if (sessionInCache) {
-        sessionInCache = false;
-        const CredInfo& ci = cacheEntry->second;
-
-        if (ci.type == credinfo.type) {
-          sessionInCache = true;
-        }
-      }
-    }
-
-    if (sid != pid) {
-      unlock_r_pcache(sid, pid);
-    }
-
-    if (sessionInCache) {
-      // TODO: could detect from the call to ptoccahce_InsertEntry if the process was changed
-      //       then, it would be possible to bypass this part copy, which is probably not the main bottleneck anyway
-      // no lock needed as only one thread per process can access this (lock is supposed to be already taken -> beginning of the function)
-      eos_static_debug("uid=%d  sid=%d  pid=%d  found stronglogin in cache %s",
-                       (int)uid, (int)sid, (int)pid, cacheEntry->second.cachedStrongLogin.getStringID().c_str());
-
-      pid2StrongLogin[pid % proccachenbins][pid] = cacheEntry->second.cachedStrongLogin;
-
-      if (gProcCache(sid).HasEntry(sid)) {
-        BoundIdentity identity;
-        gProcCache(sid).GetBoundIdentity(sid, identity);
-
-        if (gProcCache(pid).HasEntry(pid)) {
-          gProcCache(pid).SetBoundIdentity(pid, identity);
-        }
-      }
-
+    if(boundIdentity && !reconnect) {
+      // Cache hit, CredInfo is bound already, re-use.
+      gProcCache(pid).SetBoundIdentity(pid, *boundIdentity.get());
       return 0;
     }
 
-    LoginIdentifier loginId; // nobody
+    // No binding exists yet, let's create one.
+    LoginIdentifier login = getNewConId(uid, gid, pid);
     std::shared_ptr<TrustedCredentials> trustedCreds(new TrustedCredentials());
 
-    if (credinfo.type == CredInfo::nobody) {
-      // trustedCreds remain empty
-      BoundIdentity boundIdentity(loginId, trustedCreds);
-
-      /*** using unix authentication and user nobody ***/
-      if (gProcCache(pid).HasEntry(pid)) {
-        gProcCache(pid).SetBoundIdentity(pid, boundIdentity);
-      }
-
-      // refresh the credentials in the cache
-      if (gProcCache(sid).HasEntry(sid)) {
-        gProcCache(sid).SetBoundIdentity(sid, boundIdentity);
-      }
-
-      // update pid2StrongLogin (no lock needed as only one thread per process can access this)
-      pid2StrongLogin[pid % proccachenbins][pid] = LoginIdentifier();
-    } else {
-      // refresh the credentials in the cache
-      // check the credential security
-      if (!checkCredSecurity(filestat, uid, credinfo.type)) {
-        eos_static_alert("credentials are not safe");
-        return EACCES;
-      }
-
-      // check the credential security
-      if (!readCred(credinfo)) {
-        return EACCES;
-      }
-
-      // update authmethods for session leader and current pid
-      if (credinfo.type == CredInfo::krb5) {
-        trustedCreds->setKrb5(credinfo.fname, uid, gid);
-      } else if (credinfo.type == CredInfo::krk5) {
-        trustedCreds->setKrk5(credinfo.fname, uid, gid);
-      } else {
-        trustedCreds->setx509(credinfo.fname, uid, gid);
-      }
-
-      if (credinfo.type == CredInfo::krk5 && !checkKrk5StringSafe(credinfo.fname)) {
-        eos_static_err("deny user %d using of unsafe in memory krb5 credential string '%s'",
-                       (int)uid, credinfo.fname.c_str());
-        return EPERM;
-      }
-
-      if (trustedCreds->empty()) {
-        eos_static_err("unknown error, should never happen");
-        return EACCES;
-      }
-
-      loginId = getNewConId(uid, gid, pid);
-
-      if (loginId.getConnectionID() == 0) {
-        eos_static_alert("running out of XRootD connections");
-        errCode = EBUSY;
-        return errCode;
-      }
-
-      BoundIdentity boundIdentity(loginId, trustedCreds);
-      gProcCache(pid).SetBoundIdentity(pid, boundIdentity);
-      gProcCache(sid).SetBoundIdentity(sid, boundIdentity);
-
-      // update pid2StrongLogin (no lock needed as only one thread per process can access this)
-      pid2StrongLogin[pid % proccachenbins][pid] = loginId;
+    if (credinfo.type == CredInfo::krb5) {
+      trustedCreds->setKrb5(credinfo.fname, uid, gid);
+    } else if (credinfo.type == CredInfo::krk5) {
+      trustedCreds->setKrk5(credinfo.fname, uid, gid);
+    } else if (credinfo.type == CredInfo::x509) {
+      trustedCreds->setx509(credinfo.fname, uid, gid);
     }
 
-    // update uidsid2credinfo
-    credinfo.cachedStrongLogin = pid2StrongLogin[pid % proccachenbins][pid];
-    eos_static_debug("uid=%d  sid=%d  pid=%d  writing stronglogin in cache %s",
-                     (int)uid, (int)sid, (int)pid, credinfo.cachedStrongLogin.getStringID().c_str());
-
-    if (sid != pid) {
-      lock_w_pcache(sid, pid);
-    }
-
-    siduid2credinfo[sid % proccachenbins][sid][uid] = credinfo;
-
-    if (sid != pid) {
-      unlock_w_pcache(sid, pid);
-    }
-
-    eos_static_info("trustedCredentials [%s] used for pid %d, xrdlogin is %s (%d/%d)",
-                    trustedCreds->toXrdParams().c_str(), (int)pid,
-                    pid2StrongLogin[pid % proccachenbins][pid].getStringID().c_str(), (int)uid, (int)loginId.getConnectionID());
-    return errCode;
+    BoundIdentity *binding = new BoundIdentity(login, trustedCreds);
+    gProcCache(pid).SetBoundIdentity(pid, *binding);
+    credentialCache.store(credinfo, binding);
+    // no delete on binding, ownership was transferred to the cache
+    return 0;
   }
 
   //------------------------------------------------------------------------------

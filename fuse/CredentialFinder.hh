@@ -45,8 +45,14 @@ struct CredInfo {
 
   CredType type;     // krb5 , krk5 or x509
   std::string fname; // credential file
-  std::string identity; // identity in the credential file
-  LoginIdentifier cachedStrongLogin;
+
+  bool operator<(const CredInfo& src) const {
+    if(type != src.type) {
+      return type < src.type;
+    }
+
+    return fname < src.fname;
+  }
 };
 
 // Anything ending up here can be trusted, and is passed on as-is to XrdCl.

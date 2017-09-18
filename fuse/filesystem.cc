@@ -1123,7 +1123,9 @@ filesystem::update_proc_cache(uid_t uid, gid_t gid, pid_t pid)
 std::string
 filesystem::get_login(uid_t uid, gid_t gid, pid_t pid)
 {
-  return authidmanager.getLogin(uid, gid, pid).getStringID();
+  std::string login = authidmanager.getLogin(uid, gid, pid).getStringID();
+  eos_static_debug("mapping [uid, gid, pid] = [%d, %d, %d] to xrootd login: %s", uid, gid, pid, login.c_str());
+  return login;
 }
 
 //------------------------------------------------------------------------------
