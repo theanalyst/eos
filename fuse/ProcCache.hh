@@ -44,61 +44,6 @@ class ProcCache;
 
 /*----------------------------------------------------------------------------*/
 /**
- * @brief Class to read the Krb5 login in a credential cache file
- *
- */
-/*----------------------------------------------------------------------------*/
-class ProcReaderKrb5UserName
-{
-  std::string pKrb5CcFile;
-
-  static eos::common::RWMutex sMutex;
-  static bool sMutexOk;
-  static krb5_context sKcontext;
-  static bool sKcontextOk;
-
-public:
-  ProcReaderKrb5UserName(const std::string& krb5ccfile) :
-    pKrb5CcFile(krb5ccfile)  //, pKcontext(), pKcontextOk(true)
-  {
-    eos::common::RWMutexWriteLock lock(sMutex);
-
-    if (!sMutexOk) {
-      ProcReaderKrb5UserName::sMutex.SetBlocking(true);
-      sMutexOk = true;
-    }
-  }
-  ~ProcReaderKrb5UserName()
-  {
-  }
-  bool ReadUserName(std::string& userName);
-  static void StaticDestroy();
-};
-
-/*----------------------------------------------------------------------------*/
-/**
- * @brief Class to read the GSI identity in a GSI proxy file
- *
- */
-/*----------------------------------------------------------------------------*/
-class ProcReaderGsiIdentity
-{
-  std::string pGsiProxyFile;
-  static bool sInitOk;
-public:
-  ProcReaderGsiIdentity(const std::string& gsiproxyfile) :
-    pGsiProxyFile(gsiproxyfile)
-  {
-  }
-  ~ProcReaderGsiIdentity()
-  {
-  }
-  bool ReadIdentity(std::string& sidentity);
-  static void StaticDestroy();
-};
-
-/*----------------------------------------------------------------------------*/
-/**
  * @brief Class representing a Proc File information cache entry for one pid.
  *
  */
