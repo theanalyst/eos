@@ -34,6 +34,7 @@
 #include "LoginIdentifier.hh"
 #include "CredentialCache.hh"
 #include "Utils.hh"
+#include "BoundIdentityProvider.hh"
 /*----------------------------------------------------------------------------*/
 #include "XrdOuc/XrdOucString.hh"
 #include "XrdSys/XrdSysPthread.hh"
@@ -50,26 +51,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <dirent.h>
-
-class CredentialConfig {
-public:
-  CredentialConfig() : use_user_krb5cc(false), use_user_gsiproxy(false),
-  use_unsafe_krk5(false), tryKrb5First(false), fallback2nobody(false), fuse_shared(false) {}
-
-  //! Indicates if user krb5cc file should be used for authentication
-  bool use_user_krb5cc;
-  //! Indicates if user gsi proxy should be used for authentication
-  bool use_user_gsiproxy;
-  //! Indicates if in memory krb5 tickets can be used without any safety check
-  bool use_unsafe_krk5;
-  //! Indicates if Krb5 should be tried before Gsi
-  bool tryKrb5First;
-  //! Indicates if unix authentication (as nobody) should be used as a fallback
-  //! if strong authentication is configured and none is found
-  bool fallback2nobody;
-  //! Indicates if this is a shared fuse mount
-  bool fuse_shared;
-};
 
 //------------------------------------------------------------------------------
 // Class in charge of managing the xroot login (i.e. xroot connection)
@@ -173,49 +154,6 @@ protected:
   static uint64_t sConIdCount;
   std::set<pid_t> runningPids;
   pthread_t mCleanupThread;
-
-  bool
-  findCred(CredInfo& credinfo, struct stat& filestat, pid_t pid, uid_t uid)
-  {
-    if (!(credConfig.use_user_gsiproxy || credConfig.use_user_krb5cc)) {
-      return false;
-    }
-
-    // get process environment
-    Environment processEnv;
-    processEnv.fromFile(SSTR("/proc/" << pid << "/environ"));
-
-    // try krb5
-    if(credConfig.use_user_krb5cc) {
-      std::string path = CredentialFinder::locateKerberosTicket(processEnv);
-      eos_static_debug("locate kerberos, path: %s", path.c_str());
-
-      if (::stat(path.c_str(), &filestat) == 0 && checkCredSecurity(filestat, uid)) {
-        credinfo.fname = path;
-        credinfo.type = CredInfo::krb5;
-
-        eos_static_debug("found credential %s for pid %d", credinfo.fname.c_str(), (int) pid);
-        return true;
-      }
-    }
-
-    // try gsi
-    if(credConfig.use_user_gsiproxy) {
-      std::string path = CredentialFinder::locateX509Proxy(processEnv, uid);
-      eos_static_debug("locate gsi proxy, path: %s", path.c_str());
-
-      if (::stat(path.c_str(), &filestat) == 0 && checkCredSecurity(filestat, uid)) {
-        credinfo.fname = path;
-        credinfo.type = CredInfo::x509;
-
-        eos_static_debug("found credential %s for pid %d", credinfo.fname.c_str(), (int) uid);
-        return true;
-      }
-    }
-
-    eos_static_debug("could not find any credential for pid %d", (int) pid);
-    return false;
-  }
 
   inline bool
   checkKrk5StringSafe(const std::string& krk5Str)
@@ -348,29 +286,23 @@ protected:
     // Does this process have a bound identity already? Nothing to do
     if (!reconnect && gProcCache(pid).HasEntry(pid) && gProcCache(pid).HasBoundIdentity(pid)) return 0;
 
-    // No bound identity, let's build one. First, let's check the environment
-    // of this PID for KRB5CCNAME and friends..
+    // No bound identity, let's build one. First, let's read the environment of this PID.
+    // In case of error, the environment simply remains empty.
+    Environment processEnv;
+    processEnv.fromFile(SSTR("/proc/" << pid << "/environ"));
 
     CredInfo credinfo;
-    struct stat filestat;
-
-    if(!findCred(credinfo, filestat, pid, uid)) {
-      // Nope, nothing here. Let's check its session leader..
-      // TODO(gbitzes): AFS does not check the environment of the session leader,
-      // as far I know.. is this necessary for us?
-      if(!findCred(credinfo, filestat, sid, uid)) {
-
-        // No credentials found..
-        if(credConfig.fallback2nobody) {
-          // Bind this process to nobody.
-          BoundIdentity identity;
-          gProcCache(pid).SetBoundIdentity(pid, identity);
-          return 0;
-        }
-
-        // Return "permission denied"
-        return EACCES;
+    if(!BoundIdentityProvider::fillCredsFromEnv(processEnv, credConfig, credinfo, uid)) {
+      // No credentials found - fallback to nobody?
+      if(credConfig.fallback2nobody) {
+        // Bind this process to nobody.
+        BoundIdentity identity;
+        gProcCache(pid).SetBoundIdentity(pid, identity);
+        return 0;
       }
+
+      // Nope, give back "permission denied instead"
+      return EACCES;
     }
 
     // We found some credentials, yay. We have to bind them to an xrootd

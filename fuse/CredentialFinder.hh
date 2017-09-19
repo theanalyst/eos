@@ -32,6 +32,27 @@
 #include "Utils.hh"
 #include "LoginIdentifier.hh"
 
+class CredentialConfig {
+public:
+  CredentialConfig() : use_user_krb5cc(false), use_user_gsiproxy(false),
+  use_unsafe_krk5(false), tryKrb5First(false), fallback2nobody(false), fuse_shared(false) {}
+
+  //! Indicates if user krb5cc file should be used for authentication
+  bool use_user_krb5cc;
+  //! Indicates if user gsi proxy should be used for authentication
+  bool use_user_gsiproxy;
+  //! Indicates if in memory krb5 tickets can be used without any safety check
+  bool use_unsafe_krk5;
+  //! Indicates if Krb5 should be tried before Gsi
+  bool tryKrb5First;
+  //! Indicates if unix authentication (as nobody) should be used as a fallback
+  //! if strong authentication is configured and none is found
+  bool fallback2nobody;
+  //! Indicates if this is a shared fuse mount
+  bool fuse_shared;
+};
+
+
 // Credentials as given by the user. Not trusted by default, the user could
 // play games with race conditions if those were passed on to XrdCl.
 //
