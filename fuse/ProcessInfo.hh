@@ -103,6 +103,10 @@ public:
     return cmd;
   }
 
+  std::string getCmdStr() const {
+    return cmdStr;
+  }
+
 private:
   bool empty;
 

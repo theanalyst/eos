@@ -47,6 +47,18 @@ public:
     return boundIdentity.getCreds()->toXrdParams();
   }
 
+  Jiffies getStartTime() const {
+    return processInfo.getStartTime();
+  }
+
+  std::string getCmdStr() const {
+    return processInfo.getCmdStr();
+  }
+
+  const std::vector<std::string> &getCmdVec() const {
+    return processInfo.getCmd();
+  }
+
 private:
   ProcessInfo processInfo;
   BoundIdentity boundIdentity;

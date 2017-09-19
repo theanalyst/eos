@@ -4134,12 +4134,14 @@ filesystem::is_toplevel_rm(int pid, uid_t uid, gid_t gid, const char* local_dir)
     return 0;
   }
 
-  Jiffies psstime = 0;
+  ProcessSnapshot snapshot = processCache.retrieve(pid, uid, gid, false);
 
-  if (!gProcCache(pid).HasEntry(pid) ||
-      !gProcCache(pid).GetStartupTime(pid, psstime)) {
-    eos_static_err("could not get process start time");
+  if(!snapshot) {
+    eos_static_crit("Unable to retrieve process snapshot in is_toplevel_rm, (pid, uid, gid) => (%d, %d, %d)", pid, uid, gid);
+    return 1; // deny
   }
+
+  Jiffies psstime = snapshot->getStartTime();
 
   // Check the cache
   {
@@ -4156,7 +4158,7 @@ filesystem::is_toplevel_rm(int pid, uid_t uid, gid_t gid, const char* local_dir)
                          it_map->second.second);
 
         if (it_map->second.second) {
-          std::string cmd = gProcCache(pid).GetArgsStr(pid);
+          std::string cmd = snapshot->getCmdStr();
           eos_static_notice("rejected toplevel recursive deletion command %s",
                             cmd.c_str());
         }
@@ -4172,8 +4174,8 @@ filesystem::is_toplevel_rm(int pid, uid_t uid, gid_t gid, const char* local_dir)
   auto entry = std::make_pair(psstime, false);
   // Try to print the command triggering the unlink
   std::ostringstream oss;
-  const auto& cmdv = gProcCache(pid).GetArgsVec(pid);
-  std::string cmd = gProcCache(pid).GetArgsStr(pid);
+  const auto& cmdv = snapshot->getCmdVec();
+  std::string cmd = snapshot->getCmdStr();
   std::set<std::string> rm_entries;
   std::set<std::string> rm_opt; // rm command options (long and short)
   char exe[PATH_MAX];
