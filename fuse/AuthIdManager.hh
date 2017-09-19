@@ -1,4 +1,3 @@
-
 // ----------------------------------------------------------------------
 // File: AuthIdManager.hh
 // Author: Geoffray Adde - CERN
@@ -34,6 +33,7 @@
 #include "CredentialFinder.hh"
 #include "LoginIdentifier.hh"
 #include "CredentialCache.hh"
+#include "Utils.hh"
 /*----------------------------------------------------------------------------*/
 #include "XrdOuc/XrdOucString.hh"
 #include "XrdSys/XrdSysPthread.hh"
@@ -190,7 +190,7 @@ protected:
       std::string path = CredentialFinder::locateKerberosTicket(processEnv);
       eos_static_debug("locate kerberos, path: %s", path.c_str());
 
-      if (::stat(path.c_str(), &filestat) == 0 && checkCredSecurity(filestat, uid, CredInfo::krb5)) {
+      if (::stat(path.c_str(), &filestat) == 0 && checkCredSecurity(filestat, uid)) {
         credinfo.fname = path;
         credinfo.type = CredInfo::krb5;
 
@@ -204,7 +204,7 @@ protected:
       std::string path = CredentialFinder::locateX509Proxy(processEnv, uid);
       eos_static_debug("locate gsi proxy, path: %s", path.c_str());
 
-      if (::stat(path.c_str(), &filestat) == 0 && checkCredSecurity(filestat, uid, CredInfo::x509)) {
+      if (::stat(path.c_str(), &filestat) == 0 && checkCredSecurity(filestat, uid)) {
         credinfo.fname = path;
         credinfo.type = CredInfo::x509;
 
@@ -214,20 +214,6 @@ protected:
     }
 
     eos_static_debug("could not find any credential for pid %d", (int) pid);
-    return false;
-  }
-
-  bool
-  checkCredSecurity(const struct stat& filestat, uid_t uid, CredInfo::CredType credtype)
-  {
-    if (credtype == CredInfo::krk5) {
-        return true;
-      } else if (filestat.st_uid == uid &&
-                 (filestat.st_mode & 0077) == 0 // no access to other users/groups
-                 && (filestat.st_mode & 0400) != 0 // read allowed for the user
-                ) {
-        return true;
-      }
     return false;
   }
 
