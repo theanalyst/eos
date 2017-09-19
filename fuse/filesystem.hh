@@ -58,6 +58,7 @@
 #include "FuseCache/FileAbstraction.hh"
 #include "FuseCache/LayoutWrapper.hh"
 #include "AuthIdManager.hh"
+#include "ProcessCache.hh"
 
 #define sMaxAuthId (2^6)
 #define N_OPEN_MUTEXES_NBITS 12
@@ -607,6 +608,16 @@ public:
   const char* mapuser(uid_t uid, gid_t gid, pid_t pid, uint8_t authid);
 
   //----------------------------------------------------------------------------
+  //! Retrieve an immutable ProcessSnapshot, which includes all information
+  //! we know about a process.
+  //! the proccache entry contains the environment, the command line
+  //! the fsuid, the fsgid amd if kerberos is used the krb5ccname and the krb5login
+  //! used in it
+  //----------------------------------------------------------------------------
+  ProcessSnapshot getProcessSnapshot(fuse_req_t req);
+  ProcessSnapshot getProcessSnapshot(pid_t pid, uid_t uid, gid_t gid);
+
+  //----------------------------------------------------------------------------
   //! updates the proccache entry for the given pid (only if needed)
   //! the proccache entry contains the environment, the command line
   //! the fsuid, the fsgid amd if kerberos is used the krb5ccname and the krb5login
@@ -618,7 +629,7 @@ public:
   //! Create the cgi argument to be added to the url to use the kerberos cc file
   //!   for the given pid. e.g. xrd.k5ccname=<krb5login>
   //----------------------------------------------------------------------------
-  std::string strongauth_cgi(pid_t pid);
+  std::string strongauth_cgi(pid_t pid, uid_t uid, gid_t gid);
 
   //----------------------------------------------------------------------------
   //! Create an URL
@@ -989,6 +1000,7 @@ private:
 
   //! IO buffer table. Each fuse thread has its own read buffer
   std::map<pthread_t, IoBuf> IoBufferMap;
+  ProcessCache processCache;
   AuthIdManager authidmanager;
 
   //------------------------------------------------------------------------------

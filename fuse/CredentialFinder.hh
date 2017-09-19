@@ -168,6 +168,7 @@ public:
   : login(login_), creds(creds_) { }
 
   LoginIdentifier& getLogin() { return login; }
+  const LoginIdentifier& getLogin() const { return login; }
 
   std::shared_ptr<TrustedCredentials>& getCreds() { return creds; }
   const std::shared_ptr<TrustedCredentials>& getCreds() const { return creds; }

@@ -52,6 +52,7 @@ add_executable(
                             CredentialCache.hh
   CredentialFinder.cc       CredentialFinder.hh
   LoginIdentifier.cc        LoginIdentifier.hh
+  ProcessCache.cc           ProcessCache.hh
   ProcessInfo.cc            ProcessInfo.hh
                             ShardedCache.hh
   Utils.cc                  Utils.hh

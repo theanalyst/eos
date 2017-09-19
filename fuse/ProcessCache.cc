@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: BoundIdentityProvider.hh
+// File: ProcessCache.cc
 // Author: Georgios Bitzes - CERN
 // ----------------------------------------------------------------------
 
@@ -21,32 +21,34 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __BOUND_IDENTITY_PROVIDER__HH__
-#define __BOUND_IDENTITY_PROVIDER__HH__
+#include "ProcessCache.hh"
 
-#include <atomic>
-#include "CredentialCache.hh"
-#include "CredentialFinder.hh"
-#include "ProcessInfo.hh"
+ProcessSnapshot ProcessCache::retrieve(pid_t pid, uid_t uid, gid_t gid, bool reconnect) {
+  ProcessSnapshot entry = cache.retrieve(ProcessCacheKey(pid, uid, gid));
+  if(entry) {
 
-class BoundIdentityProvider {
-public:
-  static bool fillCredsFromEnv(const Environment &env, const CredentialConfig &credConfig, CredInfo &creds, uid_t uid);
-  std::shared_ptr<const BoundIdentity> retrieve(pid_t pid, uid_t uid, gid_t gid, bool reconnect);
+    // Cache hit.. but it could refer to different processes, even if PID is the same.
+    ProcessInfo processInfo;
+    if(!ProcessInfoProvider::retrieveBasic(pid, processInfo)) {
+      return {};
+    }
 
-  void setCredentialConfig(const CredentialConfig &conf) {
-    credConfig = conf;
+    if(processInfo.isSameProcess(entry->getProcessInfo())) {
+      // Yep, that's a cache hit, nothing more to do.
+      return entry;
+    }
+
+    // Process has changed, cache miss
   }
 
-private:
-  CredentialConfig credConfig;
-  CredentialCache credentialCache;
+  ProcessInfo processInfo;
+  if(!ProcessInfoProvider::retrieveFull(pid, processInfo)) {
+    return {};
+  }
 
-  static bool fillKrb5FromEnv(const Environment &env, CredInfo &creds, uid_t uid);
-  static bool fillX509FromEnv(const Environment &env, CredInfo &creds, uid_t uid);
-  static bool checkCredsPath(const std::string &path, uid_t uid);
+  std::shared_ptr<const BoundIdentity> boundIdentity = boundIdentityProvider.retrieve(pid, uid, gid, reconnect);
+  ProcessCacheEntry *cacheEntry = new ProcessCacheEntry(processInfo, *boundIdentity.get(), uid, gid);
+  cache.store(ProcessCacheKey(pid, uid, gid), cacheEntry);
 
-  std::atomic<uint64_t> connectionCounter {0};
-};
-
-#endif
+  return cache.retrieve(ProcessCacheKey(pid, uid, gid));
+}

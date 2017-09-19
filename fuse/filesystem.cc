@@ -1111,6 +1111,15 @@ filesystem::attach_rd_buff(pthread_t tid, size_t size)
 //             ******* XROOTD connection/authentication functions *******
 //------------------------------------------------------------------------------
 
+ProcessSnapshot filesystem::getProcessSnapshot(fuse_req_t req) {
+  return processCache.retrieve(fuse_req_ctx(req)->pid, fuse_req_ctx(req)->uid, fuse_req_ctx(req)->gid, false);
+}
+
+ProcessSnapshot filesystem::getProcessSnapshot(pid_t pid, uid_t uid, gid_t gid) {
+  return processCache.retrieve(pid, uid, gid, false);
+}
+
+
 //------------------------------------------------------------------------------
 // Get user name from the uid and change the effective user ID of the thread
 //------------------------------------------------------------------------------
@@ -1123,7 +1132,8 @@ filesystem::update_proc_cache(uid_t uid, gid_t gid, pid_t pid)
 std::string
 filesystem::get_login(uid_t uid, gid_t gid, pid_t pid)
 {
-  std::string login = authidmanager.getLogin(uid, gid, pid).getStringID();
+  ProcessSnapshot snapshot = getProcessSnapshot(pid, uid, gid);
+  std::string login = snapshot->getXrdLogin();
   eos_static_debug("mapping [uid, gid, pid] = [%d, %d, %d] to xrootd login: %s", uid, gid, pid, login.c_str());
   return login;
 }
@@ -1164,7 +1174,7 @@ filesystem::rmxattr(const char* path,
   arg.FromString(request);
   std::string surl = user_url(uid, gid, pid);
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -1257,7 +1267,7 @@ filesystem::setxattr(const char* path,
   arg.FromString(request);
   std::string surl = user_url(uid, gid, pid);
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -1342,7 +1352,7 @@ filesystem::getxattr(const char* path,
   arg.FromString(request);
   std::string surl = user_url(uid, gid, pid);
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -1439,7 +1449,7 @@ filesystem::listxattr(const char* path,
   arg.FromString(request);
   std::string surl = user_url(uid, gid, pid);
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -1658,7 +1668,7 @@ filesystem::stat(const char* path, struct stat* buf, uid_t uid, gid_t gid,
   arg.FromString(request);
   std::string surl = user_url(uid, gid, pid);
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -1838,7 +1848,7 @@ filesystem::statfs(const char* path, struct statvfs* stbuf, uid_t uid ,
   arg.FromString(request);
   std::string surl = user_url(uid, gid, pid);
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -1928,7 +1938,7 @@ filesystem::chmod(const char* path,
   arg.FromString(request);
   std::string surl = user_url(uid, gid, pid);
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -2045,7 +2055,7 @@ filesystem::utimes(const char* path,
   arg.FromString(request);
   std::string surl = user_url(uid, gid, pid);
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -2119,7 +2129,7 @@ filesystem::symlink(const char* path, const char* link, uid_t uid, gid_t gid,
   arg.FromString(request);
   std::string surl = user_url(uid, gid, pid);
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -2187,7 +2197,7 @@ filesystem::readlink(const char* path, char* buf, size_t bufsize, uid_t uid,
   arg.FromString(request);
   std::string surl = user_url(uid, gid, pid);
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -2292,7 +2302,7 @@ filesystem::access(const char* path,
   arg.FromString(request);
   std::string surl = user_url(uid, gid, pid);
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -2367,7 +2377,7 @@ filesystem::inodirlist(unsigned long long dirinode,
   }
 
   // add the kerberos token
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     request += "&" + auth;
   }
@@ -2751,7 +2761,7 @@ filesystem::readdir(const char* path_dir, size_t* size,
 
   std::string surl = user_url(uid, gid, pid);
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -2829,7 +2839,7 @@ filesystem::mkdir(const char* path,
   arg.FromString(request);
   std::string surl = user_url(uid, gid, pid);
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -2937,7 +2947,7 @@ filesystem::rmdir(const char* path, uid_t uid, gid_t gid, pid_t pid)
   std::string surl = user_url(uid, gid, pid);
 
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -3048,7 +3058,7 @@ filesystem::open(const char* path,
       //spath += "?mgm.cmd=whoami&mgm.format=fuse&eos.app=fuse";
       spath += '?';
 
-      std::string auth = strongauth_cgi(pid);
+      std::string auth = strongauth_cgi(pid, uid, gid);
       if(!auth.empty()) {
         spath += auth.c_str();
         spath += '&';
@@ -3088,7 +3098,7 @@ filesystem::open(const char* path,
       //spath += "?mgm.cmd=who&mgm.format=fuse&eos.app=fuse";
       spath += '?';
 
-      std::string auth = strongauth_cgi(pid);
+      std::string auth = strongauth_cgi(pid, uid, gid);
       if(!auth.empty()) {
         spath += auth.c_str();
         spath += '&';
@@ -3127,7 +3137,7 @@ filesystem::open(const char* path,
       //spath += "?mgm.cmd=quota&mgm.subcmd=lsuser&mgm.format=fuse&eos.app=fuse";
       spath += '?';
 
-      std::string auth = strongauth_cgi(pid);
+      std::string auth = strongauth_cgi(pid, uid, gid);
       if(!auth.empty()) {
         spath += auth.c_str();
         spath += '&';
@@ -3185,7 +3195,7 @@ filesystem::open(const char* path,
     arg.FromString(request);
     std::string surl = user_url(uid, gid, pid);
 
-    std::string auth = strongauth_cgi(pid);
+    std::string auth = strongauth_cgi(pid, uid, gid);
     if(!auth.empty()) {
       surl += "?" + auth;
     }
@@ -3304,7 +3314,7 @@ filesystem::open(const char* path,
   if ((credConfig.use_user_krb5cc || credConfig.use_user_gsiproxy) &&
       fuse_shared) {
     open_cgi += "&";
-    open_cgi += strongauth_cgi(pid).c_str();
+    open_cgi += strongauth_cgi(pid, uid, gid).c_str();
   }
 
   // Check if the file already exists in case this is a write
@@ -3998,7 +4008,7 @@ filesystem::unlink(const char* path, uid_t uid, gid_t gid, pid_t pid,
   eos_static_info("path=%s uid=%u, pid=%u", path, uid, pid);
   std::string surl = user_url(uid, gid, pid);
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -4054,7 +4064,7 @@ filesystem::rename(const char* oldpath, const char* newpath, uid_t uid,
 
   std::string surl = user_url(uid, gid, pid);
 
-  std::string auth = strongauth_cgi(pid);
+  std::string auth = strongauth_cgi(pid, uid, gid);
   if(!auth.empty()) {
     surl += "?" + auth;
   }
@@ -4081,20 +4091,11 @@ filesystem::rename(const char* oldpath, const char* newpath, uid_t uid,
 // Build strong authentication CGI url info
 //------------------------------------------------------------------------------
 std::string
-filesystem::strongauth_cgi(pid_t pid)
+filesystem::strongauth_cgi(pid_t pid, uid_t uid, gid_t gid)
 {
-  std::string str;
-
-  if (fuse_shared && (credConfig.use_user_krb5cc || credConfig.use_user_gsiproxy)) {
-    if (gProcCache(pid).HasEntry(pid)) {
-      BoundIdentity boundIdentity;
-      gProcCache(pid).GetBoundIdentity(pid, boundIdentity);
-      str += boundIdentity.getCreds()->toXrdParams();
-    }
-  }
-
-  eos_static_debug("pid=%lu sep=%s", (unsigned long) pid, str.c_str());
-  return str.c_str();
+  ProcessSnapshot snapshot = processCache.retrieve(pid, uid, gid, false);
+  eos_static_debug("mapping (uid, gid, pid) => (%d, %d, %d) to creds %s", uid, gid, pid, snapshot->getXrdCreds().c_str());
+  return snapshot->getXrdCreds();
 }
 
 //------------------------------------------------------------------------------
@@ -4860,6 +4861,7 @@ filesystem::init(int argc, char* argv[], void* userdata,
   }
 
   authidmanager.setAuth(credConfig);
+  processCache.setCredentialConfig(credConfig);
 
   if (getenv("EOS_FUSE_MODE_OVERLAY")) {
     mode_overlay = (mode_t)strtol(getenv("EOS_FUSE_MODE_OVERLAY"), 0, 8);

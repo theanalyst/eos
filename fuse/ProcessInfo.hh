@@ -46,6 +46,14 @@ public:
     this->startTime = startTime;
   }
 
+  bool isSameProcess(const ProcessInfo &other) {
+    if(pid != other.pid || startTime != other.startTime) {
+      return false;
+    }
+
+    return true;
+  }
+
   // Certain information can change over the lifetime of a process, such as ppid
   // (parent dying and PID 1 taking over), or sid.
   // This function updates the current object to the new information, if and
@@ -55,7 +63,7 @@ public:
   bool updateIfSameProcess(const ProcessInfo &src) {
     if(empty || src.empty) THROW("updateIfSameProcess can only be used on filled ProcessInfo objects.");
 
-    if(pid != src.pid || startTime != src.startTime) {
+    if(!isSameProcess(src)) {
       return false;
     }
 
