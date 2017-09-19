@@ -72,6 +72,7 @@ public:
   setAuth(const CredentialConfig &cf)
   {
     credConfig = cf;
+    boundIdentityProvider.setCredentialConfig(cf);
   }
 
   void
@@ -149,7 +150,7 @@ public:
   }
 
 protected:
-  CredentialCache credentialCache;
+  BoundIdentityProvider boundIdentityProvider;
 
   static uint64_t sConIdCount;
   std::set<pid_t> runningPids;
@@ -265,74 +266,18 @@ protected:
       return 0;
     }
 
-    // get the session id
-    pid_t sid = 0;
-    gProcCache(pid).GetSid(pid, sid);
-
-    // Update the proccache of the session leader
-    if (sid != pid) {
-      lock_w_pcache(sid, pid);
-
-      if ((errCode = gProcCache(sid).InsertEntry(sid))) {
-        unlock_w_pcache(sid, pid);
-        eos_static_debug("updating proc cache information for session leader process %d failed. Session leader process %d does not exist",
-                         (int)pid, (int)sid);
-        sid = -1;
-      } else {
-        unlock_w_pcache(sid, pid);
-      }
-    }
-
     // Does this process have a bound identity already? Nothing to do
     if (!reconnect && gProcCache(pid).HasEntry(pid) && gProcCache(pid).HasBoundIdentity(pid)) return 0;
 
-    // No bound identity, let's build one. First, let's read the environment of this PID.
-    // In case of error, the environment simply remains empty.
-    Environment processEnv;
-    processEnv.fromFile(SSTR("/proc/" << pid << "/environ"));
+    // No bound identity, let's have the identity provider get one for us.
+    std::shared_ptr<const BoundIdentity> boundIdentity = boundIdentityProvider.retrieve(pid, uid, gid, reconnect);
 
-    CredInfo credinfo;
-    if(!BoundIdentityProvider::fillCredsFromEnv(processEnv, credConfig, credinfo, uid)) {
-      // No credentials found - fallback to nobody?
-      if(credConfig.fallback2nobody) {
-        // Bind this process to nobody.
-        BoundIdentity identity;
-        gProcCache(pid).SetBoundIdentity(pid, identity);
-        return 0;
-      }
-
-      // Nope, give back "permission denied instead"
+    if(!boundIdentity) {
       return EACCES;
     }
 
-    // We found some credentials, yay. We have to bind them to an xrootd
-    // connection - does such a binding exist already? We don't want to
-    // waste too many LoginIdentifiers, so we re-use them when possible.
-
-    std::shared_ptr<const BoundIdentity> boundIdentity = credentialCache.retrieve(credinfo);
-
-    if(boundIdentity && !reconnect) {
-      // Cache hit, CredInfo is bound already, re-use.
-      gProcCache(pid).SetBoundIdentity(pid, *boundIdentity.get());
-      return 0;
-    }
-
-    // No binding exists yet, let's create one.
-    LoginIdentifier login = getNewConId(uid, gid, pid);
-    std::shared_ptr<TrustedCredentials> trustedCreds(new TrustedCredentials());
-
-    if (credinfo.type == CredInfo::krb5) {
-      trustedCreds->setKrb5(credinfo.fname, uid, gid);
-    } else if (credinfo.type == CredInfo::krk5) {
-      trustedCreds->setKrk5(credinfo.fname, uid, gid);
-    } else if (credinfo.type == CredInfo::x509) {
-      trustedCreds->setx509(credinfo.fname, uid, gid);
-    }
-
-    BoundIdentity *binding = new BoundIdentity(login, trustedCreds);
-    gProcCache(pid).SetBoundIdentity(pid, *binding);
-    credentialCache.store(credinfo, binding);
-    // no delete on binding, ownership was transferred to the cache
+    // Set boundIdentity to ProcCache, and we're done
+    gProcCache(pid).SetBoundIdentity(pid, *boundIdentity.get());
     return 0;
   }
 

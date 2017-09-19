@@ -24,6 +24,7 @@
 #ifndef __BOUND_IDENTITY_PROVIDER__HH__
 #define __BOUND_IDENTITY_PROVIDER__HH__
 
+#include <atomic>
 #include "CredentialCache.hh"
 #include "CredentialFinder.hh"
 #include "ProcessInfo.hh"
@@ -31,10 +32,22 @@
 class BoundIdentityProvider {
 public:
   static bool fillCredsFromEnv(const Environment &env, const CredentialConfig &credConfig, CredInfo &creds, uid_t uid);
+  std::shared_ptr<const BoundIdentity> retrieve(pid_t pid, uid_t uid, gid_t gid, bool reconnect);
+
+  void setCredentialConfig(const CredentialConfig &conf) {
+    credConfig = conf;
+  }
+
+private:
+  CredentialConfig credConfig;
+  CredentialCache credentialCache;
+
   static bool fillKrb5FromEnv(const Environment &env, CredInfo &creds, uid_t uid);
   static bool fillX509FromEnv(const Environment &env, CredInfo &creds, uid_t uid);
   static bool checkCredsPath(const std::string &path, uid_t uid);
-private:
+
+  std::atomic<uint64_t> connectionCounter {0};
+  LoginIdentifier getConnectionID(pid_t pid, uid_t uid, gid_t gid);
 };
 
 #endif

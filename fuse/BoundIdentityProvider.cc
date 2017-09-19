@@ -95,3 +95,56 @@ bool BoundIdentityProvider::fillCredsFromEnv(const Environment &env, const Crede
 
   return false;
 }
+
+std::shared_ptr<const BoundIdentity> BoundIdentityProvider::retrieve(pid_t pid, uid_t uid, gid_t gid, bool reconnect) {
+  if(!credConfig.use_user_krb5cc && !credConfig.use_user_gsiproxy) {
+    if(reconnect) connectionCounter++;
+    LoginIdentifier login(uid, gid, pid, connectionCounter);
+    std::shared_ptr<TrustedCredentials> trustedCreds(new TrustedCredentials());
+    return std::shared_ptr<const BoundIdentity>(new BoundIdentity(login, trustedCreds));
+  }
+
+  // First, let's read the environment to build up a CredInfo object.
+  Environment processEnv;
+  processEnv.fromFile(SSTR("/proc/" << pid << "/environ"));
+
+  CredInfo credinfo;
+  if(!BoundIdentityProvider::fillCredsFromEnv(processEnv, credConfig, credinfo, uid)) {
+    // No credentials found - fallback to nobody?
+    if(credConfig.fallback2nobody) {
+      return std::shared_ptr<const BoundIdentity>(new BoundIdentity());
+    }
+
+    // Nope, give back "permission denied" instead
+    return {};
+  }
+
+  // We found some credentials, yay. We have to bind them to an xrootd
+  // connection - does such a binding exist already? We don't want to
+  // waste too many LoginIdentifiers, so we re-use them when possible.
+  std::shared_ptr<const BoundIdentity> boundIdentity = credentialCache.retrieve(credinfo);
+
+  if(boundIdentity && !reconnect) {
+    // Cache hit
+    return boundIdentity;
+  }
+
+  // No binding exists yet, let's create one..
+  LoginIdentifier login(connectionCounter++);
+  std::shared_ptr<TrustedCredentials> trustedCreds(new TrustedCredentials());
+
+  if (credinfo.type == CredInfo::krb5) {
+    trustedCreds->setKrb5(credinfo.fname, uid, gid);
+  } else if (credinfo.type == CredInfo::krk5) {
+    trustedCreds->setKrk5(credinfo.fname, uid, gid);
+  } else if (credinfo.type == CredInfo::x509) {
+    trustedCreds->setx509(credinfo.fname, uid, gid);
+  }
+
+  BoundIdentity *binding = new BoundIdentity(login, trustedCreds);
+  credentialCache.store(credinfo, binding);
+
+  // cannot return binding directly, as its ownership has been transferred to
+  // the cache
+  return credentialCache.retrieve(credinfo);
+}
