@@ -43,11 +43,9 @@ add_subdirectory(FuseCache)
 add_executable(
   eosd
   main.cc
-  ProcCache.cc              ProcCache.hh
   eosfuse.cc                eosfuse.hh
   filesystem.cc             filesystem.hh
   FuseCacheEntry.cc         FuseCacheEntry.hh
-  AuthIdManager.cc          AuthIdManager.hh
   BoundIdentityProvider.cc  BoundIdentityProvider.hh
                             CredentialCache.hh
   CredentialFinder.cc       CredentialFinder.hh

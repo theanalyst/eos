@@ -110,12 +110,6 @@ std::shared_ptr<const BoundIdentity> BoundIdentityProvider::retrieve(pid_t pid, 
 
   CredInfo credinfo;
   if(!BoundIdentityProvider::fillCredsFromEnv(processEnv, credConfig, credinfo, uid)) {
-    // No credentials found - fallback to nobody?
-    if(credConfig.fallback2nobody) {
-      return std::shared_ptr<const BoundIdentity>(new BoundIdentity());
-    }
-
-    // Nope, give back "permission denied" instead
     return {};
   }
 

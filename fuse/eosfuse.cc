@@ -52,22 +52,12 @@
 
 #define _FILE_OFFSET_BITS 64
 
-#ifdef __APPLE__
-#define UPDATEPROCCACHE \
-  do {} while (0)
-
-#else
-#define UPDATEPROCCACHE \
-  do { \
-    int errCode; \
-    if( (errCode=me.fs().update_proc_cache(fuse_req_ctx(req)->uid,fuse_req_ctx(req)->gid,fuse_req_ctx(req)->pid)) )\
-    { \
-      fuse_reply_err (req, errCode); \
-      return; \
-    } \
-  } while (0)
-
-#endif
+#define GET_SNAPSHOT_OR_RETURN_ERROR(fuse_request, var) \
+  ProcessSnapshot var = me.fs().getProcessSnapshot(fuse_request); \
+  if(!var) { \
+    fuse_reply_err(req, EACCES); \
+    return; \
+  } while(0)
 
 EosFuse::EosFuse()
 {
@@ -379,7 +369,7 @@ EosFuse::getattr(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi)
   struct stat stbuf;
   memset(&stbuf, 0, sizeof(struct stat));
   std::string fullpath;
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
   me.fs().lock_r_p2i();   // =>
   const char* name = me.fs().path((unsigned long long) ino);
 
@@ -425,7 +415,7 @@ EosFuse::setattr(fuse_req_t req, fuse_ino_t ino, struct stat* attr, int to_set,
   ino = me.fs().redirect_i2i(ino);
   int retc = 0;
   std::string fullpath;
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
   me.fs().lock_r_p2i();   // =>
   const char* name = me.fs().path((unsigned long long) ino);
 
@@ -541,7 +531,7 @@ EosFuse::lookup(fuse_req_t req, fuse_ino_t parent, const char* name)
   const char* parentpath = NULL;
   std::string fullpath;
   char ifullpath[16384];
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
   eos_static_debug("name=%s, ino_parent=%llu",
                    name, (unsigned long long) parent);
   me.fs().lock_r_p2i();   // =>
@@ -636,7 +626,7 @@ EosFuse::opendir(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi)
   struct stat attr {};
   b.size = 0;
   b.p = 0;
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
   me.fs().lock_r_p2i();   // =>
   const char* tmpname = me.fs().path((unsigned long long) ino);
 
@@ -824,7 +814,7 @@ EosFuse::statfs(fuse_req_t req, fuse_ino_t ino)
   int res = 0;
   char* path = NULL;
   struct statvfs svfs, svfs2;
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
   me.fs().lock_r_p2i();   // =>
   const char* tmppath = me.fs().path((unsigned long long) ino);
 
@@ -876,7 +866,7 @@ EosFuse::mkdir(fuse_req_t req, fuse_ino_t parent, const char* name, mode_t mode)
   filesystem::Track::Monitor mon(__func__, me.fs().iTrack, parent);
   std::string parentpath;
   std::string fullpath;
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
   me.fs().lock_r_p2i();   // =>
   const char* tmp = me.fs().path((unsigned long long) parent);
 
@@ -956,7 +946,7 @@ EosFuse::unlink(fuse_req_t req, fuse_ino_t parent, const char* name)
   std::string fullpath;
   char ifullpath[16384];
   unsigned long long ino;
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
 #ifndef __APPLE__
 
   if (me.fs().is_toplevel_rm(fuse_req_ctx(req)->pid,
@@ -1020,7 +1010,7 @@ EosFuse::rmdir(fuse_req_t req, fuse_ino_t parent, const char* name)
   std::string fullpath;
   char ifullpath[16384];
   unsigned long long ino;
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
 
   if (me.fs().is_toplevel_rm(fuse_req_ctx(req)->pid, fuse_req_ctx(req)->uid,
                              fuse_req_ctx(req)->gid, me.config.mount_point.c_str()) == 1) {
@@ -1095,7 +1085,7 @@ EosFuse::rename(fuse_req_t req, fuse_ino_t parent, const char* name,
   std::string newfullpath;
   char iparentpath[16384];
   char ipath[16384];
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
   me.fs().lock_r_p2i();   // =>
   parentpath = me.fs().path((unsigned long long) parent);
 
@@ -1171,7 +1161,7 @@ EosFuse::access(fuse_req_t req, fuse_ino_t ino, int mask)
   filesystem::Track::Monitor mon(__func__, me.fs().iTrack, ino);
   std::string fullpath;
   const char* name = NULL;
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
   me.fs().lock_r_p2i();   // =>
   name = me.fs().path((unsigned long long) ino);
 
@@ -1219,7 +1209,7 @@ EosFuse::open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi)
   mode_t mode = 0;
   std::string fullpath;
   const char* name = NULL;
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
   me.fs().lock_r_p2i();   // =>
   name = me.fs().path((unsigned long long) ino);
 
@@ -1332,7 +1322,7 @@ EosFuse::create(fuse_req_t req, fuse_ino_t parent, const char* name,
     const char* parentpath = NULL;
     std::string fullpath;
     char ifullpath[16384];
-    UPDATEPROCCACHE;
+    GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
     me.fs().lock_r_p2i();   // =>
     parentpath = me.fs().path((unsigned long long) parent);
 
@@ -1662,7 +1652,7 @@ EosFuse::getxattr(fuse_req_t req, fuse_ino_t ino, const char* xattr_name,
   size_t init_size = size;
   std::string fullpath;
   const char* name = NULL;
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
   me.fs().lock_r_p2i();   // =>
   name = me.fs().path((unsigned long long) ino);
 
@@ -1743,7 +1733,7 @@ EosFuse::setxattr(fuse_req_t req, fuse_ino_t ino, const char* xattr_name,
   int retc = 0;
   std::string fullpath;
   const char* name = NULL;
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
   me.fs().lock_r_p2i();   // =>
   name = me.fs().path((unsigned long long) ino);
 
@@ -1779,7 +1769,7 @@ EosFuse::listxattr(fuse_req_t req, fuse_ino_t ino, size_t size)
   size_t init_size = size;
   std::string fullpath;
   const char* name = NULL;
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
   me.fs().lock_r_p2i();   // =>
   name = me.fs().path((unsigned long long) ino);
 
@@ -1846,7 +1836,7 @@ EosFuse::removexattr(fuse_req_t req, fuse_ino_t ino, const char* xattr_name)
   int retc = 0;
   std::string fullpath;
   const char* name = NULL;
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
   me.fs().lock_r_p2i();   // =>
   name = me.fs().path((unsigned long long) ino);
 
@@ -1879,7 +1869,7 @@ EosFuse::readlink(fuse_req_t req, fuse_ino_t ino)
   filesystem::Track::Monitor mon(__func__, me.fs().iTrack, ino);
   std::string fullpath;
   const char* name = NULL;
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
   me.fs().lock_r_p2i();   // =>
   name = me.fs().path((unsigned long long) ino);
 
@@ -1922,7 +1912,7 @@ EosFuse::symlink(fuse_req_t req, const char* link, fuse_ino_t parent,
   char partialpath[16384];
   std::string fullpath;
   char ifullpath[16384];
-  UPDATEPROCCACHE;
+  GET_SNAPSHOT_OR_RETURN_ERROR(req, processSnapshot);
   me.fs().lock_r_p2i();   // =>
   parentpath = me.fs().path((unsigned long long) parent);
 

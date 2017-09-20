@@ -49,7 +49,7 @@
 #include <google/sparse_hash_map>
 #include <google/sparsehash/densehashtable.h>
 #include "FuseCacheEntry.hh"
-#include "ProcCache.hh"
+#include "common/Macros.hh"
 #include "fst/layout/LayoutPlugin.hh"
 #include "fst/layout/PlainLayout.hh"
 #include "fst/layout/RaidDpLayout.hh"
@@ -57,8 +57,8 @@
 #include "FuseCache/FuseWriteCache.hh"
 #include "FuseCache/FileAbstraction.hh"
 #include "FuseCache/LayoutWrapper.hh"
-#include "AuthIdManager.hh"
 #include "ProcessCache.hh"
+#include "MacOSXHelper.hh"
 
 #define sMaxAuthId (2^6)
 #define N_OPEN_MUTEXES_NBITS 12
@@ -1001,7 +1001,6 @@ private:
   //! IO buffer table. Each fuse thread has its own read buffer
   std::map<pthread_t, IoBuf> IoBufferMap;
   ProcessCache processCache;
-  AuthIdManager authidmanager;
 
   //------------------------------------------------------------------------------
   // Cache that holds the mapping from a pid to a time stamp (to see if the cache needs

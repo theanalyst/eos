@@ -76,9 +76,12 @@ public:
 
   void setCredentialConfig(const CredentialConfig &conf) {
     boundIdentityProvider.setCredentialConfig(conf);
+    credConfig = conf;
   }
 
 private:
+  CredentialConfig credConfig;
+
   struct ProcessCacheKey {
     pid_t pid;
     uid_t uid;

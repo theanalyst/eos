@@ -24,13 +24,18 @@
 #include "ProcessCache.hh"
 
 ProcessSnapshot ProcessCache::retrieve(pid_t pid, uid_t uid, gid_t gid, bool reconnect) {
+  eos_static_debug("ProcessCache::retrieve with pid, uid, gid, reconnect => %d, %d, %d, %d", pid, uid, gid, reconnect);
+
   ProcessSnapshot entry = cache.retrieve(ProcessCacheKey(pid, uid, gid));
   if(entry) {
 
     // Cache hit.. but it could refer to different processes, even if PID is the same.
     ProcessInfo processInfo;
     if(!ProcessInfoProvider::retrieveBasic(pid, processInfo)) {
-      return {};
+      // dead PIDs issue no syscalls.. or do they?!
+      // When a PID dies, the kernel automatically closes its open fds - in this
+      // strange case, let's just return the cached info.
+      return entry;
     }
 
     if(processInfo.isSameProcess(entry->getProcessInfo())) {
@@ -47,6 +52,22 @@ ProcessSnapshot ProcessCache::retrieve(pid_t pid, uid_t uid, gid_t gid, bool rec
   }
 
   std::shared_ptr<const BoundIdentity> boundIdentity = boundIdentityProvider.retrieve(pid, uid, gid, reconnect);
+  if(!boundIdentity && pid != processInfo.getSid()) {
+    // No credentials in this process - check the parent..
+    boundIdentity = boundIdentityProvider.retrieve(processInfo.getSid(), uid, gid, reconnect);
+  }
+
+  // No credentials found - fallback to nobody?
+  if(!boundIdentity) {
+    if(!credConfig.fallback2nobody) {
+      // Give back "permission denied"
+      return {};
+    }
+
+    // Fallback to nobody
+    boundIdentity = std::shared_ptr<const BoundIdentity>(new BoundIdentity());
+  }
+
   ProcessCacheEntry *cacheEntry = new ProcessCacheEntry(processInfo, *boundIdentity.get(), uid, gid);
   cache.store(ProcessCacheKey(pid, uid, gid), cacheEntry);
 

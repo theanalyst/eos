@@ -1120,19 +1120,14 @@ ProcessSnapshot filesystem::getProcessSnapshot(pid_t pid, uid_t uid, gid_t gid) 
 }
 
 
-//------------------------------------------------------------------------------
-// Get user name from the uid and change the effective user ID of the thread
-//------------------------------------------------------------------------------
-int
-filesystem::update_proc_cache(uid_t uid, gid_t gid, pid_t pid)
-{
-  return authidmanager.updateProcCache(uid, gid, pid);
-}
-
 std::string
 filesystem::get_login(uid_t uid, gid_t gid, pid_t pid)
 {
   ProcessSnapshot snapshot = getProcessSnapshot(pid, uid, gid);
+  // if(!snapshot) {
+  //   eos_static_crit("Unable to map [uid, gid, pid] to an xrootd login", uid, gid, pid);
+  //   return "";
+  // }
   std::string login = snapshot->getXrdLogin();
   eos_static_debug("mapping [uid, gid, pid] = [%d, %d, %d] to xrootd login: %s", uid, gid, pid, login.c_str());
   return login;
@@ -3042,14 +3037,10 @@ filesystem::open(const char* path,
 
     // Force a reauthentication to the head node
     if (spath.endswith("/proc/reconnect")) {
-      if (credConfig.use_user_gsiproxy || credConfig.use_user_krb5cc) {
-        authidmanager.reconnectProcCache(uid, gid, pid);
-      } else {
-        authidmanager.IncConnectionId();
-      }
-
       errno = ECONNABORTED;
       return -1;
+
+      // TODO(gbitzes): Invalidate current credentials!
     }
 
     // Return the 'whoami' information in that file
@@ -4734,9 +4725,6 @@ filesystem::init(int argc, char* argv[], void* userdata,
   }
 
 // set the path of the proc fs (default is "/proc/"
-  gProcCacheShardSize = AuthIdManager::proccachenbins;
-  gProcCacheV.resize(gProcCacheShardSize);
-
   if (getenv("EOS_FUSE_PROCPATH")) {
     std::string pp(getenv("EOS_FUSE_PROCPATH"));
 
@@ -4744,15 +4732,8 @@ filesystem::init(int argc, char* argv[], void* userdata,
       pp.append("/");
     }
 
-    for (auto it = gProcCacheV.begin(); it != gProcCacheV.end(); ++it) {
-      it->SetProcPath(pp.c_str());
-    }
-  }
+    // TODO(gbizes): Add support for this option.. ? Do we need it .. ?
 
-  if (authidmanager.StartCleanupThread()) {
-    eos_static_notice("started proccache cleanup thread");
-  } else {
-    eos_static_err("filed to start proccache cleanup thread");
   }
 
   if (getenv("EOS_FUSE_XRDBUGNULLRESPONSE_RETRYCOUNT")) {
@@ -4862,7 +4843,6 @@ filesystem::init(int argc, char* argv[], void* userdata,
     }
   }
 
-  authidmanager.setAuth(credConfig);
   processCache.setCredentialConfig(credConfig);
 
   if (getenv("EOS_FUSE_MODE_OVERLAY")) {
