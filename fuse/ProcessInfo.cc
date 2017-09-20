@@ -107,6 +107,7 @@ bool ProcessInfoProvider::parseStat(const std::string &procstat, ProcessInfo &re
   pid_t ppid;
   pid_t sid;
   Jiffies startTime;
+  unsigned flags;
 
   // let's parse
   for(size_t i = 0; i < procstat.size(); i++) {
@@ -137,6 +138,10 @@ bool ProcessInfoProvider::parseStat(const std::string &procstat, ProcessInfo &re
           if(!sscanf(procstat.c_str() + i, "%u", &sid)) return false;
           break;
         }
+        case 8: {
+          if(!sscanf(procstat.c_str() + i, "%u", &flags)) return false;
+          break;
+        }
         case 21: {
           if(!sscanf(procstat.c_str() + i, "%" PRId64, &startTime)) return false;
           success = true;
@@ -148,7 +153,7 @@ bool ProcessInfoProvider::parseStat(const std::string &procstat, ProcessInfo &re
   }
 
   if(!success) return false;
-  ret.fillStat(pid, ppid, sid, startTime);
+  ret.fillStat(pid, ppid, sid, startTime, flags);
   return true;
 }
 

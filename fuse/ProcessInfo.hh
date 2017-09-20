@@ -33,10 +33,10 @@ typedef int64_t Jiffies;
 // object to be considered non-empty.
 class ProcessInfo {
 public:
-  ProcessInfo() : empty(true), pid(0), ppid(0), sid(0), startTime(-1) {}
+  ProcessInfo() : empty(true), pid(0), ppid(0), sid(0), startTime(-1), flags(0) {}
 
   // Fill stat information as obtained from /proc/<pid>/stat
-  void fillStat(pid_t pid, pid_t ppid, pid_t sid, Jiffies startTime) {
+  void fillStat(pid_t pid, pid_t ppid, pid_t sid, Jiffies startTime, unsigned int flags) {
     if(!empty) THROW("ProcessInfo stat information can only be filled once");
     empty = false;
 
@@ -44,6 +44,7 @@ public:
     this->ppid = ppid;
     this->sid = sid;
     this->startTime = startTime;
+    this->flags = flags;
   }
 
   bool isSameProcess(const ProcessInfo &other) {
@@ -107,6 +108,10 @@ public:
     return cmdStr;
   }
 
+  unsigned int getFlags() const {
+    return flags;
+  }
+
 private:
   bool empty;
 
@@ -117,6 +122,7 @@ public:
   pid_t ppid;
   pid_t sid;
   Jiffies startTime;
+  unsigned int flags;
 
   // from /proc/<pid>/cmdline
   std::vector<std::string> cmd;
