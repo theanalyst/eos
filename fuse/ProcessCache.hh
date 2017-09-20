@@ -39,6 +39,10 @@ public:
     return processInfo;
   }
 
+  const BoundIdentity& getBoundIdentity() const {
+    return boundIdentity;
+  }
+
   std::string getXrdLogin() const {
     return boundIdentity.getLogin().getStringID();
   }
@@ -57,6 +61,10 @@ public:
 
   const std::vector<std::string> &getCmdVec() const {
     return processInfo.getCmd();
+  }
+
+  bool filledCredentials() const {
+    return boundIdentity.getCreds() && (!boundIdentity.getCreds()->empty());
   }
 
 private:

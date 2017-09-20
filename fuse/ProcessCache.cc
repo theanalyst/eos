@@ -51,10 +51,16 @@ ProcessSnapshot ProcessCache::retrieve(pid_t pid, uid_t uid, gid_t gid, bool rec
     return {};
   }
 
+  bool sidHit = false;
   std::shared_ptr<const BoundIdentity> boundIdentity = boundIdentityProvider.retrieve(pid, uid, gid, reconnect);
   if(!boundIdentity && pid != processInfo.getSid()) {
-    // No credentials in this process - check the parent..
-    boundIdentity = boundIdentityProvider.retrieve(processInfo.getSid(), uid, gid, reconnect);
+    // No credentials in this process - check the session leader
+    sidHit = true;
+
+    ProcessSnapshot sidSnapshot = this->retrieve(processInfo.getSid(), uid, gid, false);
+    if(sidSnapshot && sidSnapshot->filledCredentials()) {
+      boundIdentity = std::shared_ptr<const BoundIdentity>(new BoundIdentity(sidSnapshot->getBoundIdentity()));
+    }
   }
 
   // No credentials found - fallback to nobody?
@@ -70,6 +76,16 @@ ProcessSnapshot ProcessCache::retrieve(pid_t pid, uid_t uid, gid_t gid, bool rec
 
   ProcessCacheEntry *cacheEntry = new ProcessCacheEntry(processInfo, *boundIdentity.get(), uid, gid);
   cache.store(ProcessCacheKey(pid, uid, gid), cacheEntry);
+
+  // Additionally associate these credentials to (session leader, uid, gid),
+  // replacing any existing entries
+  if(!sidHit && pid != processInfo.getSid()) {
+    ProcessInfo sidInfo;
+    if(ProcessInfoProvider::retrieveFull(processInfo.getSid(), sidInfo)) {
+      ProcessCacheEntry *sidEntry = new ProcessCacheEntry(sidInfo, *boundIdentity.get(), uid, gid);
+      cache.store(ProcessCacheKey(sidInfo.getPid(), uid, gid), sidEntry);
+    }
+  }
 
   return cache.retrieve(ProcessCacheKey(pid, uid, gid));
 }
