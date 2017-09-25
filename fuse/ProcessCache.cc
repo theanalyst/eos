@@ -23,18 +23,30 @@
 
 #include "ProcessCache.hh"
 
+ProcessSnapshot ProcessCache::useCredentialsOfAnotherPID(const ProcessInfo &processInfo, pid_t pid, uid_t uid, gid_t gid, bool reconnect) {
+  std::shared_ptr<const BoundIdentity> boundIdentity = boundIdentityProvider.retrieve(pid, uid, gid, reconnect);
+  if(!boundIdentity) {
+    return  {};
+  }
+
+  ProcessCacheEntry *entry = new ProcessCacheEntry(processInfo, *boundIdentity.get(), uid, gid);
+  cache.store(ProcessCacheKey(processInfo.getPid(), uid, gid), entry);
+  return cache.retrieve(ProcessCacheKey(processInfo.getPid(), uid, gid));
+}
+
 ProcessSnapshot ProcessCache::retrieve(pid_t pid, uid_t uid, gid_t gid, bool reconnect) {
   eos_static_debug("ProcessCache::retrieve with pid, uid, gid, reconnect => %d, %d, %d, %d", pid, uid, gid, reconnect);
 
   ProcessSnapshot entry = cache.retrieve(ProcessCacheKey(pid, uid, gid));
   if(entry) {
-
     // Cache hit.. but it could refer to different processes, even if PID is the same.
     ProcessInfo processInfo;
     if(!ProcessInfoProvider::retrieveBasic(pid, processInfo)) {
       // dead PIDs issue no syscalls.. or do they?!
-      // When a PID dies, the kernel automatically closes its open fds - in this
-      // strange case, let's just return the cached info.
+      // release can be called even after a process has died - in this strange
+      // case, let's just return the cached info.
+      // In the new fuse rewrite, this shouldn't happen. TODO(gbitzes): Review
+      // this when integrating.
       return entry;
     }
 
@@ -51,41 +63,42 @@ ProcessSnapshot ProcessCache::retrieve(pid_t pid, uid_t uid, gid_t gid, bool rec
     return {};
   }
 
-  bool sidHit = false;
-  std::shared_ptr<const BoundIdentity> boundIdentity = boundIdentityProvider.retrieve(pid, uid, gid, reconnect);
-  if(!boundIdentity && pid != processInfo.getSid()) {
-    // No credentials in this process - check the session leader
-    sidHit = true;
+  eos_static_debug("Searching for credentials on pid = %d (parent = %d, pgrp = %d, sid = %d)\n", processInfo.getPid(), processInfo.getParentId(), processInfo.getGroupLeader(), processInfo.getSid());
 
-    ProcessSnapshot sidSnapshot = this->retrieve(processInfo.getSid(), uid, gid, false);
-    if(sidSnapshot && sidSnapshot->filledCredentials()) {
-      boundIdentity = std::shared_ptr<const BoundIdentity>(new BoundIdentity(sidSnapshot->getBoundIdentity()));
+#define PF_FORKNOEXEC 0x00000040 /* Forked but didn't exec */
+  bool checkParentFirst = processInfo.getFlags() & PF_FORKNOEXEC;
+
+  // This should radically decrease the number of times we have to pay the deadlock
+  // timeout - the vast majority of processes doing an execve are in PF_FORKNOEXEC
+  // state. (ie processes spawned by shells)
+
+  if(checkParentFirst && processInfo.getParentId() != 1) {
+    ProcessSnapshot fromParent = useCredentialsOfAnotherPID(processInfo, processInfo.getParentId(), uid, gid, reconnect);
+    if(fromParent) {
+      eos_static_debug("Associating pid = %d to credentials of its parent without checking its own environ, as PF_FORKNOEXEC is set", processInfo.getPid());
+      return fromParent;
     }
   }
 
-  // No credentials found - fallback to nobody?
-  if(!boundIdentity) {
-    if(!credConfig.fallback2nobody) {
-      // Give back "permission denied"
-      return {};
-    }
-
-    // Fallback to nobody
-    boundIdentity = std::shared_ptr<const BoundIdentity>(new BoundIdentity());
+  ProcessSnapshot ownCredentials = useCredentialsOfAnotherPID(processInfo, processInfo.getPid(), uid, gid, reconnect);
+  if(ownCredentials) {
+    eos_static_debug("Associating pid = %d to credentials found in its own environment variables", processInfo.getPid());
+    return ownCredentials;
   }
 
-  ProcessCacheEntry *cacheEntry = new ProcessCacheEntry(processInfo, *boundIdentity.get(), uid, gid);
-  cache.store(ProcessCacheKey(pid, uid, gid), cacheEntry);
-
-  // Additionally associate these credentials to (session leader, uid, gid),
-  // replacing any existing entries
-  if(!sidHit && pid != processInfo.getSid()) {
-    ProcessInfo sidInfo;
-    if(ProcessInfoProvider::retrieveFull(processInfo.getSid(), sidInfo)) {
-      ProcessCacheEntry *sidEntry = new ProcessCacheEntry(sidInfo, *boundIdentity.get(), uid, gid);
-      cache.store(ProcessCacheKey(sidInfo.getPid(), uid, gid), sidEntry);
+  // Check parent, if needed
+  if(!checkParentFirst && processInfo.getParentId() != 1) {
+    ProcessSnapshot fromParent = useCredentialsOfAnotherPID(processInfo, processInfo.getParentId(), uid, gid, reconnect);
+    if(fromParent) {
+      eos_static_debug("Associating pid = %d to credentials of its parent, as no credentials were found in its own environment", processInfo.getPid());
+      return fromParent;
     }
   }
 
-  return cache.retrieve(ProcessCacheKey(pid, uid, gid));
+  // No credentials found .. fallback to nobody?
+  if(credConfig.fallback2nobody) {
+    return ProcessSnapshot(new ProcessCacheEntry(processInfo, BoundIdentity(), uid, gid));
+  }
+
+  return {};
 }

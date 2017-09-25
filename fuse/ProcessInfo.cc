@@ -105,6 +105,7 @@ bool ProcessInfoProvider::parseStat(const std::string &procstat, ProcessInfo &re
   // variables in which to store results
   pid_t pid;
   pid_t ppid;
+  pid_t pgrp;
   pid_t sid;
   Jiffies startTime;
   unsigned flags;
@@ -134,6 +135,10 @@ bool ProcessInfoProvider::parseStat(const std::string &procstat, ProcessInfo &re
           if(!sscanf(procstat.c_str() + i, "%u", &ppid)) return false;
           break;
         }
+        case 4: {
+          if(!sscanf(procstat.c_str() + i, "%u", &pgrp)) return false;
+          break;
+        }
         case 5: {
           if(!sscanf(procstat.c_str() + i, "%u", &sid)) return false;
           break;
@@ -153,7 +158,7 @@ bool ProcessInfoProvider::parseStat(const std::string &procstat, ProcessInfo &re
   }
 
   if(!success) return false;
-  ret.fillStat(pid, ppid, sid, startTime, flags);
+  ret.fillStat(pid, ppid, pgrp, sid, startTime, flags);
   return true;
 }
 

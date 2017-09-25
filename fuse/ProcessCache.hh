@@ -88,6 +88,7 @@ public:
   }
 
 private:
+  ProcessSnapshot useCredentialsOfAnotherPID(const ProcessInfo &processInfo, pid_t pid, uid_t uid, gid_t gid, bool reconnect);
   CredentialConfig credConfig;
 
   struct ProcessCacheKey {
