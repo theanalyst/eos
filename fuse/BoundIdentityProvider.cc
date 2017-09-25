@@ -23,6 +23,7 @@
 
 #include "Utils.hh"
 #include "BoundIdentityProvider.hh"
+#include "EnvironmentReader.hh"
 #include <sys/stat.h>
 
 // A preliminary check that provided credentials are sane.
@@ -106,7 +107,15 @@ std::shared_ptr<const BoundIdentity> BoundIdentityProvider::retrieve(pid_t pid, 
 
   // First, let's read the environment to build up a CredInfo object.
   Environment processEnv;
-  processEnv.fromFile(SSTR("/proc/" << pid << "/environ"));
+  EnvironmentResponse response = environmentReader.stageRequest(pid);
+
+  std::chrono::high_resolution_clock::time_point deadline = response.queuedSince + std::chrono::milliseconds(100);
+  if(response.contents.wait_until(deadline) != std::future_status::ready) {
+    eos_static_info("Timeout when retrieving environment for pid %d (uid %d) - we're doing an execve!", pid, uid);
+    return {};
+  }
+
+  processEnv = response.contents.get();
 
   CredInfo credinfo;
   if(!BoundIdentityProvider::fillCredsFromEnv(processEnv, credConfig, credinfo, uid)) {

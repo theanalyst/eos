@@ -51,28 +51,6 @@ ProcessSnapshot ProcessCache::retrieve(pid_t pid, uid_t uid, gid_t gid, bool rec
     return {};
   }
 
-  // This is a quasi-hack to prevent kernel deadlocks - we avoid retrieving the
-  // environment of processes with PF_FORKNOEXEC flag set.
-  // Instead, we return the credentials of the parent.
-  //
-  // PF_FORKNOEXEC can mean two things:
-  // 1. The process is in a weird state, in the middle of exec(), and several
-  //    files under /proc/pid are blocked for reading, including /proc/pid/environ.
-  //    Attempting to open() that file in fuse would cause a deadlock.
-  // 2. The process is really in a valid "fork but no exec" state, and /proc/pid/environ
-  //    can be read safely.
-
-  #define PF_FORKNOEXEC 0x00000040 /* Forked but didn't exec */
-  if(processInfo.getFlags() & PF_FORKNOEXEC) {
-    ProcessSnapshot parentSnapshot = this->retrieve(processInfo.getParentId(), uid, gid, false);
-    if(parentSnapshot) {
-      eos_static_debug("Using credentials of parent process for pid %d (%d), as PF_FORKNOEXEC is set", processInfo.getPid(), processInfo.getParentId());
-      return ProcessSnapshot(new ProcessCacheEntry(processInfo, parentSnapshot->getBoundIdentity(), uid, gid));
-    }
-
-    eos_static_debug("Parent PID information not found for %d (%d), reading /proc/pid/environ should be safe", processInfo.getPid(), processInfo.getParentId());
-  }
-
   bool sidHit = false;
   std::shared_ptr<const BoundIdentity> boundIdentity = boundIdentityProvider.retrieve(pid, uid, gid, reconnect);
   if(!boundIdentity && pid != processInfo.getSid()) {

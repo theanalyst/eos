@@ -28,6 +28,7 @@
 #include "CredentialCache.hh"
 #include "CredentialFinder.hh"
 #include "ProcessInfo.hh"
+#include "EnvironmentReader.hh"
 
 class BoundIdentityProvider {
 public:
@@ -36,11 +37,18 @@ public:
 
   void setCredentialConfig(const CredentialConfig &conf) {
     credConfig = conf;
+
+    // For some reason, doing this in the constructor results in crazy behavior,
+    // like threads not waking up from the condition variable.
+    // (or even std::this_thread::sleep_for !! ) Investigate?
+    environmentReader.launchWorkers(20);
   }
 
 private:
   CredentialConfig credConfig;
   CredentialCache credentialCache;
+
+  EnvironmentReader environmentReader;
 
   static bool fillKrb5FromEnv(const Environment &env, CredInfo &creds, uid_t uid);
   static bool fillX509FromEnv(const Environment &env, CredInfo &creds, uid_t uid);

@@ -49,6 +49,7 @@ add_executable(
   BoundIdentityProvider.cc  BoundIdentityProvider.hh
                             CredentialCache.hh
   CredentialFinder.cc       CredentialFinder.hh
+  EnvironmentReader.cc      EnvironmentReader.hh
   LoginIdentifier.cc        LoginIdentifier.hh
   ProcessCache.cc           ProcessCache.hh
   ProcessInfo.cc            ProcessInfo.hh
