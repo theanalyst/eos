@@ -3037,10 +3037,9 @@ filesystem::open(const char* path,
 
     // Force a reauthentication to the head node
     if (spath.endswith("/proc/reconnect")) {
+      processCache.retrieve(pid, uid, gid, true);
       errno = ECONNABORTED;
       return -1;
-
-      // TODO(gbitzes): Invalidate current credentials!
     }
 
     // Return the 'whoami' information in that file

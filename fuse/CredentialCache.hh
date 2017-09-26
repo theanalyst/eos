@@ -49,8 +49,12 @@ public:
   }
 
   // replace by default
-  bool store(const CredInfo &credInfo, const BoundIdentity *boundIdentity) {
+  bool store(const CredInfo &credInfo, BoundIdentity *boundIdentity) {
     return cache.store(credInfo, boundIdentity, true);
+  }
+
+  bool invalidate(const CredInfo &credInfo) {
+    return cache.invalidate(credInfo);
   }
 
 private:

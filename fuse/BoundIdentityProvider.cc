@@ -132,6 +132,12 @@ std::shared_ptr<const BoundIdentity> BoundIdentityProvider::retrieve(pid_t pid, 
     return boundIdentity;
   }
 
+  if(boundIdentity && boundIdentity->getCreds() && reconnect) {
+    // Invalidate credentials
+    credentialCache.invalidate(credinfo);
+    boundIdentity->getCreds()->invalidate();
+  }
+
   // No binding exists yet, let's create one..
   LoginIdentifier login(connectionCounter++);
   std::shared_ptr<TrustedCredentials> trustedCreds(new TrustedCredentials());

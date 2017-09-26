@@ -38,7 +38,7 @@ ProcessSnapshot ProcessCache::retrieve(pid_t pid, uid_t uid, gid_t gid, bool rec
   eos_static_debug("ProcessCache::retrieve with pid, uid, gid, reconnect => %d, %d, %d, %d", pid, uid, gid, reconnect);
 
   ProcessSnapshot entry = cache.retrieve(ProcessCacheKey(pid, uid, gid));
-  if(entry) {
+  if(entry && !reconnect) {
     // Cache hit.. but it could refer to different processes, even if PID is the same.
     ProcessInfo processInfo;
     if(!ProcessInfoProvider::retrieveBasic(pid, processInfo)) {
@@ -51,11 +51,13 @@ ProcessSnapshot ProcessCache::retrieve(pid_t pid, uid_t uid, gid_t gid, bool rec
     }
 
     if(processInfo.isSameProcess(entry->getProcessInfo())) {
-      // Yep, that's a cache hit, nothing more to do.
-      return entry;
+      // Yep, that's a cache hit.. but credentials could have been invalidated.
+      if(entry->getBoundIdentity().validCreds()) {
+        return entry;
+      }
     }
 
-    // Process has changed, cache miss
+    // Process has changed, or credentials invalidated. Cache miss.
   }
 
   ProcessInfo processInfo;

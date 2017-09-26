@@ -89,7 +89,7 @@ struct CredInfo {
 // TODO(gbitzes): actually satisfy the above when instantiating such an object ;>
 class TrustedCredentials {
 public:
-  TrustedCredentials() : initialized(false), type(CredInfo::nobody), uid(-2), gid(-2) {}
+  TrustedCredentials() : initialized(false), invalidated(false), type(CredInfo::nobody), uid(-2), gid(-2) {}
 
   void setKrb5(const std::string &filename, uid_t uid, gid_t gid) {
     if(initialized) THROW("already initialized");
@@ -148,11 +148,20 @@ public:
     }
   }
 
+  void invalidate() {
+    invalidated = true;
+  }
+
+  bool valid() const {
+    return !invalidated;
+  }
+
   bool empty() const {
     return !initialized;
   }
 private:
   bool initialized;
+  std::atomic<bool> invalidated;
   CredInfo::CredType type;
   std::string contents;
   uid_t uid;
@@ -172,6 +181,10 @@ public:
 
   std::shared_ptr<TrustedCredentials>& getCreds() { return creds; }
   const std::shared_ptr<TrustedCredentials>& getCreds() const { return creds; }
+
+  bool validCreds() const {
+    return (getCreds() && getCreds()->valid());
+  }
 
 private:
   LoginIdentifier login;

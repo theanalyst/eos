@@ -127,12 +127,12 @@ public:
   }
 
   // Retrieves an item from the cache. If there isn't any, return a null shared_ptr.
-  std::shared_ptr<const Value> retrieve(const Key& key) {
+  std::shared_ptr<Value> retrieve(const Key& key) {
     ShardGuard guard(this, key, false);
 
     typename std::map<Key, CacheEntry>::iterator it = contents[guard.getShard()].find(key);
     if(it == contents[guard.getShard()].end()) {
-      return std::shared_ptr<const Value>();
+      return std::shared_ptr<Value>();
     }
 
     // if(it->first == 4) std::cerr << "erasing " << it->first << std::endl;
@@ -143,10 +143,10 @@ public:
   // Calling this function means giving up ownership of the pointer.
   // Don't use it anymore and don't call delete on it!
   // Return value: whether insertion was successful.
-  bool store(const Key& key, const Value* const value, bool replace = true) {
+  bool store(const Key& key, Value* const value, bool replace = true) {
     CacheEntry entry;
     entry.marked = false;
-    entry.value = std::shared_ptr<const Value>(value);
+    entry.value = std::shared_ptr<Value>(value);
 
     ShardGuard guard(this, key, true);
 
@@ -177,7 +177,7 @@ private:
   Milliseconds ttl;
 
   struct CacheEntry {
-    std::shared_ptr<const Value> value;
+    std::shared_ptr<Value> value;
     bool marked;
   };
 
