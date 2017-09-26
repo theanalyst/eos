@@ -53,12 +53,7 @@ public:
 };
 
 
-// Credentials as given by the user. Not trusted by default, the user could
-// play games with race conditions if those were passed on to XrdCl.
-//
-// These are immutable for a pid + startupTime, for its entire lifetime - even
-// if the underlying credential file changes. It's just mapped to a different
-// TrustedCredentials object if that happens.
+// Information extracted from environment variables.
 struct CredInfo {
   enum CredType {
     krb5, krk5, x509, nobody
@@ -76,17 +71,7 @@ struct CredInfo {
   }
 };
 
-// Anything ending up here can be trusted, and is passed on as-is to XrdCl.
-// - In the case of a shared mount, we have control over these credentials,
-//   meaning a malicious user can't play race condition games and change it to
-//   a symlink of credentials of a different user.
-//
-//   If a filename ends up here, the user MUST NOT be able to write to it, even
-//   though the credentials identify them!
-// - In the case of a user mount we don't really care, all credentials
-//   can be considered trusted.
-
-// TODO(gbitzes): actually satisfy the above when instantiating such an object ;>
+// We need this object to generate the parameters in the xrootd URL
 class TrustedCredentials {
 public:
   TrustedCredentials() : initialized(false), invalidated(false), type(CredInfo::nobody), uid(-2), gid(-2) {}
@@ -97,6 +82,8 @@ public:
     initialized = true;
     type = CredInfo::krb5;
     contents = filename;
+    this->uid = uid;
+    this->gid = gid;
   }
 
   void setKrk5(const std::string &keyring, uid_t uid, gid_t gid) {
@@ -105,6 +92,8 @@ public:
     initialized = true;
     type = CredInfo::krk5;
     contents = keyring;
+    this->uid = uid;
+    this->gid = gid;
   }
 
   void setx509(const std::string &filename, uid_t uid, gid_t gid) {
@@ -113,6 +102,8 @@ public:
     initialized = true;
     type = CredInfo::x509;
     contents = filename;
+    this->uid = uid;
+    this->gid = gid;
   }
 
   bool access(uid_t requid, gid_t reqgid) const {
@@ -134,13 +125,13 @@ public:
         return "xrd.wantprot=unix";
       }
       case CredInfo::krb5: {
-        return SSTR("xrd.k5ccname=" << contents << "&xrd.wantprot=krb5,unix");
+        return SSTR("xrd.k5ccname=" << contents << "&xrd.wantprot=krb5,unix&xrd.secuid=" << uid << "&xrd.secgid=" << gid);
       }
       case CredInfo::krk5: {
-        return SSTR("xrd.k5ccname=" << contents << "&xrd.wantprot=krb5,unix");
+        return SSTR("xrd.k5ccname=" << contents << "&xrd.wantprot=krb5,unix&xrd.secuid=" << uid << "&xrd.secgid=" << gid);
       }
       case CredInfo::x509: {
-        return SSTR("xrd.gsiusrpxy=" << contents << "&xrd.wantprot=gsi,unix");
+        return SSTR("xrd.gsiusrpxy=" << contents << "&xrd.wantprot=gsi,unix&xrd.secuid=" << uid << "&xrd.secgid=" << gid);
       }
       default: {
         THROW("should never reach here");
