@@ -54,7 +54,7 @@ private:
   static bool fillX509FromEnv(const Environment &env, CredInfo &creds, uid_t uid);
   static bool checkCredsPath(const std::string &path, uid_t uid);
 
-  std::atomic<uint64_t> connectionCounter {0};
+  std::atomic<uint64_t> connectionCounter {1};
 };
 
 #endif
