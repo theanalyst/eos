@@ -40,10 +40,12 @@ add_library(
 add_executable(
   EosFuseCredTests
   ../CredentialFinder.cc
+  ../EnvironmentReader.cc
   ../Utils.cc
   ../ProcessInfo.cc
   ../LoginIdentifier.cc
   credential-finder.cc
+  environment-reader.cc
   login-identifier.cc
   utils.cc
   process-info.cc

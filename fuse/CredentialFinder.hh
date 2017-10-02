@@ -191,14 +191,16 @@ private:
 // A class to read and parse environment values
 class Environment {
 public:
-  Environment() {}
-
   void fromFile(const std::string &path);
   void fromString(const std::string &str);
   void fromVector(const std::vector<std::string> &vec);
 
   std::string get(const std::string &key) const;
   std::vector<std::string> getAll() const;
+
+  bool operator==(const Environment &other) const {
+    return contents == other.contents;
+  }
 private:
   std::vector<std::string> contents;
 };

@@ -23,6 +23,36 @@
 
 #include "EnvironmentReader.hh"
 
+void EnvironmentReader::inject(pid_t pid, const Environment &env, std::chrono::milliseconds artificialDelay) {
+  SimulatedResponse simulated;
+  simulated.env = env;
+  simulated.artificialDelay = artificialDelay;
+
+  std::lock_guard<std::mutex> lock(injectionMtx);
+  injections[pid] = simulated;
+}
+
+void EnvironmentReader::removeInjection(pid_t pid) {
+  std::lock_guard<std::mutex> lock(injectionMtx);
+  injections.erase(pid);
+}
+
+void EnvironmentReader::fillFromInjection(pid_t pid, Environment &env) {
+  SimulatedResponse response;
+
+  {
+    std::lock_guard<std::mutex> lock(injectionMtx);
+    auto it = injections.find(pid);
+    if(it == injections.end()) {
+      return;
+    }
+    response = it->second;
+  }
+
+  std::this_thread::sleep_for(response.artificialDelay);
+  env = response.env;
+}
+
 EnvironmentReader::~EnvironmentReader() {
   // spin until all threads are done
   shutdown = true;
@@ -57,10 +87,22 @@ void EnvironmentReader::worker() {
       requestQueue.pop();
       lock.unlock();
 
-      // If a (temporary) kernel deadlock occurs, it will be here.
+      // Start timing how long it takes to get a response
       std::chrono::high_resolution_clock::time_point startTime = std::chrono::high_resolution_clock::now();
       Environment env;
-      env.fromFile(SSTR("/proc/" << request.pid << "/environ"));
+
+      // Provide simulated or real response?
+      if(injections.empty()) {
+        // Real response, read environment. If a (temporary) kernel deadlock occurs,
+        // it will be at this point.
+        env.fromFile(SSTR("/proc/" << request.pid << "/environ"));
+      }
+      else {
+        // Simulation
+        fillFromInjection(request.pid, env);
+      }
+
+      // Measure how long it took, issue warning if too high
       std::chrono::high_resolution_clock::time_point endTime = std::chrono::high_resolution_clock::now();
 
       std::chrono::milliseconds duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
@@ -107,7 +149,6 @@ EnvironmentResponse EnvironmentReader::stageRequest(pid_t pid) {
   EnvironmentResponse response;
 
   request.pid = pid;
-
   response.contents = request.promise.get_future();
   response.queuedSince = std::chrono::high_resolution_clock::now();
 

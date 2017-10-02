@@ -48,14 +48,22 @@ struct EnvironmentResponse {
 
 class EnvironmentReader {
 public:
-  // EnvironmentReader();
   ~EnvironmentReader();
 
   void launchWorkers(size_t threads);
-
   EnvironmentResponse stageRequest(pid_t pid);
 
+  // *all* responses will be faked if there's at least one injection active
+  void inject(pid_t pid, const Environment &env, std::chrono::milliseconds artificialDelay);
+  void removeInjection(pid_t pid);
 private:
+  void fillFromInjection(pid_t pid, Environment &env);
+
+  struct SimulatedResponse {
+    Environment env;
+    std::chrono::milliseconds artificialDelay;
+  };
+
   struct QueuedRequest {
     pid_t pid;
     std::promise<Environment> promise;
@@ -71,6 +79,9 @@ private:
   std::condition_variable queueCV;
   std::queue<QueuedRequest> requestQueue;
   std::map<pid_t, EnvironmentResponse> pendingRequests;
+
+  std::mutex injectionMtx;
+  std::map<pid_t, SimulatedResponse> injections;
 };
 
 #endif
