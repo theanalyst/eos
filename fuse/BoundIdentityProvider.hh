@@ -52,7 +52,7 @@ private:
 
   static bool fillKrb5FromEnv(const Environment &env, CredInfo &creds, uid_t uid);
   static bool fillX509FromEnv(const Environment &env, CredInfo &creds, uid_t uid);
-  static bool checkCredsPath(const std::string &path, uid_t uid);
+  static bool checkCredsPath(const std::string &path, uid_t uid, struct stat &filestat);
 
   std::atomic<uint64_t> connectionCounter {1};
 };

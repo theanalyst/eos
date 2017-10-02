@@ -28,6 +28,7 @@
 #include <map>
 #include <vector>
 #include <sstream>
+#include <time.h>
 #include "common/Logging.hh"
 #include "Utils.hh"
 #include "LoginIdentifier.hh"
@@ -61,13 +62,18 @@ struct CredInfo {
 
   CredType type;     // krb5 , krk5 or x509
   std::string fname; // credential file
+  time_t mtime;
 
   bool operator<(const CredInfo& src) const {
     if(type != src.type) {
       return type < src.type;
     }
 
-    return fname < src.fname;
+    if(fname != src.fname) {
+      return fname < src.fname;
+    }
+
+    return mtime < src.mtime;
   }
 };
 

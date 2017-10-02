@@ -29,12 +29,11 @@
 // A preliminary check that provided credentials are sane.
 // The strong check will be provided by XrdCl, which changes its fsuid when
 // reading the credentials to that of the real user.
-bool BoundIdentityProvider::checkCredsPath(const std::string &path, uid_t uid) {
+bool BoundIdentityProvider::checkCredsPath(const std::string &path, uid_t uid, struct stat &filestat) {
   if(path.size() == 0) {
     return false;
   }
 
-  struct stat filestat;
   if(::stat(path.c_str(), &filestat) != 0) {
     eos_static_debug("Cannot stat credentials path %s (requested by uid %d)", path.c_str(), uid);
     return false;
@@ -50,25 +49,31 @@ bool BoundIdentityProvider::checkCredsPath(const std::string &path, uid_t uid) {
 
 bool BoundIdentityProvider::fillKrb5FromEnv(const Environment &env, CredInfo &creds, uid_t uid) {
   std::string path = CredentialFinder::locateKerberosTicket(env);
-  if(!checkCredsPath(path, uid)) {
+
+  struct stat filestat;
+  if(!checkCredsPath(path, uid, filestat)) {
     return false;
   }
 
   eos_static_info("Using kerberos credentials '%s' for uid %d", path.c_str(), uid);
   creds.fname = path;
   creds.type = CredInfo::krb5;
+  creds.mtime = filestat.st_mtime;
   return true;
 }
 
 bool BoundIdentityProvider::fillX509FromEnv(const Environment &env, CredInfo &creds, uid_t uid) {
   std::string path = CredentialFinder::locateX509Proxy(env, uid);
-  if(!checkCredsPath(path, uid)) {
+
+  struct stat filestat;
+  if(!checkCredsPath(path, uid, filestat)) {
     return false;
   }
 
   eos_static_info("Using x509 credentials '%s' for uid %d", path.c_str(), uid);
   creds.fname = path;
   creds.type = CredInfo::x509;
+  creds.mtime = filestat.st_mtime;
   return true;
 }
 
