@@ -145,14 +145,13 @@ private:
   //----------------------------------------------------------------------------
   //! Handle protobuf request
   //!
-  //! @parm path input path of a proc command
   //! @param opaque full opaque info containing the base64 protocol request
   //! @param vid virtual identity of the client
   //!
   //! @return unique pointer to ProcCommand object or null otherwise
   //----------------------------------------------------------------------------
   static std::unique_ptr<IProcCommand>
-  HandleProtobufRequest(const char* path, const char* opaque,
+  HandleProtobufRequest(const char* opaque,
                         eos::common::Mapping::VirtualIdentity& vid);
 
   //! Map of command id to async proc commands

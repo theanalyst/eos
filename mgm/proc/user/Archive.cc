@@ -35,7 +35,7 @@
 #include "mgm/ZMQ.hh"
 #include "XrdCl/XrdClCopyProcess.hh"
 #include "XrdOuc/XrdOucEnv.hh"
-#include <iomanip>
+#include "mgm/proc/ProcInterface.hh"
 
 EOSMGMNAMESPACE_BEGIN
 
@@ -1101,54 +1101,63 @@ ProcCommand::ArchiveAddEntries(const std::string& arch_dir,
     };
   }
 
-  std::string line;
-  ProcCommand* cmd_find = new ProcCommand();
-  XrdOucString info = "&mgm.cmd=find&mgm.path=";
-  info += arch_dir.c_str();
-
+  eos::console::RequestProto request;
+  auto* find = request.mutable_find();
+  find->set_path(arch_dir);
+  find->set_fileinfo(true);
   if (is_file) {
-    info += "&mgm.option=fI";
+    find->set_files(true);
   } else {
-    info += "&mgm.option=dI";
+    find->set_directories(true);
   }
+
+  std::ostringstream opaque;
+  std::string b64buff;
+
+  if (!eos::common::SymKey::ProtobufBase64Encode(&request, b64buff)) {
+    stdErr = "error: failed to base64 encode the find request";
+    return EINVAL;
+  }
+
+  opaque << "&mgm.cmd.proto=" << b64buff;
 
   eos::common::Mapping::VirtualIdentity root_vid;
   eos::common::Mapping::Root(root_vid);
-  cmd_find->open("/proc/user", info.c_str(), root_vid, mError);
-  int ret = cmd_find->close();
+
+  auto cmd_find = ProcInterface::GetProcCommand(root_vid.tident.c_str(), root_vid, arch_dir.c_str(), opaque.str().c_str());
+  cmd_find->open("/proc/user", opaque.str().c_str(), root_vid, mError);
+  auto ret = cmd_find->close();
 
   if (ret) {
-    delete cmd_find;
     eos_err("find fileinfo on directory=%s failed", arch_dir.c_str());
     stdErr = "error: find fileinfo failed";
     retc = ret;
     return retc;
   }
 
+  std::string line;
   size_t spos = 0;
-  size_t key_length = 0; // lenght of file/dir name - it could have spaces
+  size_t key_length = 0; // length of file/dir name - it could have spaces
   std::string rel_path;
   std::string key, value, pair;
   std::istringstream line_iss;
-  std::ifstream result_ifs(cmd_find->GetResultFn());
+  std::ifstream result_ifs(cmd_find->GetOutputFn());
   XrdOucString unseal_str;
 
   if (!result_ifs.good()) {
-    delete cmd_find;
+//    delete cmd_find;
     eos_err("failed to open find fileinfo result file on MGM");
     stdErr = "failed to open find fileinfo result file on MGM";
     retc = EIO;
     return retc;
   }
 
-  char* tmp_buff = new char[4096 * 4];
+  auto* tmp_buff = new char[4096 * 4];
 
   while (std::getline(result_ifs, line)) {
-    if (line.find("&mgm.proc.stderr=") == 0) {
-      continue;
-    }
-
-    if (line.find("&mgm.proc.stdout=") == 0) {
+    if (line.find("mgm.proc.stdout=") == 0) {
+      line.erase(0, 16);
+    } else if (line.find("&mgm.proc.stdout=") == 0) {
       line.erase(0, 17);
     }
 
@@ -1195,7 +1204,7 @@ ProcCommand::ArchiveAddEntries(const std::string& arch_dir,
 
         if ((spos == std::string::npos) || (!line_iss.good())) {
           delete[] tmp_buff;
-          delete cmd_find;
+//          delete cmd_find;
           eos_err("malformed xattr pair format");
           stdErr = "malformed xattr pair format";
           retc = EINVAL;
@@ -1207,7 +1216,7 @@ ProcCommand::ArchiveAddEntries(const std::string& arch_dir,
 
         if (key != "xattrv") {
           delete[] tmp_buff;
-          delete cmd_find;
+//          delete cmd_find;
           eos_err("not found expected xattrv");
           stdErr = "not found expected xattrv";
           retc = EINVAL;
@@ -1278,7 +1287,7 @@ ProcCommand::ArchiveAddEntries(const std::string& arch_dir,
   }
 
   delete[] tmp_buff;
-  delete cmd_find;
+//  delete cmd_find;
   return retc;
 }
 

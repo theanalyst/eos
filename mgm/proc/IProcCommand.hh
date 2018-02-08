@@ -158,6 +158,13 @@ public:
   }
 
   //----------------------------------------------------------------------------
+  //! Get output file name
+  //----------------------------------------------------------------------------
+  virtual inline std::string GetOutputFn() const {
+    return ofstdoutStreamFilename;
+  }
+
+  //----------------------------------------------------------------------------
   //! Method implementing the specific behavior of the command executed
   //----------------------------------------------------------------------------
   virtual eos::console::ReplyProto ProcessRequest() = 0;

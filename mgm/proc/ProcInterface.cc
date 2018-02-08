@@ -62,7 +62,7 @@ ProcInterface::GetProcCommand(const char* tident,
 
     // New proc command implementation using ProtocolBuffer objects
     if (env.Get("mgm.cmd.proto")) {
-      pcmd = HandleProtobufRequest(path, opaque, vid);
+      pcmd = HandleProtobufRequest(opaque, vid);
     } else {
       pcmd.reset(new ProcCommand());
     }
@@ -142,7 +142,7 @@ ProcInterface::DropSubmittedCmd(const char* tident)
 // Handle protobuf request
 //----------------------------------------------------------------------------
 std::unique_ptr<IProcCommand>
-ProcInterface::HandleProtobufRequest(const char* path, const char* opaque,
+ProcInterface::HandleProtobufRequest(const char* opaque,
                                      eos::common::Mapping::VirtualIdentity& vid)
 {
   using eos::console::RequestProto;
