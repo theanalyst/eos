@@ -132,7 +132,7 @@ DrainFS::Drain()
     time_t drainendtime = 0;
     eos::common::FileSystem::fs_snapshot_t drain_snapshot;
     XrdSysThread::SetCancelOff();
-    eos::common::RWMutexReadLock(FsView::gFsView.ViewMutex);
+    eos::common::RWMutexReadLock viewLock(FsView::gFsView.ViewMutex);
     {
       //set counter and status
       SetInitialCounters();
@@ -479,10 +479,9 @@ eos::common::FileSystem::fsid_t
 DrainFS::SelectTargetFS(DrainTransferJob* job)
 
 {
-  eos::common::RWMutexReadLock(FsView::gFsView.ViewMutex);
+  eos::common::RWMutexReadLock viewLock(FsView::gFsView.ViewMutex);
   eos::common::RWMutexReadLock nsLock(gOFS->eosViewRWMutex);
-  std::vector<FileSystem::fsid_t>* newReplicas = new
-  std::vector<FileSystem::fsid_t>();
+  auto* newReplicas = new std::vector<FileSystem::fsid_t>();
   std::vector<FileSystem::fsid_t> existingReplicas;
   eos::common::FileSystem::fs_snapshot source_snapshot;
   eos::common::FileSystem* source_fs = 0;
