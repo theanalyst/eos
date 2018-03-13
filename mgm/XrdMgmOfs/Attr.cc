@@ -212,6 +212,7 @@ XrdMgmOfs::_attr_set(const char* path, XrdOucErrInfo& error,
 
       if (Key.beginswith("sys.acl") || Key.beginswith("user.acl")) {
         bool is_sys_acl = Key.beginswith("sys.acl");
+	eos_static_debug("%s=%s is_sys_acl=%d IsValid1 %d IsValid2 %d", Key.c_str(), ouc_val.c_str(), is_sys_acl, Acl::IsValid(val, error, is_sys_acl), Acl::IsValid(val, error, is_sys_acl, true));
 
         // Check format of acl
         if (!Acl::IsValid(val, error, is_sys_acl) &&
