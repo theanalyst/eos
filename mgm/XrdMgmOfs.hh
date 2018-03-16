@@ -1286,6 +1286,8 @@ public:
   XrdOucString MgmOfsConfigEngineRedisHost; //Redis host
   int MgmOfsConfigEngineRedisPort; //Redis port
   bool MgmOfsCentralDraining; //Central drainer enabled/disabled
+  std::string ProtoWFHostPort; ///< host and port of service to communicate with in case of proto workflows (typically CTA frontend)
+  std::string ProtoWFEndpoint; ///< endpoint of SSI service to communicate with in case of proto workflows (typically CTA frontend)
   //! Process state after namespace load time
   eos::common::LinuxStat::linux_stat_t LinuxStatsStartup;
   //! Map with scheduled fids for draining
