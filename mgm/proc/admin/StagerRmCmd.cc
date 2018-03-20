@@ -36,9 +36,11 @@ eos::mgm::StagerRmCmd::ProcessRequest() {
   retc = 0;
 
   const auto& stagerRm = mReqProto.stagerrm();
+  cerr << mReqProto.DebugString() << endl;
+  cerr << stagerRm.path_size() << endl;
 
   XrdOucErrInfo errInfo;
-  for (auto i  = 0; i < stagerRm.path_size(); i++) {
+  for (auto i = 0; i < stagerRm.path_size(); i++) {
     const auto& path = stagerRm.path(i);
 
     // check if this file exists
@@ -104,7 +106,7 @@ eos::mgm::StagerRmCmd::ProcessRequest() {
 
   reply.set_retc(retc);
   reply.set_std_err(errStream.str());
-  reply.set_std_out(retc == 0 ? "" : "success: removed all replicas for all given files");
+  reply.set_std_out(retc == 0 ? "success: removed all replicas for all given files" : "");
   return reply;
 }
 

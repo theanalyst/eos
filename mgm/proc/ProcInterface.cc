@@ -153,7 +153,6 @@ ProcInterface::HandleProtobufRequest(const char* path, const char* opaque,
   std::string raw_pb;
   XrdOucEnv env(opaque);
   const char* b64data = env.Get("mgm.cmd.proto");
-
   if (!eos::common::SymKey::Base64Decode(b64data, raw_pb)) {
     oss << "error: failed to base64decode request";
     eos_static_err("%s", oss.str().c_str());
@@ -162,12 +161,14 @@ ProcInterface::HandleProtobufRequest(const char* path, const char* opaque,
 
   eos::console::RequestProto req;
 
-  if (!req.ParseFromString(raw_pb)) {
+  if (!req.ParseFromArray(raw_pb.data(), raw_pb.length())) {
     oss << "error: failed to deserialize ProtocolBuffer object: "
         << raw_pb;
     eos_static_err("%s", oss.str().c_str());
     return cmd;
   }
+
+  cerr << req.DebugString() << endl;
 
   // Log the type of command that we received
   std::string json_out;

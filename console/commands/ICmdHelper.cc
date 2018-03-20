@@ -44,6 +44,7 @@ ICmdHelper::Execute()
     return EINVAL;
   }
 
+  cout << mReq.DebugString() << endl;
   std::string cmd = "mgm.cmd.proto=";
   cmd += b64buff;
   int retc = mMgmExec.ExecuteCommand(cmd.c_str(), mIsAdmin);
