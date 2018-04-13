@@ -2036,6 +2036,7 @@ WFE::Job::DoIt(bool issync)
             {
               std::string dropDiskVal;
               eos::common::RWMutexReadLock lock(gOFS->eosViewRWMutex);
+              std::this_thread::sleep_for(std::chrono::milliseconds(1));
               dropAllStripes = true;
             }
 
