@@ -2035,9 +2035,8 @@ WFE::Job::DoIt(bool issync)
             bool dropAllStripes = true;
             {
               std::string dropDiskVal;
-//              eos::common::RWMutexReadLock lock(gOFS->eosViewRWMutex);
-              dropAllStripes =
-                !(gOFS->_attr_get(*cmd, "sys.wfe.archived.dropdiskreplicas", dropDiskVal)) || dropDiskVal == "1";
+              eos::common::RWMutexReadLock lock(gOFS->eosViewRWMutex);
+              dropAllStripes = true;
             }
 
             if (dropAllStripes && gOFS->_dropallstripes(fullPath.c_str(), errInfo, root_vid, true) != 0) {
