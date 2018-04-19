@@ -27,6 +27,13 @@
 %define major_version @CPACK_PACKAGE_VERSION_MAJOR@
 
 #-------------------------------------------------------------------------------
+# Custom strip command for SLC6, CC7
+#-------------------------------------------------------------------------------
+%if 0%{distribution} == 6 || 0%{distribution} == 7
+%global __strip /opt/rh/devtoolset-6/root/bin/strip
+%endif
+
+#-------------------------------------------------------------------------------
 # Package definitions
 #-------------------------------------------------------------------------------
 Summary: The EOS project
