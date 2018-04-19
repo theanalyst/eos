@@ -429,7 +429,7 @@ eos_unit_test:
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
     - yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git yum-plugin-priorities ccache epel-release cppunit-devel centos-release-scl
-    - yum install --nogpg -y devtoolset-6
+    - yum install --nogpg -y devtoolset-6 devtoolset-6-libasan-devel
     - git submodule update --init --recursive
     - mkdir build
     - cd build
