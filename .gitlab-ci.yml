@@ -445,7 +445,7 @@ eos_unit_test:
     - rm -rf build
     - mkdir build
     - cd build
-    - scl enable devtoolset-6 "cmake3 .. -DBUILD_TESTS=1"
+    - scl enable devtoolset-6 "CXXFLAGS='-fsanitize=address' cmake3 .. -DBUILD_TESTS=1"
     - make eos-unit-tests eos-fst-unit-tests -j 4
     - ccache -s
     - ./unit_tests/eos-unit-tests
