@@ -2186,13 +2186,19 @@ XrdFstOfsFile::close()
     capOpaqueFile += capOpaque->Env(envlen);
     capOpaqueFile += "&mgm.pcmd=event";
 
+    // Set default workflow if nothing is specified
+    if (eventWorkflow.length() == 0) {
+      eventWorkflow = "default";
+    }
+
     if (isRW) {
-      capOpaqueFile += "&mgm.event=closew";
-      eventType = "closew";
+      eventType = eventWorkflow == "default" ? "sync::closew" : "closew";
     } else {
-      capOpaqueFile += "&mgm.event=closer";
       eventType = "closer";
     }
+
+    capOpaqueFile += "&mgm.event=";
+    capOpaqueFile += eventType;
 
     // The log ID to the commit
     capOpaqueFile += "&mgm.logid=";
@@ -2204,15 +2210,13 @@ XrdFstOfsFile::close()
     capOpaqueFile += "&mgm.sec=";
     capOpaqueFile += capOpaque->Get("mgm.sec");
 
-    if (eventWorkflow.length()) {
-      capOpaqueFile += "&mgm.workflow=";
-      capOpaqueFile += eventWorkflow.c_str();
-    }
+    capOpaqueFile += "&mgm.workflow=";
+    capOpaqueFile += eventWorkflow.c_str();
 
     eos_info("msg=\"notify\" event=\"%s\" workflow=\"%s\"", eventType.c_str(),
              eventWorkflow.c_str());
     rc = gOFS.CallManager(&error, capOpaque->Get("mgm.path"),
-                          capOpaque->Get("mgm.manager"), capOpaqueFile);
+                          capOpaque->Get("mgm.manager"), capOpaqueFile, nullptr, 30, false);
   }
 
   eos_info("Return code rc=%i.", rc);
