@@ -313,7 +313,7 @@ WFE::WFEr()
           }
         }
         auto wfedirover = std::chrono::steady_clock::now();
-        auto timeSpent = std::chrono::duration_cast<std::chrono::seconds>(wfedirover - wfedirstarted);
+        auto timeSpent = std::chrono::duration_cast<std::chrono::microseconds>(wfedirover - wfedirstarted);
         eos_static_info("wfedirloop time = %ld", timeSpent.count());
       }
 
@@ -354,7 +354,7 @@ WFE::WFEr()
       }
     }
     auto sleeperover = std::chrono::steady_clock::now();
-    auto timeSpent = std::chrono::duration_cast<std::chrono::seconds>(sleeperover - sleeperstarted);
+    auto timeSpent = std::chrono::duration_cast<std::chrono::microseconds>(sleeperover - sleeperstarted);
     eos_static_info("sleeperloop time = %ld", timeSpent.count());
 
     if (gOFS->MgmMaster.IsMaster() && (!cleanuptime ||
