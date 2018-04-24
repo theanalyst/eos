@@ -252,6 +252,7 @@ WFE::WFEr()
                         );
         time_t now = time(NULL);
 
+        auto wfedirstarted = std::chrono::steady_clock::now();
         for (auto it = wfedirs.begin(); it != wfedirs.end(); it++) {
           // -------------------------------------------------------------------
           // get workflows
@@ -311,6 +312,9 @@ WFE::WFEr()
             }
           }
         }
+        auto wfedirover = std::chrono::steady_clock::now();
+        auto timeSpent = std::chrono::duration_cast<std::chrono::seconds>(wfedirover - wfedirstarted);
+        eos_static_info("wfedirloop time = %ld", timeSpent.count());
       }
 
       EXEC_TIMING_END("WFEFind");
@@ -330,6 +334,7 @@ WFE::WFEr()
     XrdSysTimer sleeper;
     size_t snoozeloop = snoozetime / 1;
 
+    auto sleeperstarted = std::chrono::steady_clock::now();
     for (size_t i = 0; i < snoozeloop; i++) {
       sleeper.Wait(100);
       {
@@ -348,6 +353,9 @@ WFE::WFEr()
         }
       }
     }
+    auto sleeperover = std::chrono::steady_clock::now();
+    auto timeSpent = std::chrono::duration_cast<std::chrono::seconds>(sleeperover - sleeperstarted);
+    eos_static_info("sleeperloop time = %ld", timeSpent.count());
 
     if (gOFS->MgmMaster.IsMaster() && (!cleanuptime ||
                                        (cleanuptime < time(NULL)))) {
