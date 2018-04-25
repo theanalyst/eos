@@ -88,6 +88,7 @@ XrdFstOfsFile::XrdFstOfsFile(const char* user, int MonID) :
   deleteOnClose = false;
   repairOnClose = false;
   eventOnClose = false;
+  syncEventOnClose = false;
   closeTime.tv_sec = closeTime.tv_usec = 0;
   openTime.tv_sec = openTime.tv_usec = 0;
   tz.tz_dsttime = tz.tz_minuteswest = 0;
@@ -299,8 +300,10 @@ XrdFstOfsFile::open(const char* path, XrdSfsFileOpenMode open_mode,
   if ((val = tmpOpaque.Get("mgm.event"))) {
     std::string event = val;
 
-    if (event == "close") {
+    if (event == "closew") {
       eventOnClose = true;
+    } else if (event == "sync::closew") {
+      syncEventOnClose = true;
     }
 
     val = tmpOpaque.Get("mgm.workflow");
@@ -2177,7 +2180,7 @@ XrdFstOfsFile::close()
     }
   }
 
-  if (!rc && eventOnClose && layOut->IsEntryServer()) {
+  if (!rc && (eventOnClose || syncEventOnClose) && layOut->IsEntryServer()) {
     //trigger an MGM event if asked from the entry point
     XrdOucString capOpaqueFile = "";
     XrdOucString eventType = "";
@@ -2192,7 +2195,7 @@ XrdFstOfsFile::close()
     }
 
     if (isRW) {
-      eventType = eventWorkflow == "default" ? "sync::closew" : "closew";
+      eventType = syncEventOnClose ? "sync::closew" : "closew";
     } else {
       eventType = "closer";
     }

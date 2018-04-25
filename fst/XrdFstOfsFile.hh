@@ -384,6 +384,7 @@ protected:
   bool isReconstruction; //! indicator that the opened file is in a RAIN reconstruction process
   bool deleteOnClose; //! indicator that the file has to be cleaned on close
   bool eventOnClose; //! indicator to send a specified event to the mgm on close
+  bool syncEventOnClose; //! indicator to send a specified event to the mgm on close
   XrdOucString
   eventWorkflow; //! indicates the workflow to be triggered by an event
   bool repairOnClose; //! indicator that the file should get repaired on close
