@@ -2696,9 +2696,9 @@ FuseServer::HandleMD(const std::string& id,
       return 0;
     }
 
-    if (S_ISLNK(md.mode())) {
+    if (S_ISLNK(md.mode()) || S_ISFIFO(md.mode())) {
       uint64_t clock = 0;
-      eos_static_info("ino=%lx set-link", (long) md.md_ino());
+      eos_static_info("ino=%#lx set-link/fifo %s", (long) md.md_ino(), md.name().c_str());
       eos::common::RWMutexWriteLock lock(gOFS->eosViewRWMutex);
       std::shared_ptr<eos::IFileMD> fmd;
       std::shared_ptr<eos::IContainerMD> pcmd;
@@ -2717,7 +2717,7 @@ FuseServer::HandleMD(const std::string& id,
 
         fmd = gOFS->eosFileService->createFile();
         fmd->setName(md.name());
-        fmd->setLink(md.target());
+        if (S_ISLNK(md.mode())) fmd->setLink(md.target());
         fmd->setLayoutId(0);
         md_ino = eos::common::FileId::FidToInode(fmd->getId());
         pcmd->addFile(fmd.get());
