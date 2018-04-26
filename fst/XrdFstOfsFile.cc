@@ -2219,7 +2219,7 @@ XrdFstOfsFile::close()
     eos_info("msg=\"notify\" event=\"%s\" workflow=\"%s\"", eventType.c_str(),
              eventWorkflow.c_str());
     rc = gOFS.CallManager(&error, capOpaque->Get("mgm.path"),
-                          capOpaque->Get("mgm.manager"), capOpaqueFile, nullptr, 30, false);
+                          capOpaque->Get("mgm.manager"), capOpaqueFile, nullptr, 30, true, false);
   }
 
   eos_info("Return code rc=%i.", rc);
