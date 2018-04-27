@@ -25,6 +25,7 @@
 #include "mgm/Acl.hh"
 #include "mgm/Policy.hh"
 #include "mgm/Quota.hh"
+#include "mgm/Recycle.hh"
 #include "namespace/interface/IView.hh"
 #include <thread>
 #include <regex.h>
@@ -2841,22 +2842,35 @@ FuseServer::HandleMD(const std::string& id,
         gOFS->MgmStats.Add("FUSEx-DELETE", vid->uid, vid->gid, 1);
         eos_static_info("ino=%lx delete-file", (long) md.md_ino());
 
-        try {
-          // handle quota
-          eos::IQuotaNode* quotanode = gOFS->eosView->getQuotaNode(pcmd.get());
+	eos::IContainerMD::XAttrMap attrmap = pcmd->getAttributes();
 
-          if (quotanode) {
-            quotanode->removeFile(fmd.get());
-          }
-        } catch (eos::MDException& e) {
-        }
+	if (attrmap.count(Recycle::gRecyclingAttribute)) {
+	  // translate to a path name and call the complex deletion function
+	  // this is vulnerable to a hard to trigger race conditions
+	  std::string fullpath = gOFS->eosView->getUri(fmd.get());
+	  gOFS->eosViewRWMutex.UnLockWrite();
+	  XrdOucErrInfo error;
+	  int rc = gOFS->_rem(fullpath.c_str(), error, *vid, "", false, false, false);
+	  gOFS->eosViewRWMutex.LockWrite();
+	} else {
+	  try {
+	    // handle quota
+	    eos::IQuotaNode* quotanode = gOFS->eosView->getQuotaNode(pcmd.get());
+	    
+	    if (quotanode) {
+	      quotanode->removeFile(fmd.get());
+	    }
+	  } catch (eos::MDException& e) {
+	  }
+	  
+	  pcmd->removeFile(fmd->getName());
+	  fmd->setContainerId(0);
+	  fmd->unlinkAllLocations();
+	  gOFS->eosFileService->updateStore(fmd.get());
+	  gOFS->eosDirectoryService->updateStore(pcmd.get());
+	  pcmd->notifyMTimeChange(gOFS->eosDirectoryService);
+	}
 
-        pcmd->removeFile(fmd->getName());
-        fmd->setContainerId(0);
-        fmd->unlinkAllLocations();
-        gOFS->eosFileService->updateStore(fmd.get());
-        gOFS->eosDirectoryService->updateStore(pcmd.get());
-        pcmd->notifyMTimeChange(gOFS->eosDirectoryService);
         resp.mutable_ack_()->set_code(resp.ack_().OK);
         resp.mutable_ack_()->set_transactionid(md.reqid());
         resp.SerializeToString(response);
