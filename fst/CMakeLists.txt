@@ -49,7 +49,9 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/layout/jerasure/include
   ${CMAKE_SOURCE_DIR}/namespace/ns_quarkdb/
   ${CMAKE_SOURCE_DIR}/namespace/ns_quarkdb/qclient/include
-  ${CMAKE_BINARY_DIR}/namespace/ns_quarkdb)  # for the generated protobuf
+  ${CMAKE_BINARY_DIR}/namespace/ns_quarkdb
+  ${CMAKE_SOURCE_DIR}/common/xrootd-ssi-protobuf-interface/include
+  ${CMAKE_BINARY_DIR}/common/eos_cta_pb)  # for the generated protobuf
 
 #-------------------------------------------------------------------------------
 # Add tests if not on MacOSX
