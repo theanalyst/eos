@@ -329,6 +329,10 @@ ProcCommand::FileInfo(const char* path)
             etag = setag;
           }
 
+	  if (fmd_copy->hasAttribute("sys.tmp.etag")) {
+	    etag = fmd_copy->getAttribute("sys.tmp.etag");
+	  }
+
           if (!Monitoring) {
             stdOut = "  File: '";
             stdOut += spath;
@@ -396,7 +400,7 @@ ProcCommand::FileInfo(const char* path)
               stdOut += hb;
             }
 
-            stdOut += "    ETAG: ";
+            stdOut += "    ETAGs: ";
             stdOut += etag.c_str();
             stdOut += "\n";
             stdOut + "Layout: ";
@@ -860,6 +864,10 @@ ProcCommand::DirInfo(const char* path)
                  (unsigned long)tmtime.tv_nsec / 1000000);
         etag = setag;
 
+	if (dmd_copy->hasAttribute("sys.tmp.etag")) {
+	  etag = dmd_copy->getAttribute("sys.tmp.etag");
+	}
+
         if (!Monitoring) {
           stdOut = "  Directory: '";
           stdOut += spath;
@@ -1139,6 +1147,10 @@ ProcCommand::FileJSON(uint64_t fid, Json::Value* ret_json)
       etag = setag;
     }
 
+    if (fmd_copy->hasAttribute("sys.tmp.etag")) {
+      etag = fmd_copy->getAttribute("sys.tmp.etag");
+    }
+
     json["etag"] = etag;
     json["path"] = fullpath;
   } catch (eos::MDException& e) {
@@ -1251,6 +1263,11 @@ ProcCommand::DirJSON(uint64_t fid, Json::Value* ret_json)
              (unsigned long long) eos::common::FileId::FidToInode(cmd->getId()),
              (unsigned long long) filemtime);
     etag = setag;
+
+    if (cmd->hasAttribute("sys.tmp.etag")) {
+      etag = cmd->getAttribute("sys.tmp.etag");
+    }
+
     json["etag"] = etag;
     json["path"] = fullpath;
     gOFS->eosViewRWMutex.UnLockRead();
