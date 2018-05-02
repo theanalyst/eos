@@ -307,7 +307,19 @@ XrdFstOfsFile::open(const char* path, XrdSfsFileOpenMode open_mode,
     }
 
     val = tmpOpaque.Get("mgm.workflow");
-    eventWorkflow = (val) ? val : "";
+    eventWorkflow = val ? val : "";
+
+    val = tmpOpaque.Get("mgm.instance");
+    eventInstance = val ? val : "";
+
+    val = tmpOpaque.Get("mgm.owner");
+    eventOwner = val ? val : "";
+
+    val = tmpOpaque.Get("mgm.ownergroup");
+    eventOwnerGroup = val ? val : "";
+
+    val = tmpOpaque.Get("mgm.attributes");
+    eventAttributes = val ? val : "";
   }
 
   if (eos::common::OwnCloud::isChunkUpload(tmpOpaque)) {
@@ -2198,6 +2210,19 @@ XrdFstOfsFile::close()
       eventType = syncEventOnClose ? "sync::closew" : "closew";
     } else {
       eventType = "closer";
+    }
+
+    if (syncEventOnClose) {
+      std::string decodedAttributes;
+      eos::common::SymKey::Base64Decode(eventAttributes.c_str(), decodedAttributes);
+      std::map<std::string, std::string> attributes;
+      eos::common::StringConversion::GetKeyValueMap(decodedAttributes.c_str(), attributes, "=", ";;;", nullptr);
+
+      rc = gOFS.CallSynchronousClosew(fMd->mProtoFmd, eventOwner, eventOwnerGroup, eventInstance, capOpaque->Get("mgm.path"), attributes);
+
+      if (rc == SFS_OK) {
+        return rc;
+      }
     }
 
     capOpaqueFile += "&mgm.event=";

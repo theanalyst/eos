@@ -2332,6 +2332,7 @@ XrdMgmOfsFile::open(const char* inpath,
   }
 
   // add workflow cgis
+  workflow.SetFile(path, fileId);
   if (isRW) {
     redirectionhost += workflow.getCGICloseW(currentWorkflow.c_str()).c_str();
   } else {

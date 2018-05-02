@@ -387,6 +387,10 @@ protected:
   bool syncEventOnClose; //! indicator to send a specified event to the mgm on close
   XrdOucString
   eventWorkflow; //! indicates the workflow to be triggered by an event
+  std::string eventInstance;
+  std::string eventOwner;
+  std::string eventOwnerGroup;
+  std::string eventAttributes;
   bool repairOnClose; //! indicator that the file should get repaired on close
   bool commitReconstruction; //! indicator that this FST has to commmit after reconstruction
   // <- if the reconstructed piece is not existing on disk we commit anyway since it is a creation.
