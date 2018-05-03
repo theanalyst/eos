@@ -40,7 +40,7 @@ ProcCommand::ProcCommand():
   mOutDepth(0), fstdout(0), fstderr(0), fresultStream(0), fstdoutfilename(""),
   fstderrfilename(""), fresultStreamfilename(""), mError(0), mComment(""),
   mLen(0), mAdminCmd(false), mUserCmd(false), mFuseFormat(false),
-  mJsonFormat(false), mHttpFormat(false), mClosed(false), mJsonCallback(""), mSendRetc(false)
+  mJsonFormat(false), mHttpFormat(false), mClosed(false), mSendRetc(false), mJsonCallback("")
 {
   mExecTime = time(NULL);
 }
@@ -349,6 +349,8 @@ ProcCommand::open(const char* inpath, const char* info,
       Find();
     } else if (mCmd == "map") {
       Map();
+    } else if (mCmd == "route") {
+      Route();
     } else if (mCmd == "member") {
       Member();
     } else if (mCmd == "attr") {
