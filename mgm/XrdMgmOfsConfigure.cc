@@ -1789,7 +1789,15 @@ XrdMgmOfs::Configure(XrdSysError& Eroute)
 
     // Create the ZMQ processor used especially for fuse
 
-    int zmq_port = myPort + 1000;
+    int zmq_port = 1100;
+    if (getenv("EOS_ZMQ_FUSEX_PORT"))
+      zmq_port = atoi(getenv("EOS_ZMQ_FUSEX_PORT"));
+
+    if (!zmq_port) {
+      Eroute.Emsg("Config", "non value port defined as EOS_ZMQ_FUSEX_PORT");
+      return 1;
+    }
+
     XrdOucString zmq_endpoint = "tcp://*:";
     zmq_endpoint += (int) zmq_port;
 
@@ -1798,7 +1806,7 @@ XrdMgmOfs::Configure(XrdSysError& Eroute)
 
 
     if (!zMQ) {
-      Eroute.Emsg("Config", "cannto start ZMQ processor");
+      Eroute.Emsg("Config", "cannot start ZMQ processor");
       return 1;
     }
 

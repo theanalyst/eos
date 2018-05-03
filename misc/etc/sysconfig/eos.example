@@ -518,3 +518,8 @@ fi
 
 # uncomment to allow a multi-threaded boot process using maximum number of cores available
 # export EOS_NS_BOOT_PARALLEL
+
+#-------------------------------------------------------------------------------
+# ZMQ FUSEX Server
+#-------------------------------------------------------------------------------
+#export EOS_ZMQ_FUSEX_PORT=1100
