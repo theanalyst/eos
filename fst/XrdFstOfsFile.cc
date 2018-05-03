@@ -318,6 +318,12 @@ XrdFstOfsFile::open(const char* path, XrdSfsFileOpenMode open_mode,
     val = tmpOpaque.Get("mgm.ownergroup");
     eventOwnerGroup = val ? val : "";
 
+    val = tmpOpaque.Get("mgm.requestor");
+    eventRequestor = val ? val : "";
+
+    val = tmpOpaque.Get("mgm.requestorgroup");
+    eventRequestorGroup = val ? val : "";
+
     val = tmpOpaque.Get("mgm.attributes");
     eventAttributes = val ? val : "";
   }
@@ -2218,7 +2224,8 @@ XrdFstOfsFile::close()
       std::map<std::string, std::string> attributes;
       eos::common::StringConversion::GetKeyValueMap(decodedAttributes.c_str(), attributes, "=", ";;;", nullptr);
 
-      rc = gOFS.CallSynchronousClosew(fMd->mProtoFmd, eventOwner, eventOwnerGroup, eventInstance, capOpaque->Get("mgm.path"), attributes);
+      rc = gOFS.CallSynchronousClosew(fMd->mProtoFmd, eventOwner, eventOwnerGroup, eventRequestor, eventRequestorGroup,
+                                      eventInstance, capOpaque->Get("mgm.path"), attributes);
 
       if (rc == SFS_OK) {
         return rc;

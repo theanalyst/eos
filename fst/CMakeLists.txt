@@ -353,6 +353,7 @@ target_compile_definitions(XrdEosFst-Shared PUBLIC
   -DDAEMONUID=${DAEMONUID} -DDAEMONGID=${DAEMONGID})
 
 target_link_libraries(XrdEosFst PRIVATE
+   eosCommon
    eosCommonServer
    EosFstIo-Static
    eosCapability-Static
@@ -371,6 +372,7 @@ target_link_libraries(XrdEosFst PRIVATE
    ${CMAKE_THREAD_LIBS_INIT})
 
 target_link_libraries(XrdEosFst-Shared PUBLIC
+  eosCommon
   eosCommonServer
   EosFstIo-Static
   eosCapability-Static

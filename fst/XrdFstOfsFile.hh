@@ -390,6 +390,8 @@ protected:
   std::string eventInstance;
   std::string eventOwner;
   std::string eventOwnerGroup;
+  std::string eventRequestor;
+  std::string eventRequestorGroup;
   std::string eventAttributes;
   bool repairOnClose; //! indicator that the file should get repaired on close
   bool commitReconstruction; //! indicator that this FST has to commmit after reconstruction
