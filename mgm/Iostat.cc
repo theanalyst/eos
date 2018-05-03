@@ -165,6 +165,8 @@ Iostat::Start()
   if (!mInit) {
     XrdOucString queue = gOFS->MgmOfsBroker;
     queue += gOFS->HostName;
+    queue += ":";
+    queue += (int)gOFS->ManagerPort;
     queue += "/report";
     queue.replace("root://", "root://daemon@");
 
