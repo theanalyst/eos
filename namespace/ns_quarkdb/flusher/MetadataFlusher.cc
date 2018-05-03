@@ -212,7 +212,7 @@ MetadataFlusherFactory::getInstance(const std::string& id,
     return it->second;
   }
 
-  MetadataFlusher* flusher = new MetadataFlusher(queuePath + id, members);
+  MetadataFlusher* flusher = new MetadataFlusher(queuePath + id + getenv("EOS_MGM_PORT"), members);
   eos_static_notice("Created new metadata flusher towards %s",
                     members.toString().c_str());
   instances[key] = flusher;

@@ -557,6 +557,11 @@ XrdMgmOfs::Configure(XrdSysError& Eroute)
     Eroute.Say("=====> mgmofs.managerid: ", ManagerId.c_str(), "");
   }
 
+  XrdOucString sport="";
+  sport += (int) myPort;
+
+  setenv("EOS_MGM_PORT", sport.c_str(),1);
+
   if (!ConfigFN || !*ConfigFN) {
     Eroute.Emsg("Config", "Configuration file not specified.");
   } else {
@@ -1175,7 +1180,7 @@ XrdMgmOfs::Configure(XrdSysError& Eroute)
   MgmOfsBroker = MgmOfsBrokerUrl;
   MgmDefaultReceiverQueue = MgmOfsBrokerUrl;
   MgmDefaultReceiverQueue += "*/fst";
-  MgmOfsBrokerUrl += HostName;
+  MgmOfsBrokerUrl += ManagerId.c_str();
   MgmOfsBrokerUrl += "/mgm";
 
   if (MgmOfsVstBrokerUrl.length()) {
@@ -1308,6 +1313,8 @@ XrdMgmOfs::Configure(XrdSysError& Eroute)
              "updateAtomicPenalties,updateFastStructures");
   // Automatically append the host name to the config dir
   MgmConfigDir += HostName;
+  MgmConfigDir += ":";
+  MgmConfigDir += (int)myPort;
   MgmConfigDir += "/";
   XrdOucString makeit = "mkdir -p ";
   makeit += MgmConfigDir;
@@ -1742,23 +1749,25 @@ XrdMgmOfs::Configure(XrdSysError& Eroute)
   mArchiveEndpoint = oss.str();
   XrdMqSharedHash* hash = 0;
 
-  // Disable some features if we are only a redirector
+  eos_crit("NoGo %d", NoGo);
+  // create the specific listener class
+  MgmOfsMessaging = new Messaging(MgmOfsBrokerUrl.c_str(),
+				  MgmDefaultReceiverQueue.c_str(),
+				  true, true, &ObjectManager);
+  
+  if (!MgmOfsMessaging->StartListenerThread()) {
+    NoGo = 1;
+  }
+
+  MgmOfsMessaging->SetLogId("MgmOfsMessaging");
+  
+  if (MgmOfsMessaging->IsZombie()) {
+    Eroute.Emsg("Config", "cannot create messaging object(thread)");
+    return NoGo;
+  }
+
   if (!MgmRedirector) {
-    // create the specific listener class
-    MgmOfsMessaging = new Messaging(MgmOfsBrokerUrl.c_str(),
-                                    MgmDefaultReceiverQueue.c_str(),
-                                    true, true, &ObjectManager);
-
-    if (!MgmOfsMessaging->StartListenerThread()) {
-      NoGo = 1;
-    }
-
-    MgmOfsMessaging->SetLogId("MgmOfsMessaging");
-
-    if (MgmOfsMessaging->IsZombie()) {
-      Eroute.Emsg("Config", "cannot create messaging object(thread)");
-      return NoGo;
-    }
+    // Disable some features if we are only a redirector
 
     if (MgmOfsVstBrokerUrl.length() &&
         (!getenv("EOS_VST_BROKER_DISABLE") ||
@@ -1779,7 +1788,14 @@ XrdMgmOfs::Configure(XrdSysError& Eroute)
     }
 
     // Create the ZMQ processor used especially for fuse
-    zMQ = new ZMQ("tcp://*:1100");
+
+    int zmq_port = myPort + 1000;
+    XrdOucString zmq_endpoint = "tcp://*:";
+    zmq_endpoint += (int) zmq_port;
+
+    zMQ = new ZMQ(zmq_endpoint.c_str());
+
+
 
     if (!zMQ) {
       Eroute.Emsg("Config", "cannto start ZMQ processor");
