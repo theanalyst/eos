@@ -1199,10 +1199,16 @@ XrdFstOfs::_rem(const char* path, XrdOucErrInfo& error,
   int rc = 0;
   errno = 0; // If file not found this will be ENOENT
 
+  struct stat sbd;
+  sbd.st_size = 0;
+
   // Unlink file and possible blockxs file - for local files we need to go
   // through XrdOfs::rem to also clean up any potential blockxs files
   if (eos::common::LayoutId::GetIoType(fstPath.c_str()) ==
       eos::common::LayoutId::kLocal) {
+
+    // get the size before deletion
+    XrdOfs::stat(fstPath.c_str(), &sbd, error, client, 0);
     rc = XrdOfs::rem(fstPath.c_str(), error, client, 0);
 
     if (rc) {
@@ -1216,6 +1222,9 @@ XrdFstOfs::_rem(const char* path, XrdOucErrInfo& error,
       return gOFS.Emsg(epname, error, EINVAL, "open - no IO plug-in avaialble",
                        fstPath.c_str());
     }
+
+    // get the size before deletion
+    io->fileStat(&sbd);
 
     rc = io->fileRemove();
   }
@@ -1238,8 +1247,11 @@ XrdFstOfs::_rem(const char* path, XrdOucErrInfo& error,
     if (rc) {
       return gOFS.Emsg(epname, error, errno, "delete file", fstPath.c_str());
     }
+  } else {
+    // make a deletion report entry
+    MakeDeletionReport(fsid, fid, sbd);
   }
-
+  
   if (!gFmdDbMapHandler.LocalDeleteFmd(fid, fsid)) {
     eos_notice("unable to delete fmd for fid %llu on filesystem %lu", fid, fsid);
     return gOFS.Emsg(epname, error, EIO, "delete file meta data ", fstPath.c_str());
@@ -1531,6 +1543,53 @@ XrdFstOfs::WaitForOngoingIO(std::chrono::seconds timeout)
   }
 
   return all_done;
+}
+
+//------------------------------------------------------------------------------
+// Report file deletion
+//------------------------------------------------------------------------------
+void
+XrdFstOfs::MakeDeletionReport(eos::common::FileSystem::fsid_t fsid,
+			      unsigned long long fid,
+			      struct stat &deletion_stat)
+{
+  XrdOucString reportString;
+  char report[16384];
+  snprintf(report, sizeof(report) - 1,
+	   "log=%s&"
+	   "host=%s&fid=%llu&fsid=%u&"
+	   "dc_ts=%lu&dc_tns=%lu&"
+	   "dm_ts=%lu&dm_tns=%lu&"
+	   "da_ts=%lu&da_tns=%lu&"
+	   "dsize=%llu&sec.app=deletion"
+	   , this->logId
+	   , gOFS.mHostName, fid, fsid
+#ifdef __APPLE__
+	   , deletion_stat.st_ctimespec.tv_sec
+	   , deletion_stat.st_ctimespec.tv_nsec
+	   , deletion_stat.st_mtimespec.tv_sec
+	   , deletion_stat.st_mtimespec.tv_nsec
+	   , deletion_stat.st_atimespec.tv_sec
+	   , deletion_stat.st_atimespec.tv_nsec
+	   
+#else
+	   , deletion_stat.st_ctim.tv_sec
+	   , deletion_stat.st_ctim.tv_nsec
+	   , deletion_stat.st_mtim.tv_sec
+	   , deletion_stat.st_mtim.tv_nsec
+	   , deletion_stat.st_atim.tv_sec
+	   , deletion_stat.st_atim.tv_nsec
+#endif
+	   , deletion_stat.st_size
+	   );
+	   
+	   
+	   
+	   reportString = report;
+	   
+  gOFS.ReportQueueMutex.Lock();
+  gOFS.ReportQueue.push(reportString);
+  gOFS.ReportQueueMutex.UnLock();
 }
 
 EOSFSTNAMESPACE_END
