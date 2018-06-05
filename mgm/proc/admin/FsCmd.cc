@@ -29,6 +29,7 @@
 #include "common/LayoutId.hh"
 #include "namespace/interface/IFsView.hh"
 #include "namespace/interface/IView.hh"
+#include "namespace/Prefetcher.hh"
 #include "XrdOuc/XrdOucTokenizer.hh"
 #include <unordered_set>
 
@@ -496,6 +497,8 @@ FsCmd::Status(const eos::console::FsProto::StatusProto& statusProto)
           unsigned long long nfids_risky = 0;
           unsigned long long nfids_inaccessible = 0;
           unsigned long long nfids_todelete = 0;
+
+          eos::Prefetcher::prefetchFilesystemFileListWithFileMDsAndParentsAndWait(gOFS->eosView, gOFS->eosFsView, fsid);
           eos::common::RWMutexReadLock viewLock(gOFS->eosViewRWMutex);
 
           try {
