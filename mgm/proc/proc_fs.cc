@@ -154,6 +154,7 @@ proc_fs_dumpmd(std::string& fsidst, XrdOucString& option, XrdOucString& dp,
     std::shared_ptr<eos::IFileMD> fmd;
 
     eos::Prefetcher::prefetchFilesystemFileListWithFileMDsAndParentsAndWait(gOFS->eosView, gOFS->eosFsView, fsid);
+    if(monitor) eos::Prefetcher::prefetchFilesystemUnlinkedFileListWithFileMDsAndWait(gOFS->eosView, gOFS->eosFsView, fsid);
     eos::common::RWMutexReadLock ns_rd_lock;
     ns_rd_lock.Grab(gOFS->eosViewRWMutex);
 
