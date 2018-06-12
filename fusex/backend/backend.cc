@@ -516,7 +516,7 @@ backend::putMD(const fuse_id& id, eos::fusex::md* md, std::string authid,
   if (status.IsOK()) {
     if (response && response->GetBuffer()) {
       // eos_static_debug("response=%s response-size=%d",
-      // response->GetBuffer(),
+      // response->ToString(),
       //        response->GetSize());
       std::string responseprefix;
 
@@ -909,7 +909,7 @@ backend::statvfs(fuse_req_t req,
       return errno;
     }
 
-    int items = sscanf(response->GetBuffer(),
+    int items = sscanf(response->ToString(),
                        "%s retc=%d f_avail_bytes=%llu f_avail_files=%llu "
                        "f_max_bytes=%llu f_max_files=%llu",
                        tag, &retc, &a1, &a2, &a3, &a4);

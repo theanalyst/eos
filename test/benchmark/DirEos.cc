@@ -91,7 +91,7 @@ DirEos::Exist()
     unsigned long long sval[10];
     unsigned long long ival[6];
     char tag[1024];
-    int items = sscanf(response->GetBuffer(),
+    int items = sscanf(response->ToString(),
                        "%s %llu %llu %llu %llu %llu %llu %llu %llu "
                        "%llu %llu %llu %llu %llu %llu %llu %llu",
                        tag, (unsigned long long*) &sval[0],
@@ -155,7 +155,7 @@ DirEos::SetXattr(const std::string& attrName, const std::string& attrValue)
     int items = 0;
     char tag[1024];
     // Parse output
-    items = sscanf(response->GetBuffer(), "%s retc=%i", tag, &ret);
+    items = sscanf(response->ToString(), "%s retc=%i", tag, &ret);
 
     if ((items != 2) || (strcmp(tag, "setxattr:")))
     {
@@ -214,7 +214,7 @@ DirEos::CheckXattr(const std::string& attrName, const std::string& refValue)
     char tag[1024];
     char rval[4096];
     // Parse output
-    items = sscanf(response->GetBuffer(), "%s retc=%i value=%s", tag, &ret, rval);
+    items = sscanf(response->ToString(), "%s retc=%i value=%s", tag, &ret, rval);
 
     if ((items != 3) || (strcmp(tag, "getxattr:")))
     {

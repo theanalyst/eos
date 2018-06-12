@@ -241,13 +241,13 @@ again:
     return ENODATA;
   }
 
-  std::string sresult = response->GetBuffer();
+  std::string sresult = response->ToString(); // FIXME: check: seems to go via const char* constructor
 
   if ((sresult.find("getfmd: retc=0 ")) == std::string::npos) {
     // Remote side couldn't get the record
     eos_static_info("Unable to retrieve meta data on remote mgm %s for "
                     "fid=%08llx - result=%s", current_mgr.c_str(), fid,
-                    response->GetBuffer());
+                    response->ToString());
     delete response;
     return ENODATA;
   } else {

@@ -133,7 +133,7 @@ GetRemoteAttribute(const char* manager, const char* key,
   if (status.IsOK()) {
     rc = 0;
     eos_static_debug("got attribute meta data from server %s for key=%s path=%s"
-                     " attribute=%s", manager, key, path, response->GetBuffer());
+                     " attribute=%s", manager, key, path, response->ToString());
   } else {
     rc = ECOMM;
     eos_static_err("Unable to retrieve meta data from server %s for key=%s path=%s",
@@ -145,7 +145,7 @@ GetRemoteAttribute(const char* manager, const char* key,
     return EIO;
   }
 
-  if (!strncmp(response->GetBuffer(), "ERROR", 5)) {
+  if (!strncmp(response->ToString(), "ERROR", 5)) {
     // remote side couldn't get the record
     eos_static_info("Unable to retrieve meta data on remote server %s for key=%s "
                     "path=%s", manager, key, path);
@@ -217,7 +217,7 @@ GetRemoteFmdFromLocalDb(const char* manager, const char* shexfid,
     return EIO;
   }
 
-  if (!strncmp(response->GetBuffer(), "ERROR", 5)) {
+  if (!strncmp(response->ToString(), "ERROR", 5)) {
     // remote side couldn't get the record
     eos_static_info("Unable to retrieve meta data on remote server %s for fid=%s fsid=%s",
                     manager, shexfid, sfsid);
