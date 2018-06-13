@@ -3261,7 +3261,7 @@ XrdFstOfsFile::NotifyProtoWfEndPointClosew(const Fmd& fmd, const string& ownerNa
   std::ostringstream reportStream;
   reportStream << "eosQuery://" << managerName
     << "//eos/wfe/passwd?mgm.pcmd=event&mgm.fid=" << fxidString
-    << "&mgm.logid=cta&mgm.event=archived&mgm.workflow=default&mgm.path=/eos/wfe/passwd&mgm.ruid=0&mgm.rgid=0";
+    << "&mgm.logid=cta&mgm.event=sync::archived&mgm.workflow=default&mgm.path=/eos/wfe/passwd&mgm.ruid=0&mgm.rgid=0";
   notification->mutable_transport()->set_report_url(reportStream.str());
 
   std::ostringstream errorReportStream;
