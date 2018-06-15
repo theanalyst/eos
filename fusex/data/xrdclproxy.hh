@@ -409,7 +409,7 @@ namespace XrdCl
       XReadAheadNom = nom;
       XReadAheadMax = max;
       XReadAheadBlocksMax = rablocks;
-      XReadAheadBlocksNom = 1;
+      XReadAheadBlocksNom = rablocks/2;
       XReadAheadBlocksMin = 1;
     }
 
@@ -466,9 +466,10 @@ namespace XrdCl
       XReadAheadNom = 256 * 1204;
       XReadAheadMax = 1024 * 1024;
       XReadAheadBlocksMax = 16;
-      XReadAheadBlocksNom = 1;
+      XReadAheadBlocksNom = 8;
       XReadAheadBlocksMin = 1;
       XReadAheadBlocksIs = 0;
+      XReadAheadEOF = false;
       mPosition = 0;
       mReadAheadPosition = 0;
       mTotalBytes = 0;
@@ -748,7 +749,7 @@ namespace XrdCl
             match_size = size;
           else
             match_size = (roffset + mBuffer->size() - off);
-          return true;
+          return match_size?true:false;
         }
 
         return false;
@@ -1005,6 +1006,7 @@ namespace XrdCl
     size_t XReadAheadBlocksNom; // nominal number of prefetch blocks
     size_t XReadAheadBlocksMax; // maximum number of prefetch blocks
     size_t XReadAheadBlocksIs; // current blocks in the read-ahead
+    bool   XReadAheadEOF; // true if any read-ahead block reached EOF
     off_t mPosition;
     off_t mReadAheadPosition;
     off_t mTotalBytes;

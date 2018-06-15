@@ -77,23 +77,24 @@ XrdCl::Proxy::Read( uint64_t  offset,
   
   uint64_t current_offset = offset;
   uint32_t current_size = size;
-
-  bool isEOF=false;
+  
   bool request_next = true;
+
   size_t n_successor = 0;
 
   std::set<uint64_t> delete_chunk;
 
   void *pbuffer = buffer;
 
+  eos_debug("----:  eof=%d", XReadAheadEOF);
 
   if (XReadAheadStrategy != NONE)
   {
     ReadCondVar().Lock();
 
+    eos_debug("----: map-size=%d", ChunkRMap().size());
     if ( ChunkRMap().size())
     {
-      bool has_successor = false;
       off_t successor_offset = offset;
 
       // see if there is anything in our read-ahead map
@@ -103,6 +104,10 @@ XrdCl::Proxy::Read( uint64_t  offset,
         uint32_t match_size;
 
         XrdSysCondVarHelper lLock(it->second->ReadCondVar());
+
+	if (it->second->Status().IsOK()) {
+	  XReadAheadEOF |= it->second->eof();
+	}
 
         eos_debug("----: eval offset=%lu chunk-offset=%lu rah-position=%lu", offset, it->second->offset(), mReadAheadPosition);
         if (it->second->matches(current_offset, current_size, match_offset, match_size))
@@ -134,19 +139,17 @@ XrdCl::Proxy::Read( uint64_t  offset,
             current_offset = match_offset + match_size;
             current_size -= match_size;
 
-            isEOF = it->second->eof();
-            if (isEOF)
+            if (XReadAheadEOF)
             {
-              request_next = false;
 	      XReadAheadNom = XReadAheadMin;
 	      XReadAheadBlocksNom = XReadAheadBlocksMin;
               break;
             }
           }
-        }
+	}
         else
         {
-          eos_debug("----: considering chunk address=%lx offset=%ld", it->first, it->second->offset());
+          eos_debug("----: considering chunk address=%lx offset=%ld successor-offset=%ld", it->first, it->second->offset(), successor_offset);
           if (!it->second->successor(successor_offset, size))
           {
             eos_debug("----: delete chunk address=%lx offset=%ld", it->first, it->second->offset());
@@ -154,22 +157,15 @@ XrdCl::Proxy::Read( uint64_t  offset,
               it->second->ReadCondVar().WaitMS(25);
             // remove this chunk
             delete_chunk.insert(it->first);
-            request_next = false;
           }
-          else
+          else 
           {
-            has_successor = true;
 	    successor_offset = it->second->offset();
 	    n_successor++;
           }
         }
       }
 
-      if (!has_successor) {
-        request_next = true;
-      } else {
-        request_next = false;
-      }
       // check if we can remove previous prefetched chunks
       for ( auto it = ChunkRMap().begin(); it != ChunkRMap().end(); ++it)
       {
@@ -203,12 +199,13 @@ XrdCl::Proxy::Read( uint64_t  offset,
       {
         request_next = false;
 	XReadAheadNom = XReadAheadMin;
+	eos_debug("----: disaling read-ahead");
 	XReadAheadBlocksNom = XReadAheadBlocksMin;
 	mReadAheadPosition = 0;
       }
     }
 
-    if (request_next)
+    if (request_next && !XReadAheadEOF)
     {
       // dynamic window scaling
       if (readahead_window_hit)
@@ -229,6 +226,8 @@ XrdCl::Proxy::Read( uint64_t  offset,
 
       // pre-fetch missing read-ahead blocks
       size_t blocks_to_fetch = XReadAheadBlocksNom - n_successor;
+
+      eos_debug("----: pre-fetching block pos=%lu [%d..%d]", mReadAheadPosition, 0, blocks_to_fetch);
       for (size_t n_fetch = 0 ; n_fetch < blocks_to_fetch ; n_fetch++)
       {
 	off_t align_offset = mReadAheadPosition;
@@ -238,20 +237,18 @@ XrdCl::Proxy::Read( uint64_t  offset,
 		  n_fetch,blocks_to_fetch
 		  );
 	
-	if (ChunkRMap().count(align_offset))
-	  {
-	    ReadCondVar().UnLock();
-	  }
-	else
-	  {
-	    ReadCondVar().UnLock();
-	    XrdCl::Proxy::read_handler rahread = ReadAsyncPrepare(align_offset, XReadAheadNom);
-	    XRootDStatus rstatus = PreReadAsync(align_offset, XReadAheadNom,
-						rahread, timeout);
-	    mReadAheadPosition = align_offset + XReadAheadNom;
-            mTotalReadAheadBytes += XReadAheadNom;
-	  }
+	if (!ChunkRMap().count(align_offset)) {
+	  ReadCondVar().UnLock();
+	  XrdCl::Proxy::read_handler rahread = ReadAsyncPrepare(align_offset, XReadAheadNom);
+	  XRootDStatus rstatus = PreReadAsync(align_offset, XReadAheadNom,
+					      rahread, timeout);
+	  mReadAheadPosition = align_offset + XReadAheadNom;
+	  mTotalReadAheadBytes += XReadAheadNom;
+	  ReadCondVar().Lock();
+	}
       }
+
+      ReadCondVar().UnLock();
     }
     else
     {
@@ -982,6 +979,7 @@ XrdCl::Proxy::ReadAsyncHandler::HandleResponse (XrdCl::XRootDStatus* status,
 	if (chunk->length < mBuffer->size())
 	{
 	  mBuffer->resize(chunk->length);
+	  eos_static_debug("EOF at %lu", chunk->offset);
 	  mEOF = true;
 	}
 	delete response;
@@ -1026,7 +1024,7 @@ XRootDStatus
 /* -------------------------------------------------------------------------- */
 XrdCl::Proxy::PreReadAsync( uint64_t         offset,
                            uint32_t          size,
-                           read_handler handler,
+                           read_handler      handler,
                            uint16_t          timeout)
 /* -------------------------------------------------------------------------- */
 {
@@ -1060,7 +1058,7 @@ XrdCl::Proxy::WaitRead(read_handler handler)
       // move the pending chunk to the static map
       // in principle this is not supposed to happen
       XrdSysMutexHelper chunkLock(sTimeoutAsyncChunksMutex);
-      eos_err("discarding %d chunks  in-flight for writing", ChunkMap().size());
+      eos_err("discarding %d chunks  in-flight for reading", ChunkMap().size());
       for (auto it = ChunkRMap().begin(); it != ChunkRMap().end(); ++it) {
 	it->second->disable();
 	sTimeoutReadAsyncChunks.push_back(it->second);

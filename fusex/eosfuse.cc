@@ -747,7 +747,7 @@ EosFuse::run(int argc, char* argv[], void* userdata)
     }
 
     if (!root["cache"].isMember("read-ahead-strategy")) {
-      root["cache"]["read-ahead-strategy"] = "dynamic";
+      root["cache"]["read-ahead-strategy"] = "static";
     }
 
     cconfig.location = root["cache"]["location"].asString();
