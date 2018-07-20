@@ -152,7 +152,7 @@ static bool hasMixedSchedGroups(std::shared_ptr<eos::IFileMD>& fmd)
   for (auto lociter : fmd->getLocations()) {
     // ignore filesystem id 0
     if (!lociter) {
-      eos_static_err("fsid 0 found fid=%lld", fmd->getId());
+      eos_static_err("fsid 0 found fid=%08llx", fmd->getId());
       continue;
     }
 

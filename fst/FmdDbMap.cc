@@ -292,10 +292,12 @@ FmdDbMapHandler::CallAutoRepair(const char* manager,
   XrdCl::Buffer arg;
   XrdCl::Buffer* response = 0;
   XrdCl::XRootDStatus status;
-  XrdOucString fmdquery = "/?mgm.pcmd=rewrite&mgm.fxid=";
+  XrdOucString fmdquery = "/?mgm.pcmd=rewrite&mgm.fid=";
   XrdOucString shexfid;
   eos::common::FileId::Fid2Hex(fid, shexfid);
   fmdquery += shexfid;
+  fmdquery += "&mgm.fxid=";  // legacy, remove once fsctl/Rewrite.cc no longer expects 'fxid'
+  fmdquery += shexfid;       // legacy
   XrdOucString address = "root://";
   std::string current_mgr;
 
@@ -1341,7 +1343,7 @@ FmdDbMapHandler::RemoveGhostEntries(const char* path,
             if ((errno == ENOENT) || (errno == ENOTDIR)) {
               if ((f.layouterror() & LayoutId::kOrphan) ||
                   (f.layouterror() & LayoutId::kUnregistered)) {
-                eos_static_info("msg=\"push back for deletion fid=%lu\"", fid);
+                eos_static_info("msg=\"push back for deletion fid=%08llx\"", fid);
                 to_delete.push_back(fid);
               }
             }

@@ -268,9 +268,9 @@ ScanDir::CheckFile(const char* filepath)
     XrdSysMutexHelper wLock(gOFS.OpenFidMutex);
 
     if (gOFS.WOpenFid[fsId].count(fid)) {
-      syslog(LOG_ERR, "skipping scan w-open file: localpath=%s fsid=%d fid=%x\n",
+      syslog(LOG_ERR, "skipping scan w-open file: localpath=%s fsid=%d fid=%08llx\n",
              filePath.c_str(), (int) fid, fsId);
-      eos_warning("skipping scan of w-open file: localpath=%s fsid=%d fid=%x",
+      eos_warning("skipping scan of w-open file: localpath=%s fsid=%d fid=%08llx",
                   filePath.c_str(), (int) fid, fsId);
       return;
     }
@@ -445,10 +445,10 @@ ScanDir::CheckFile(const char* filepath)
               }
 
               if (filecxerror || blockcxerror || !fmd || orphaned) {
-                eos_notice("msg=\"resyncing from disk\" fsid=%d fid=%lx", fsId, fid);
+                eos_notice("msg=\"resyncing from disk\" fsid=%d fid=%08llx", fsId, fid);
                 // ask the meta data handling class to update the error flags for this file
                 gFmdDbMapHandler.ResyncDisk(filePath.c_str(), fsId, false);
-                eos_notice("msg=\"resyncing from mgm\" fsid=%d fid=%lx", fsId, fid);
+                eos_notice("msg=\"resyncing from mgm\" fsid=%d fid=%08llx", fsId, fid);
                 bool resynced = false;
                 resynced = gFmdDbMapHandler.ResyncMgm(fsId, fid, manager.c_str());
                 fmd = gFmdDbMapHandler.LocalGetFmd(fid, fsId, 0, 0, 0, false, true);

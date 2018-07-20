@@ -90,7 +90,7 @@
     XrdOucString idlist = "";
 
     for (auto elem = set_fids.begin(); elem != set_fids.end(); ++elem) {
-      eos_static_info("msg=\"add to deletion message\" fxid=%08llx fsid=%lu",
+      eos_static_info("msg=\"add to deletion message\" fid=%08llx fsid=%lu",
                       *elem, (unsigned long) fslist[i]);
 
       // loop over all files and emit a deletion message

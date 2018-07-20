@@ -92,7 +92,7 @@
           fmd->removeLocation(it->second.first);
           fmd->addLocation(it->second.second);
           gOFS->eosView->updateFileStore(fmd.get());
-          eos_info("msg=\"drained 0-size file\" fxid=%llx source-fsid=%u "
+          eos_info("msg=\"drained 0-size file\" fid=%08llx source-fsid=%u "
           "target-fsid=%u", it->first, it->second.first, it->second.second);
         } else {
           // Check if this is atomic file
@@ -100,7 +100,7 @@
             fmd->unlinkLocation(it->second.first);
             fmd->removeLocation(it->second.first);
             gOFS->eosView->updateFileStore(fmd.get());
-            eos_info("msg=\"drained(unlinked) atomic upload file\" fxid=%llx source-fsid=%u "
+            eos_info("msg=\"drained(unlinked) atomic upload file\" fid=%08llx source-fsid=%u "
                      "target-fsid=%u", it->first, it->second.first, it->second.second);
           } else {
             eos_warning("msg=\"unexpected file in zero-move list with size!=0 "
@@ -417,7 +417,7 @@
 
             replica_source_fs->SnapShotFileSystem(replica_source_snapshot);
             // We can schedule fid from replica_source => target_it
-            eos_thread_info("cmd=schedule2drain subcmd=scheduling fid=%llx "
+            eos_thread_info("cmd=schedule2drain subcmd=scheduling fid=%08llx "
                             "drain_fsid=%u replica_source_fsid=%u target_fsid=%u",
                             fid, source_fsid, locationfs[fsindex], target_fsid);
             XrdOucString replica_source_capability = "";
@@ -563,7 +563,7 @@
         if (!size) {
           // This is a zero size file, we just move the location by adding
           // it to the static move map
-          eos_thread_info("cmd=schedule2drain msg=zero-move fid=%x source_fs=%u "
+          eos_thread_info("cmd=schedule2drain msg=zero-move fid=%08llx source_fs=%u "
                           "target_fs=%u", hexfid.c_str(), source_fsid, target_fsid);
           XrdSysMutexHelper zLock(sZeroMoveMutex);
           sZeroMove[fid] = std::make_pair(source_fsid, target_fsid);
@@ -571,7 +571,7 @@
         } else {
           if (fullpath.find(EOS_COMMON_PATH_ATOMIC_FILE_PREFIX) != std::string::npos) {
             // if we need to drain a left-over atomic file we just drop it
-            eos_thread_info("cmd=schedule2drain msg=zero-move fid=%x "
+            eos_thread_info("cmd=schedule2drain msg=zero-move fid=%08llx "
                             "source_fs=%u target_fs=%u", hexfid.c_str(),
                             source_fsid, target_fsid);
             XrdSysMutexHelper zLock(sZeroMoveMutex);
@@ -583,7 +583,7 @@
           txjob(new eos::common::TransferJob(fullcapability.c_str()));
 
           if (target_fs->GetDrainQueue()->Add(txjob.get())) {
-            eos_thread_info("cmd=schedule2drain msg=queued fid=%x source_fs=%u "
+            eos_thread_info("cmd=schedule2drain msg=queued fid=%08llx source_fs=%u "
                             "target_fs=%u", hexfid.c_str(), source_fsid, target_fsid);
             eos_thread_debug("cmd=schedule2drain job=%s", fullcapability.c_str());
             ScheduledToDrainFid[fid] = time(NULL) + 3600;

@@ -677,13 +677,13 @@ LRU::ConvertMatch(const char* dir,
 
               if (fmd->getLayoutId() == lid) {
                 eos_static_debug("msg=\"skipping conversion - file has already"
-                                 "the desired target layout\" fid=%llu", fmd->getId());
+                                 "the desired target layout\" fid=%08llx", fmd->getId());
                 continue;
               }
 
               // This entry can be converted
               eos_static_notice("msg=\"convert expired file\" path=\"%s\" "
-                                "ctime=%u policy-age=%u age=%u fid=%llu "
+                                "ctime=%u policy-age=%u age=%u fid=%08llx "
                                 "layout=\"%s\"",
                                 fullpath.c_str(),
                                 ctime.tv_sec,

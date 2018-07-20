@@ -53,8 +53,8 @@ XrdMgmOfs::SendResync (eos::common::FileId::fileid_t fid,
   XrdOucString msgbody = "mgm.cmd=resync";
 
   char payload[4096];
-  snprintf(payload, sizeof (payload) - 1, "&mgm.fsid=%lu&mgm.fid=%llu",
-           (unsigned long) fsid, (unsigned long long) fid);
+  snprintf(payload, sizeof (payload) - 1, "&mgm.fsid=%lu&mgm.fid=%llu&mgm.fxid=%08llx", // transition, eventually send mgm.fid=HEX
+           (unsigned long) fsid, (unsigned long long) fid, (unsigned long long) fid);
   msgbody += payload;
 
   message.SetBody(msgbody.c_str());

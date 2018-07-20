@@ -285,10 +285,10 @@ FileSystem::SyncTransactions(const char* manager)
 
         // try to sync this file from the MGM
         if (gFmdDbMapHandler.ResyncMgm(GetId(), fid, manager)) {
-          eos_static_info("msg=\"resync ok\" fsid=%lu fid=%llx", (unsigned long) GetId(),
+          eos_static_info("msg=\"resync ok\" fsid=%lu fid=%08llx", (unsigned long) GetId(),
                           fid);
         } else {
-          eos_static_err("msg=\"resync failed\" fsid=%lu fid=%llx",
+          eos_static_err("msg=\"resync failed\" fsid=%lu fid=%08llx",
                          (unsigned long) GetId(), fid);
           ok = false;
           continue;

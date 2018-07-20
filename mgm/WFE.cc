@@ -542,7 +542,7 @@ WFE::Job::Load(std::string path2entry)
 
   if (s1 && s2) {
     mFid = eos::common::FileId::Hex2Fid(id.c_str());
-    eos_static_info("workflow=\"%s\" fid=%lx", workflow.c_str(), mFid);
+    eos_static_info("workflow=\"%s\" fid=%s", workflow.c_str(), id.c_str());
     {
       eos::Prefetcher::prefetchFileMDAndWait(gOFS->eosView, path2entry);
       eos::common::RWMutexReadLock rLock {gOFS->eosViewRWMutex};
@@ -807,7 +807,7 @@ WFE::Job::DoIt(bool issync)
         topic += " ";
         topic += " event=";
         topic += mActions[0].mEvent;
-        topic += " fxid=";
+        topic += " fid=";
         XrdOucString hexid;
         eos::common::FileId::Fid2Hex(mFid, hexid);
         topic += hexid.c_str();

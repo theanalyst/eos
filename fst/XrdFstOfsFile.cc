@@ -155,7 +155,7 @@ XrdFstOfsFile::dropall(eos::common::FileId::fileid_t fileid, std::string path,
                 hexstring.c_str(), fileid, manager.c_str());
   }
 
-  eos_info("info=\"removing on manager\" manager=%s fid=%llu fsid= drop-allrc=%d",
+  eos_info("info=\"removing on manager\" manager=%s fid=%08llx fsid= drop-allrc=%d",
            manager.c_str(), (unsigned long long) fileid, rcode);
   return rcode;
 }
@@ -449,11 +449,11 @@ XrdFstOfsFile::open(const char* path, XrdSfsFileOpenMode open_mode,
     if (!gOFS.Simulate_FMD_open_error) {
       // Get the layout object
       if (gFmdDbMapHandler.ResyncMgm(mFsId, mFileId, mRedirectManager.c_str())) {
-        eos_info("msg=\"resync ok\" fsid=%lu fid=%llx", (unsigned long) mFsId, mFileId);
+        eos_info("msg=\"resync ok\" fsid=%lu fid=%08llx", (unsigned long) mFsId, mFileId);
         fMd = gFmdDbMapHandler.LocalGetFmd(mFileId, mFsId, vid.uid, vid.gid, mLid,
                                            isRW);
       } else {
-        eos_err("msg=\"resync failed\" fsid=%lu fid=%llx", (unsigned long) mFsId,
+        eos_err("msg=\"resync failed\" fsid=%lu fid=%08llx", (unsigned long) mFsId,
                 mFileId);
       }
     }
@@ -653,7 +653,7 @@ XrdFstOfsFile::open(const char* path, XrdSfsFileOpenMode open_mode,
 
   if (isRW) {
     if (!gOFS.Storage->OpenTransaction(mFsId, mFileId)) {
-      eos_crit("cannot open transaction for fsid=%u fid=%llu", mFsId, mFileId);
+      eos_crit("cannot open transaction for fsid=%u fid=%08llx", mFsId, mFileId);
     }
   }
 
@@ -728,7 +728,7 @@ XrdFstOfsFile::MakeReportEnv(XrdOucString& reportString)
 
     snprintf(report, sizeof(report) - 1,
              "log=%s&path=%s&ruid=%u&rgid=%u&td=%s&"
-             "host=%s&lid=%lu&fid=%llu&fsid=%lu&"
+             "host=%s&lid=%lu&fid=%08llx&fsid=%lu&"
              "ots=%lu&otms=%lu&"
              "cts=%lu&ctms=%lu&"
              "nrc=%lu&nwc=%lu&"
@@ -1094,17 +1094,17 @@ XrdFstOfsFile::close()
       // or the specified checksum does not match the computed one
       if (viaDelete) {
         eos_info("msg=\"(unpersist): deleting file\" reason=\"client disconnect\""
-                 "  fsid=%u fxid=%08x on fsid=%u", fMd->mProtoFmd.fsid(), fMd->mProtoFmd.fid());
+                 "  fsid=%u fid=%08llx on fsid=%u", fMd->mProtoFmd.fsid(), fMd->mProtoFmd.fid());
       }
 
       if (writeDelete) {
         eos_info("msg=\"(unpersist): deleting file\" reason=\"write/policy error\""
-                 " fsid=%u fxid=%08x on fsid=%u", fMd->mProtoFmd.fsid(), fMd->mProtoFmd.fid());
+                 " fsid=%u fid=%08llx on fsid=%u", fMd->mProtoFmd.fsid(), fMd->mProtoFmd.fid());
       }
 
       if (remoteDelete) {
         eos_info("msg=\"(unpersist): deleting file\" reason=\"remote deletion\""
-                 " fsid=%u fxid=%08x on fsid=%u", fMd->mProtoFmd.fsid(), fMd->mProtoFmd.fid());
+                 " fsid=%u fid=%08llx on fsid=%u", fMd->mProtoFmd.fsid(), fMd->mProtoFmd.fid());
       }
 
       // Delete the file - set the file to be deleted
@@ -1355,34 +1355,34 @@ XrdFstOfsFile::close()
               if ((error.getErrInfo() == EIDRM) || (error.getErrInfo() == EBADE) ||
                   (error.getErrInfo() == EBADR) || (error.getErrInfo() == EREMCHG)) {
                 if (!gOFS.Storage->CloseTransaction(mFsId, mFileId)) {
-                  eos_crit("cannot close transaction for fsid=%u fid=%llu", mFsId, mFileId);
+                  eos_crit("cannot close transaction for fsid=%u fid=%08llx", mFsId, mFileId);
                 }
 
                 if (error.getErrInfo() == EIDRM) {
                   // This file has been deleted in the meanwhile ... we can
                   // unlink that immedeatly
-                  eos_info("info=\"unlinking fid=%08x path=%s - "
+                  eos_info("info=\"unlinking fid=%08llx path=%s - "
                            "file has been already unlinked from the namespace\"",
                            fMd->mProtoFmd.fid(), mNsPath.c_str());
                   mFusexIsUnlinked = true;
                 }
 
                 if (error.getErrInfo() == EBADE) {
-                  eos_err("info=\"unlinking fid=%08x path=%s - "
+                  eos_err("info=\"unlinking fid=%08llx path=%s - "
                           "file size of replica does not match reference\"",
                           fMd->mProtoFmd.fid(), mNsPath.c_str());
                   consistencyerror = true;
                 }
 
                 if (error.getErrInfo() == EBADR) {
-                  eos_err("info=\"unlinking fid=%08x path=%s - "
+                  eos_err("info=\"unlinking fid=%08llx path=%s - "
                           "checksum of replica does not match reference\"",
                           fMd->mProtoFmd.fid(), mNsPath.c_str());
                   consistencyerror = true;
                 }
 
                 if (error.getErrInfo() == EREMCHG) {
-                  eos_err("inof=\"unlinking fid=%08x path=%s - "
+                  eos_err("inof=\"unlinking fid=%08llx path=%s - "
                           "overlapping atomic upload - discarding this one\"",
                           fMd->mProtoFmd.fid(), mNsPath.c_str());
                   atomicoverlap = true;
@@ -1582,7 +1582,7 @@ XrdFstOfsFile::close()
                       hexstring.c_str(), mFileId, mCapOpaque->Get("mgm.manager"));
         }
 
-        eos_info("info=\"removing on manager\" manager=%s fid=%llu fsid=%d "
+        eos_info("info=\"removing on manager\" manager=%s fid=%08llx fsid=%d "
                  "fn=%s fstpath=%s rc=%d", mCapOpaque->Get("mgm.manager"),
                  mFileId, (int) mFsId,
                  mCapOpaque->Get("mgm.path"), mFstPath.c_str(), rcode);

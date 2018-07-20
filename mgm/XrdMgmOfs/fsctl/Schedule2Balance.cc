@@ -188,7 +188,7 @@
       // check that the target does not have this file
       if (gOFS->eosFsView->hasFileId(fid, target_fsid)) {
         // Iterate to the next file, we have this file already
-        eos_static_debug("skip fid=%ld - existing on target", fid);
+        eos_static_debug("skip fid=%08llx - existing on target", fid);
         continue;
       } else {
         // check that this file has not been scheduled during the 1h period
@@ -217,7 +217,7 @@
              ((ScheduledToBalanceFid[fid] > (now))))) {
           // Iterate to the next file, we have scheduled this file during the
           // last hour or anyway it is empty
-          eos_static_debug("skip fid=%ld - scheduled during last hour", fid);
+          eos_static_debug("skip fid=%08llx - scheduled during last hour", fid);
           continue;
         } else {
           std::shared_ptr<eos::IFileMD> fmd;
@@ -249,7 +249,7 @@
           if (fmd) {
             if ((size > 0) && (size < freebytes)) {
               // we can schedule fid from source => target_it
-              eos_thread_info("subcmd=scheduling fid=%llx source_fsid=%u target_fsid=%u",
+              eos_thread_info("subcmd=scheduling fid=%08llx source_fsid=%u target_fsid=%u",
                               fid, source_fsid, target_fsid);
               XrdOucString source_capability = "";
               XrdOucString sizestring;
@@ -386,7 +386,7 @@
                     new eos::common::TransferJob(fullcapability.c_str());
 
                   if (target_fs->GetBalanceQueue()->Add(txjob)) {
-                    eos_thread_info("cmd=queued fid=%x source_fs=%u target_fs=%u",
+                    eos_thread_info("cmd=queued fid=%s source_fs=%u target_fs=%u",
                                     hexfid.c_str(), source_fsid, target_fsid);
                     eos_thread_debug("job=%s", fullcapability.c_str());
                   }
@@ -409,11 +409,11 @@
                 return SFS_DATA;
               }
             } else {
-              eos_static_debug("skip fid=%ld - zero sized file", fid);
+              eos_static_debug("skip fid=%08llx - zero sized file", fid);
               continue;
             }
           } else {
-            eos_static_debug("skip fid=%ld - cannot get fmd record", fid);
+            eos_static_debug("skip fid=%08llx - cannot get fmd record", fid);
             continue;
           }
         }

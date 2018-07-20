@@ -197,7 +197,7 @@
 
         // check if fsid and fid are ok
         if (fmd->getId() != fid) {
-          eos_thread_notice("commit for fid=%lu but fid=%lu", fmd->getId(), fid);
+          eos_thread_notice("mismatched commit for fmd-id=%08llx but fid=%08llx", fmd->getId(), fid);
           gOFS->MgmStats.Add("CommitFailedFid", 0, 0, 1);
           return Emsg(epname, error, EINVAL,
                       "commit filesize change - file id is wrong [EINVAL]", spath);
@@ -205,7 +205,7 @@
 
         // check if this file is already unlinked from the visible namespace
         if (!(cid = fmd->getContainerId())) {
-          eos_thread_debug("commit for fid=%lu but file is disconnected from any container",
+          eos_thread_debug("commit for fid=%08llx but file is disconnected from any container",
 			   fmd->getId());
           gOFS->MgmStats.Add("CommitFailedUnlinked", 0, 0, 1);
           return Emsg(epname, error, EIDRM,
@@ -232,7 +232,7 @@
 
           // check if we have this replica in the unlink list
           if (fusex && fmd->hasUnlinkedLocation((unsigned short) fsid)) {
-            eos_thread_err("suppressing possible recovery replica for fid=%lu on unlinked fsid=%llu- rejecting replica",
+            eos_thread_err("suppressing possible recovery replica for fid=%08llx on unlinked fsid=%llu- rejecting replica",
                            fmd->getId(), fsid);
             // this happens when a FUSEX recovery has been triggered, to avoid to reattach replicas,
             // we clean them up here
@@ -247,7 +247,7 @@
             eos_thread_debug("fmd size=%lli, size=%lli", fmd->getSize(), size);
 
             if (fmd->getSize() != size) {
-              eos_thread_err("replication for fid=%lu resulted in a different file "
+              eos_thread_err("replication for fid=%08llx resulted in a different file "
                              "size on fsid=%llu - rejecting replica", fmd->getId(), fsid);
               gOFS->MgmStats.Add("ReplicaFailedSize", 0, 0, 1);
 
@@ -284,7 +284,7 @@
             }
 
             if (cxError) {
-              eos_thread_err("replication for fid=%lu resulted in a different checksum "
+              eos_thread_err("replication for fid=%08llx resulted in a different checksum "
                              "on fsid=%llu - rejecting replica", fmd->getId(), fsid);
               gOFS->MgmStats.Add("ReplicaFailedChecksum", 0, 0, 1);
 
@@ -316,7 +316,7 @@
         if (verifysize) {
           // check if we saw a file size change or checksum change
           if (fmd->getSize() != size) {
-            eos_thread_err("commit for fid=%lu gave a file size change after "
+            eos_thread_err("commit for fid=%08llx gave a file size change after "
                            "verification on fsid=%llu", fmd->getId(), fsid);
           }
         }
@@ -333,7 +333,7 @@
             }
 
             if (cxError) {
-              eos_thread_err("commit for fid=%lu gave a different checksum after "
+              eos_thread_err("commit for fid=%08llx gave a different checksum after "
                              "verification on fsid=%llu", fmd->getId(), fsid);
             }
           }
@@ -515,7 +515,7 @@
 
         // check if we want versioning
         if (isVersioning) {
-          eos_static_info("checked  %s%s vfid=%llu", dname.c_str(), atomic_path.GetPath(),
+          eos_static_info("checked  %s%s vfid=%08llx", dname.c_str(), atomic_path.GetPath(),
                           vfid);
 
           // We purged the versions before during open, so we just simulate a new
@@ -596,7 +596,7 @@
 
             if (!isAbort) {
               eosView->renameFile(fmd.get(), atomic_path.GetName());
-              eos_thread_info("msg=\"de-atomize file\" fid=%llu atomic-name=%s "
+              eos_thread_info("msg=\"de-atomize file\" fid=%08llx atomic-name=%s "
                               "final-name=%s", fmd->getId(), fmd->getName().c_str(),
                               atomic_path.GetName());
             }

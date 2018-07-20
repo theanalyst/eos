@@ -534,7 +534,7 @@ ProcCommand::FileInfo(const char* path)
           for (lociter = loc_vect.begin(); lociter != loc_vect.end(); ++lociter) {
             // Ignore filesystem id 0
             if (!(*lociter)) {
-              eos_err("fsid 0 found fid=%lld", fmd_copy->getId());
+              eos_err("fsid 0 found fid=%08llx", fmd_copy->getId());
               continue;
             }
 
@@ -1039,7 +1039,7 @@ ProcCommand::FileJSON(uint64_t fid, Json::Value* ret_json, bool dolock)
   std::string fullpath;
   eos::IFileMD::ctime_t ctime;
   eos::IFileMD::ctime_t mtime;
-  eos_static_debug("fid=%llu", fid);
+  eos_static_debug("fid=%08llx", fid);
   Json::Value json;
   json["id"] = (Json::Value::UInt64)fid;
 
@@ -1193,7 +1193,7 @@ ProcCommand::DirJSON(uint64_t fid, Json::Value* ret_json, bool dolock)
   eos::IFileMD::ctime_t ctime;
   eos::IFileMD::ctime_t mtime;
   eos::IFileMD::ctime_t tmtime;
-  eos_static_debug("fid=%llu", fid);
+  eos_static_debug("fid=%08llx", fid);
   Json::Value json;
   json["id"] = (Json::Value::UInt64)fid;
 

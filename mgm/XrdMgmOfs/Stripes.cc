@@ -764,8 +764,8 @@ XrdMgmOfs::_replicatestripe(eos::IFileMD* fmd,
       errno = ENOMEM;
     } else {
       bool sub = targetfilesystem->GetExternQueue()->Add(txjob);
-      eos_info("info=\"submitted transfer job\" subretc=%d fxid=%s fid=%llu cap=%s\n",
-               sub, hexfid.c_str(), fid, fullcapability.c_str());
+      eos_info("info=\"submitted transfer job\" subretc=%d fid=%s cap=%s\n",
+               sub, hexfid.c_str(), fullcapability.c_str());
 
       if (!sub) {
         errno = ENXIO;

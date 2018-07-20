@@ -1324,7 +1324,7 @@ ProcCommand::File()
             for (lociter = loc_vect.begin(); lociter != loc_vect.end(); ++lociter) {
               // ignore filesystem id 0
               if (!(*lociter)) {
-                eos_err("fsid 0 found fid=%lld", fmd->getId());
+                eos_err("fsid 0 found fid=%08llx", fmd->getId());
                 continue;
               }
 
@@ -1508,7 +1508,7 @@ ProcCommand::File()
                 for (lociter = loc_vect.begin(); lociter != loc_vect.end(); ++lociter) {
                   // ignore filesystem id 0
                   if (!(*lociter)) {
-                    eos_err("fsid 0 found fid=%lld", fmd->getId());
+                    eos_err("fsid 0 found fid=%08llx", fmd->getId());
                     continue;
                   }
 
@@ -1787,7 +1787,7 @@ ProcCommand::File()
           for (lociter = loc_vect.begin(); lociter != loc_vect.end(); ++lociter) {
             // ignore filesystem id 0
             if (!(*lociter)) {
-              eos_err("fsid 0 found fid=%lld", fmd->getId());
+              eos_err("fsid 0 found fid=%08llx", fmd->getId());
               continue;
             }
 

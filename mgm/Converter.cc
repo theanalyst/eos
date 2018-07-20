@@ -83,7 +83,7 @@ ConverterJob::DoIt()
   eos::common::Mapping::VirtualIdentity rootvid;
   eos::common::Mapping::Root(rootvid);
   XrdOucErrInfo error;
-  eos_static_info("msg=\"start tpc job\" fxid=%016x layout=%s proc_path=%s",
+  eos_static_info("msg=\"start tpc job\" fid=%08llx layout=%s proc_path=%s",
                   mFid, mConversionLayout.c_str(), mProcPath.c_str());
   std::shared_ptr<eos::IFileMD> fmd;
   std::shared_ptr<eos::IContainerMD> cmd;
@@ -151,7 +151,7 @@ ConverterJob::DoIt()
       }
     } catch (eos::MDException& e) {
       errno = e.getErrno();
-      eos_static_err("fid=%016x errno=%d msg=\"%s\"\n",
+      eos_static_err("fid=%08llx errno=%d msg=\"%s\"\n",
                      mFid, e.getErrno(), e.getMessage().str().c_str());
     }
   }
@@ -159,7 +159,7 @@ ConverterJob::DoIt()
 
   if (mTargetCGI.length()) {
     // This is a properly defined job
-    eos_static_info("msg=\"conversion layout correct\" fxid=%016x cgi=\"%s\"",
+    eos_static_info("msg=\"conversion layout correct\" fid=%08llx cgi=\"%s\"",
                     mFid, mTargetCGI.c_str());
     // Prepare the TPC copy job
     XrdCl::PropertyList properties;
@@ -222,7 +222,7 @@ ConverterJob::DoIt()
     // -------------------------------------------------------------------------
     // this is a crappy defined job
     // -------------------------------------------------------------------------
-    eos_static_err("msg=\"conversion layout definition wrong\" fxid=%016x layout=%s",
+    eos_static_err("msg=\"conversion layout definition wrong\" fid=%08llx layout=%s",
                    mFid, mConversionLayout.c_str());
     success = false;
   }
@@ -246,17 +246,17 @@ ConverterJob::DoIt()
       }
     } catch (eos::MDException& e) {
       errno = e.getErrno();
-      eos_static_err("fid=%016x errno=%d msg=\"%s\"\n",
+      eos_static_err("fid=%08llx errno=%d msg=\"%s\"\n",
                      mFid, e.getErrno(), e.getMessage().str().c_str());
     }
 
     if (sourceChecksum != sourceAfterChecksum) {
       success = false;
-      eos_static_err("fid=%016x conversion failed since file was modified",
+      eos_static_err("fid=%08llx conversion failed since file was modified",
                      mFid);
     }
   }
-  eos_static_info("msg=\"stop tpc job\" fxid=%016x layout=%s",
+  eos_static_info("msg=\"stop tpc job\" fid=%08llx layout=%s",
                   mFid, mConversionLayout.c_str());
   {
     // We can only call-back to the Converter object if it wasn't destroyed/
@@ -482,7 +482,7 @@ Converter::Convert(void)
                 }
               }
             } else {
-              eos_static_warning("split=%d fxid=%llu fxid=|%s|length=%u",
+              eos_static_warning("msg='invalid key:value format' split=%d fid=%08llx fxid=|%s|length=%u",  // fxid is something else here
                                  StringConversion::SplitKeyValue(sfxid, fxid,
                                      conversionattribute),
                                  eos::common::FileId::Hex2Fid(fxid.c_str()),

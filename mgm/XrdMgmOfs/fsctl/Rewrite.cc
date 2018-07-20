@@ -46,11 +46,14 @@
 
   }
 
-  char* hexfid = env.Get("mgm.fxid");
+  char* hexfid = env.Get("mgm.fid"); // try to use new parameter
+  if (!hexfid) {
+    hexfid = env.Get("mgm.fxid");    // legacy, drop once fst/FmdDbMap.cc no longer uses mgm.fxid
+  }
 
   if (!IsEnabledAutoRepair)
   {
-    eos_thread_info("msg=\"suppressing auto-repair\" fxid=\"%s\"", (hexfid) ?
+    eos_thread_info("msg=\"suppressing auto-repair\" fid=\"%s\"", (hexfid) ?
                     hexfid : "<missing>");
     // the rewrite was suppressed!
     const char* ok = "OK";
@@ -78,7 +81,7 @@
     }
     catch (eos::MDException &e)
     {
-      eos_thread_err("msg=\"unable to reference fid=%lu in namespacen", fid);
+      eos_thread_err("msg=\"unable to reference fid=%08llx in namespace", fid);
       return Emsg(epname, error, EIO, "[EIO] rewrite", spath);
     }
   }

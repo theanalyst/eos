@@ -2685,7 +2685,7 @@ FuseServer::HandleMD(const std::string& id,
             }
           }
 
-          eos_static_info("fid=%lx ino=%lx pino=%lx cpino=%lx update-file",
+          eos_static_info("fid=%08llx ino=%lx pino=%lx cpino=%lx update-file",
                           (long) fid,
                           (long) md.md_ino(),
                           (long) md.md_pino(), (long) fmd->getContainerId());
@@ -2708,7 +2708,7 @@ FuseServer::HandleMD(const std::string& id,
                     k_nlink)) + 1 : 1;
 
           if (EOS_LOGS_DEBUG) {
-            eos_static_debug("hlnk fid=%#lx target name %s nlink %d create hard link %s",
+            eos_static_debug("hlnk fid=%08llx target name %s nlink %d create hard link %s",
                              (long) fid, fmd->getName().c_str(), nlink, md.name().c_str());
           }
 

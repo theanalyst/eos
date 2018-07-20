@@ -52,7 +52,7 @@ void DrainTransferJob::ReportError(const std::string& error)
 void
 DrainTransferJob::DoIt()
 {
-  eos_debug("running drain job fsid_src=%i, fsid_dst=%i, fid=%llu",
+  eos_debug("running drain job fsid_src=%i, fsid_dst=%i, fid=%08llx",
             mFsIdSource, mFsIdTarget, mFileId);
   using eos::common::LayoutId;
   mStatus.store(Status::Running);
@@ -150,7 +150,7 @@ DrainTransferJob::GetFileInfo() const
         fdrain.mProto.add_locations(loc);
       }
     } catch (eos::MDException& e) {
-      oss << "fxid=" << eos::common::FileId::Fid2Hex(mFileId)
+      oss << "fid=" << eos::common::FileId::Fid2Hex(mFileId)
           << " errno=" << e.getErrno()
           << " msg=\"" << e.getMessage().str() << "\"";
       eos_err("%s", oss.str().c_str());
@@ -242,7 +242,7 @@ DrainTransferJob::BuildTpcSrc(const FileDrainInfo& fdrain,
         }
 
         if (!found) {
-          oss << "msg=\"fid=" << fdrain.mProto.id() << " has no available replicas"
+          oss << "msg=\"fsid=" << fdrain.mProto.id() << " has no available replicas"
               << std::endl;
           ReportError(oss.str());
           return url_src;
@@ -462,7 +462,7 @@ DrainTransferJob::SelectDstFs(const FileDrainInfo& fdrain)
   }
 
   if (!gGeoTreeEngine.getInfosFromFsIds(existing_repl, &fsid_geotags, 0, 0)) {
-    eos_err("msg=\"fid=%llu failed to retrieve info for existing replicas\"",
+    eos_err("msg=\"fid=%08llx failed to retrieve info for existing replicas\"",
             mFileId);
     return false;
   }
@@ -485,7 +485,7 @@ DrainTransferJob::SelectDstFs(const FileDrainInfo& fdrain)
                NULL);
 
   if (!res || new_repl.empty())  {
-    eos_err("msg=\"fid=%llu could not place new replica\"", mFileId);
+    eos_err("msg=\"fid=%08llx could not place new replica\"", mFileId);
     return false;
   }
 
