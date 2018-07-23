@@ -57,7 +57,8 @@ set(COMMON_UT_SRCS
   common/MappingTests.cc
   common/SymKeysTests.cc
   common/ThreadPoolTest.cc
-  common/RWMutexTest.cc)
+  common/RWMutexTest.cc
+  common/FileFsPathTests.cc)
 
 set(FST_UT_SRCS
   #fst/XrdFstOssFileTest.cc
@@ -100,6 +101,7 @@ target_link_libraries(
   gmock
   eosCommonServer
   $<TARGET_OBJECTS:EosConsoleCommands-Objects>
+  EosNsInMemory-Static
   XrdEosMgm-Shared
   EosFstIo-Static
   ${READLINE_LIBRARY}
