@@ -46,8 +46,12 @@ public:
   //! Constructor
   //----------------------------------------------------------------------------
   IProcCommand():
-    mExecRequest(false), mReqProto(), mDoAsync(false),
-    mForceKill(false), stdOut(), stdErr(), stdJson(), retc(0), mTmpResp() {}
+    mExecRequest(false), mReqProto(), mDoAsync(false), mForceKill(false),
+    mVid(), pVid(0), mCmd(""), mSubCmd(""), mArgs(""), mComment(""),
+    mClosed(false), stdOut(), stdErr(), stdJson(), retc(0), mTmpResp()
+  {
+    mExecTime = time(NULL);
+  }
 
   //----------------------------------------------------------------------------
   //! Constructor
@@ -58,9 +62,12 @@ public:
   //----------------------------------------------------------------------------
   IProcCommand(eos::console::RequestProto&& req,
                eos::common::Mapping::VirtualIdentity& vid, bool async):
-    mExecRequest(false), mReqProto(req), mDoAsync(async),
-    mForceKill(false), mVid(vid), stdOut(), stdErr(), stdJson(), retc(0),
-    mTmpResp() {}
+    IProcCommand()
+  {
+    mReqProto = req;
+    mVid = vid;
+    mDoAsync = async;
+  }
 
   //----------------------------------------------------------------------------
   //! Destructor
@@ -145,19 +152,7 @@ public:
   //!
   //! @return 0 if comment has been successfully stored otherwise != 0
   //----------------------------------------------------------------------------
-  virtual int close()
-  {
-    //@todo (esindril): to implement for proto commands
-    if (ifstdoutStream.is_open()) {
-      ifstdoutStream.close();
-    }
-
-    if (ifstderrStream.is_open()) {
-      ifstderrStream.close();
-    }
-
-    return SFS_OK;
-  }
+  virtual int close();
 
   //----------------------------------------------------------------------------
   //! Method implementing the specific behavior of the command executed
@@ -228,11 +223,18 @@ protected:
   bool mDoAsync; ///< If true use thread pool to do the work
   std::atomic<bool> mForceKill; ///< Flag to notify worker thread
   eos::common::Mapping::VirtualIdentity mVid; ///< Copy of original vid
+  eos::common::Mapping::VirtualIdentity* pVid; ///< Pointer to virtual identity
+  XrdOucString mCmd; ///< proc command name
+  XrdOucString mSubCmd; ///< proc sub command name
+  XrdOucString mArgs; ///< full args from opaque input
+  XrdOucString mComment; ///< comment issued by the user for the proc command
+  bool mClosed; ///< indicates the proc command has been closed already
   XrdOucString stdOut; ///< stdOut returned by proc command
   XrdOucString stdErr; ///< stdErr returned by proc command
   XrdOucString stdJson; ///< JSON output returned by proc command
   int retc; ///< return code from the proc command
   std::string mTmpResp; ///< String used for streaming the response
+  time_t mExecTime; ///< execution time measured for the proc command
   std::ofstream ofstdoutStream;
   std::ofstream ofstderrStream;
   std::string ofstdoutStreamFilename;

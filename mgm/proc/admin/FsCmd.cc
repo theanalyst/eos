@@ -46,6 +46,7 @@ eos::mgm::FsCmd::ProcessRequest()
 {
   eos::console::ReplyProto reply;
   eos::console::FsProto fs = mReqProto.fs();
+  mCmd = fs.GetDescriptor()->name().c_str();
   const auto& subCmdCase = fs.subcmd_case();
 
   if (subCmdCase == eos::console::FsProto::SubcmdCase::kAdd) {

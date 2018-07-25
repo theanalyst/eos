@@ -21,6 +21,7 @@
  ************************************************************************/
 
 #include "common/Path.hh"
+#include "common/CommentLog.hh"
 #include "mgm/XrdMgmOfs.hh"
 #include "mgm/proc/IProcCommand.hh"
 #include "mgm/proc/ProcInterface.hh"
@@ -28,13 +29,14 @@
 #include "mgm/Macros.hh"
 #include "namespace/interface/IView.hh"
 #include "json/json.h"
+#include <google/protobuf/util/json_util.h>
 
 EOSMGMNAMESPACE_BEGIN
 
 std::atomic_uint_least64_t IProcCommand::uuid{0};
 
 //------------------------------------------------------------------------------
-// Open a proc command e.g. call the appropriate user or admin commmand and
+// Open a proc command e.g. call the appropriate user or admin command and
 // store the output in a resultstream or in case of find in a temporary output
 // file.
 //------------------------------------------------------------------------------
@@ -47,6 +49,32 @@ IProcCommand::open(const char* path, const char* info,
   int delay = 5;
 
   if (!mExecRequest) {
+    pVid = &vid;
+    mClosed = false;
+
+    // Deal with '&'
+    XrdOucString sinfo = info;
+
+    for (int i = 0; i < sinfo.length(); i++) {
+      if (sinfo[i] == '&') {
+        // figure out if this is a real separator or
+        XrdOucString follow = sinfo.c_str() + i + 1;
+
+        if (!follow.beginswith("mgm.") && (!follow.beginswith("eos.")) &&
+            (!follow.beginswith("xrd.")) && (!follow.beginswith("callback"))) {
+          sinfo.erase(i, 1);
+          sinfo.insert("#AND#", i);
+        }
+      }
+    }
+
+    // Retrieve log book info
+    std::string argsJson;
+    (void) google::protobuf::util::MessageToJsonString(mReqProto, &argsJson);
+    XrdOucEnv* opaque = new XrdOucEnv(sinfo.c_str());
+    mComment = opaque->Get("mgm.comment") ? opaque->Get("mgm.comment") : "";
+    mArgs = argsJson.c_str();
+
     LaunchJob();
     mExecRequest = true;
   }
@@ -132,6 +160,40 @@ IProcCommand::read(XrdSfsFileOffset offset, char* buff, XrdSfsXferSize blen)
   }
 
   return cpy_len;
+}
+
+//----------------------------------------------------------------------------
+//! Close the proc stream and store the clients comment for the command in the
+//! comment log file
+//----------------------------------------------------------------------------
+int
+IProcCommand::close()
+{
+  if (ifstdoutStream.is_open()) {
+    ifstdoutStream.close();
+  }
+
+  if (ifstderrStream.is_open()) {
+    ifstderrStream.close();
+  }
+
+  if (!mClosed) {
+    mClosed = true;
+
+    // Only instance users or sudoers can add to the log book
+    if ((pVid->uid <= 2) || (pVid->sudoer)) {
+      if (mComment.length() && gOFS->mCommentLog) {
+        if (!gOFS->mCommentLog->Add(mExecTime, mCmd.c_str(), mSubCmd.c_str(),
+                                    mArgs.c_str(), mComment.c_str(),
+                                    stdErr.c_str(), retc)) {
+          eos_err("failed to log proto command to comment log file");
+          return SFS_ERROR;
+        }
+      }
+    }
+  }
+
+  return SFS_OK;
 }
 
 //------------------------------------------------------------------------------

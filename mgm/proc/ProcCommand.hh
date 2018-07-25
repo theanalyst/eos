@@ -121,20 +121,12 @@ public:
   virtual int stat(struct stat* buf) override;
 
   //----------------------------------------------------------------------------
-  //! Close the proc stream and store the clients comment for the command in the
-  //! comment log file
-  //!
-  //! @return 0 if comment has been successfully stored otherwise != 0
-  //----------------------------------------------------------------------------
-  virtual int close() override;
-
-  //----------------------------------------------------------------------------
   //! Method implementing the specific behvior of the command executed by the
   //! asynchronous thread - used only for protobuf commands
   //----------------------------------------------------------------------------
   virtual eos::console::ReplyProto ProcessRequest() override
   {
-    // Default behvior for old (raw) style commands
+    // Default behavior for old (raw) style commands
     return eos::console::ReplyProto();
   }
 
@@ -271,14 +263,8 @@ public:
   //----------------------------------------------------------------------------
   bool KeyValToHttpTable(XrdOucString& stdOut);
 
-protected:
-  eos::common::Mapping::VirtualIdentity* pVid; ///< Pointer to virtual identity
-
 private:
   XrdOucString mPath; ///< path argument for the proc command
-  XrdOucString mCmd; ///< proc command name
-  XrdOucString mSubCmd; ///< proc sub command name
-  XrdOucString mArgs; ///< full args from opaque input
   std::string mResultStream; ///< string containing the assembled stream
   XrdOucEnv* pOpaque; ///< pointer to the opaque information object
   const char* ininfo; ///< original opaque info string
@@ -299,17 +285,14 @@ private:
   XrdOucString fresultStreamfilename;
   XrdOucErrInfo* mError;
 
-  XrdOucString mComment; ///< comment issued by the user for the proc comamnd
-  time_t mExecTime; ///< execution time measured for the proc command
   ssize_t mLen; ///< len of the result stream
   bool mAdminCmd; ///< indicates an admin command
   bool mUserCmd; ///< indicates a user command
   bool mFuseFormat; ///< indicates FUSE format
   bool mJsonFormat; ///< indicates JSON format
   bool mHttpFormat; ///< indicates HTTP format
-  bool mClosed; ///< indicates the proc command has been closed already
-  bool mSendRetc; //< indicates to return the return code to the open call
-  XrdOucString mJsonCallback; ///< sets the JSONP callback name in a response
+  bool mSendRetc; ///< indicates to return the return code to the open call
+  XrdOucString mJsonCallback; ///< sets the JSON callback name in a response
 
   //----------------------------------------------------------------------------
   //! Create archive file. If successful then the archive file is copied to the
