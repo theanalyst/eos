@@ -653,7 +653,7 @@ EosFuse::run(int argc, char* argv[], void* userdata)
         root["options"]["no-fsync"].append(".sqlite-journal");
         root["options"]["no-fsync"].append(".db3");
         root["options"]["no-fsync"].append(".db3-journal");
-        root["options"]["no-fsync"].append("*.o");
+        root["options"]["no-fsync"].append(".o");
       }
     }
 
