@@ -259,6 +259,7 @@ XrdMqSharedHash::GetAgeInSeconds(const char* key)
 std::string
 XrdMqSharedHash::Get(const std::string& key)
 {
+  eos_static_info("SENTINEL key=%s", key.c_str());
   sGetCounter++;
   std::string value = "";
   XrdMqRWMutexReadLock rd_lock(*mStoreMutex);
