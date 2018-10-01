@@ -628,6 +628,7 @@ public:
   static std::string GetResponsibleSpaceQuotaPath(const std::string& path);
 
   static gid_t gProjectId; ///< gid indicating project quota
+  static gid_t gAdminId; ///< gid indicating admin quota
   static eos::common::RWMutex pMapMutex; ///< Protect access to pMapQuota
 
 private:

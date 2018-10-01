@@ -34,6 +34,7 @@ std::map<std::string, SpaceQuota*> Quota::pMapQuota;
 std::map<eos::IContainerMD::id_t, SpaceQuota*> Quota::pMapInodeQuota;
 eos::common::RWMutex Quota::pMapMutex;
 gid_t Quota::gProjectId = 99;
+gid_t Quota::gAdminId = 4;
 
 #ifdef __APPLE__
 #define ENONET 64
@@ -394,6 +395,9 @@ SpaceQuota::UpdateFromQuotaNode(uid_t uid, gid_t gid, bool upd_proj_quota)
     mMapIdQuota[Index(kUserBytesIs, Quota::gProjectId)] = 0;
     mMapIdQuota[Index(kUserLogicalBytesIs, Quota::gProjectId)] = 0;
     mMapIdQuota[Index(kUserFilesIs, Quota::gProjectId)] = 0;
+    mMapIdQuota[Index(kUserBytesIs, Quota::gAdminId)] = 0;
+    mMapIdQuota[Index(kUserLogicalBytesIs, Quota::gAdminId)] = 0;
+    mMapIdQuota[Index(kUserFilesIs, Quota::gAdminId)] = 0;
 
     if (upd_proj_quota) {
       // Recalculate the project quota only every 5 seconds to boost perf.
@@ -425,6 +429,13 @@ SpaceQuota::UpdateFromQuotaNode(uid_t uid, gid_t gid, bool upd_proj_quota)
                    mQuotaNode->getUsedSpaceByUser(*itu));
           AddQuota(kGroupFilesIs, Quota::gProjectId, mQuotaNode->getNumFilesByUser(*itu));
         }
+
+        mMapIdQuota[Index(kGroupBytesIs,
+                          Quota::gAdminId)] = mMapIdQuota[Index(kGroupBytesIs, Quota::gProjectId)];
+        mMapIdQuota[Index(kGroupFilesIs,
+                          Quota::gAdminId)] = mMapIdQuota[Index(kGroupFilesIs, Quota::gProjectId)];
+        mMapIdQuota[Index(kGroupLogicalBytesIs,
+                          Quota::gAdminId)] = mMapIdQuota[Index(kGroupLogicalBytesIs, Quota::gProjectId)];
       }
     }
   }
@@ -495,7 +506,7 @@ SpaceQuota::PrintOut(XrdOucString& output, long long int uid_sel,
         long long int gid = (it->first) & 0xfffffff;
 
         // uid selection filter
-        if ((gid_sel >= 0LL) && (gid != gid_sel)) {
+        if ((gid_sel >= 0LL) && (gid != gid_sel) && (gid != Quota::gAdminId)) {
           continue;
         }
 
@@ -509,7 +520,11 @@ SpaceQuota::PrintOut(XrdOucString& output, long long int uid_sel,
 
         if (translate_ids) {
           if (gid_sel == Quota::gProjectId) {
-            name = "project";
+            if (gid == Quota::gProjectId) {
+              name = "project";
+            } else {
+              name = "adm";
+            }
           } else {
             int errc = 0;
             name = eos::common::Mapping::GidToGroupName(gid, errc);
@@ -899,9 +914,11 @@ SpaceQuota::CheckWriteQuota(uid_t uid, gid_t gid, long long desired_vol,
   bool userquota = false;
   bool groupquota = false;
   bool projectquota = false;
+  bool adminquota = false;
   bool hasuserquota = false;
   bool hasgroupquota = false;
   bool hasprojectquota = false;
+  bool hasadminquota = false;
   bool uservolumequota = false;
   bool userinodequota = false;
   bool groupvolumequota = false;
@@ -984,11 +1001,26 @@ SpaceQuota::CheckWriteQuota(uid_t uid, gid_t gid, long long desired_vol,
     projectquota = true;
   }
 
+  if (((GetQuota(kGroupBytesTarget, Quota::gAdminId)))) {
+    adminquota = true;
+  }
+
+  if (((GetQuota(kGroupBytesTarget, Quota::gAdminId) -
+        GetQuota(kGroupBytesIs, Quota::gAdminId)) > desired_vol)) {
+    hasadminquota = true;
+
+    if ((GetQuota(kGroupFilesTarget, Quota::gAdminId)) &&
+        ((GetQuota(kGroupFilesTarget, Quota::gAdminId) <
+          (GetQuota(kGroupFilesIs, Quota::gAdminId) + inodes)))) {
+      hasadminquota = false;
+    }
+  }
+
   eos_info("userquota=%d groupquota=%d hasuserquota=%d hasgroupquota=%d "
            "userinodequota=%d uservolumequota=%d projectquota=%d "
-           "hasprojectquota=%d", userquota, groupquota, hasuserquota,
+           "hasprojectquota=%d hasadminquota=%d", userquota, groupquota, hasuserquota,
            hasgroupquota, userinodequota, uservolumequota, projectquota,
-           hasprojectquota);
+           hasprojectquota, hasadminquota);
 
   // If both quotas are defined we need to have both
   if (userquota && groupquota) {
@@ -999,6 +1031,10 @@ SpaceQuota::CheckWriteQuota(uid_t uid, gid_t gid, long long desired_vol,
 
   if (projectquota && hasprojectquota) {
     hasquota = true;
+  }
+
+  if (adminquota) {
+    hasquota |= hasadminquota;
   }
 
   // Root does not need any quota
@@ -1019,8 +1055,11 @@ SpaceQuota::AccountNsToSpace()
     XrdSysMutexHelper scope_lock(mMutex);
     // Insert current state of a single quota node into a SpaceQuota
     ResetQuota(kGroupBytesIs, Quota::gProjectId);
+    ResetQuota(kGroupBytesIs, Quota::gAdminId);
     ResetQuota(kGroupFilesIs, Quota::gProjectId);
+    ResetQuota(kGroupFilesIs, Quota::gAdminId);
     ResetQuota(kGroupLogicalBytesIs, Quota::gProjectId);
+    ResetQuota(kGroupLogicalBytesIs, Quota::gAdminId);
     // Loop over users
     auto uids = mQuotaNode->getUids();
 
@@ -1040,6 +1079,15 @@ SpaceQuota::AccountNsToSpace()
                  mQuotaNode->getUsedSpaceByUser(*itu));
         AddQuota(kGroupFilesIs, Quota::gProjectId, mQuotaNode->getNumFilesByUser(*itu));
       }
+
+      if (mMapIdQuota[Index(kGroupBytesTarget, Quota::gAdminId)] > 0) {
+        // Only account in admin quota nodes
+        AddQuota(kGroupBytesIs, Quota::gAdminId,
+                 mQuotaNode->getPhysicalSpaceByUser(*itu));
+        AddQuota(kGroupLogicalBytesIs, Quota::gAdminId,
+                 mQuotaNode->getUsedSpaceByUser(*itu));
+        AddQuota(kGroupFilesIs, Quota::gAdminId, mQuotaNode->getNumFilesByUser(*itu));
+      }
     }
 
     auto gids = mQuotaNode->getGids();
@@ -1047,6 +1095,10 @@ SpaceQuota::AccountNsToSpace()
     for (auto itg = gids.begin(); itg != gids.end(); ++itg) {
       // Don't update the project quota directory from the quota
       if (*itg == Quota::gProjectId) {
+        continue;
+      }
+
+      if (*itg == Quota::gAdminId) {
         continue;
       }
 
@@ -1411,26 +1463,30 @@ Quota::GetIndividualQuota(eos::common::Mapping::VirtualIdentity_t& vid,
 
   if (space) {
     space->Refresh();
-    long long max_bytes_usr, max_bytes_grp, max_bytes_prj;
-    long long free_bytes_usr, free_bytes_grp, free_bytes_prj;
-    long long max_files_usr, max_files_grp, max_files_prj;
-    long long free_files_usr, free_files_grp, free_files_prj;
-    free_bytes_usr = free_bytes_grp = free_bytes_prj = 0;
-    max_bytes_usr = max_bytes_grp = max_bytes_prj = 0;
-    free_files_usr = free_files_grp = free_files_prj = 0;
+    long long max_bytes_usr, max_bytes_grp, max_bytes_prj, max_bytes_adm;
+    long long free_bytes_usr, free_bytes_grp, free_bytes_prj, free_bytes_adm;
+    long long max_files_usr, max_files_grp, max_files_prj, max_files_adm;
+    long long free_files_usr, free_files_grp, free_files_prj, free_files_adm;
+    free_bytes_usr = free_bytes_grp = free_bytes_prj = free_bytes_adm = 0;
+    max_bytes_usr = max_bytes_grp = max_bytes_prj = max_bytes_adm = 0;
+    free_files_usr = free_files_grp = free_files_prj = free_files_adm = 0;
     (void) free_files_usr; // not used - avoid compile warning
-    max_files_usr = max_files_grp = max_files_prj = 0;
+    max_files_usr = max_files_grp = max_files_prj = max_files_adm = 0;
     (void) max_files_usr; // not used -avoid compile warning
     max_bytes_usr  = space->GetQuota(SpaceQuota::kUserBytesTarget, m_vid.uid);
     max_bytes_grp = space->GetQuota(SpaceQuota::kGroupBytesTarget, m_vid.gid);
     max_bytes_prj = space->GetQuota(SpaceQuota::kGroupBytesTarget,
                                     Quota::gProjectId);
+    max_bytes_adm = space->GetQuota(SpaceQuota::kGroupBytesTarget,
+                                    Quota::gAdminId);
     free_bytes_usr = max_bytes_usr - space->GetQuota(
                        SpaceQuota::kUserLogicalBytesIs, m_vid.uid);
     free_bytes_grp = max_bytes_grp - space->GetQuota(
                        SpaceQuota::kGroupLogicalBytesIs, m_vid.gid);
     free_bytes_prj = max_bytes_prj - space->GetQuota(
                        SpaceQuota::kGroupLogicalBytesIs, Quota::gProjectId);
+    free_bytes_adm = max_bytes_adm - space->GetQuota(
+                       SpaceQuota::kGroupLogicalBytesIs, Quota::gAdminId);
 
     if (free_bytes_usr > free_bytes) {
       free_bytes = free_bytes_usr;
@@ -1454,6 +1510,15 @@ Quota::GetIndividualQuota(eos::common::Mapping::VirtualIdentity_t& vid,
 
     if (max_bytes_prj > max_bytes) {
       max_bytes = max_bytes_prj;
+    }
+
+    // implement the admin quota concept
+    if (max_bytes_adm && (max_bytes_adm < max_bytes)) {
+      max_bytes = max_bytes_adm;
+    }
+
+    if (max_bytes_adm && (free_bytes_adm < free_bytes)) {
+      free_bytes = free_bytes_adm;
     }
   }
 }
@@ -2067,23 +2132,27 @@ int
 Quota::GetQuotaInfo(SpaceQuota* squota, uid_t uid, gid_t gid,
                     long long& avail_files, long long& avail_bytes)
 {
-  long long maxbytes_user, maxbytes_group, maxbytes_project;
-  long long freebytes_user, freebytes_group, freebytes_project;
+  long long maxbytes_user, maxbytes_group, maxbytes_project, maxbytes_admin;
+  long long freebytes_user, freebytes_group, freebytes_project, freebytes_admin;
   long long freebytes = 0 ;
   long long maxbytes = 0;
-  freebytes_user = freebytes_group = freebytes_project = 0;
-  maxbytes_user = maxbytes_group = maxbytes_project = 0;
+  freebytes_user = freebytes_group = freebytes_project = freebytes_admin = 0;
+  maxbytes_user = maxbytes_group = maxbytes_project = maxbytes_admin = 0;
   squota->Refresh();
   maxbytes_user  = squota->GetQuota(SpaceQuota::kUserBytesTarget, uid);
   maxbytes_group = squota->GetQuota(SpaceQuota::kGroupBytesTarget, gid);
   maxbytes_project = squota->GetQuota(SpaceQuota::kGroupBytesTarget,
                                       Quota::gProjectId);
+  maxbytes_admin = squota->GetQuota(SpaceQuota::kGroupBytesTarget,
+                                    Quota::gAdminId);
   freebytes_user = maxbytes_user - squota->GetQuota(
                      SpaceQuota::kUserLogicalBytesIs, uid);
   freebytes_group = maxbytes_group - squota->GetQuota(
                       SpaceQuota::kGroupLogicalBytesIs, gid);
   freebytes_project = maxbytes_project - squota->GetQuota(
                         SpaceQuota::kGroupLogicalBytesIs, Quota::gProjectId);
+  freebytes_admin = maxbytes_admin - squota->GetQuota(
+                      SpaceQuota::kGroupLogicalBytesIs, Quota::gAdminId);
 
   if (freebytes_user > freebytes) {
     freebytes = freebytes_user;
@@ -2109,27 +2178,40 @@ Quota::GetQuotaInfo(SpaceQuota* squota, uid_t uid, gid_t gid,
     maxbytes = maxbytes_project;
   }
 
+  // implement admin quota concept
+  if (maxbytes_admin  && maxbytes_admin < maxbytes) {
+    maxbytes = maxbytes_admin;
+  }
+
+  if (maxbytes_admin && freebytes_admin < freebytes) {
+    freebytes = freebytes_admin;
+  }
+
   if (!freebytes && (maxbytes == 0)) {
     // this is no quota set
     freebytes = std::numeric_limits<long>::max() / 2;
   }
 
-  long long maxfiles_user, maxfiles_group, maxfiles_project;
-  long long freefiles_user, freefiles_group, freefiles_project;
+  long long maxfiles_user, maxfiles_group, maxfiles_project, maxfiles_admin;
+  long long freefiles_user, freefiles_group, freefiles_project, freefiles_admin;
   long long freefiles = 0;
   long long maxfiles = 0;
-  freefiles_user = freefiles_group = freefiles_project = 0;
-  maxfiles_user = maxfiles_group = maxfiles_project = 0;
+  freefiles_user = freefiles_group = freefiles_project = freefiles_admin = 0;
+  maxfiles_user = maxfiles_group = maxfiles_project = maxfiles_admin = 0;
   maxfiles_user  = squota->GetQuota(SpaceQuota::kUserFilesTarget, uid);
   maxfiles_group = squota->GetQuota(SpaceQuota::kGroupFilesTarget, gid);
   maxfiles_project = squota->GetQuota(SpaceQuota::kGroupFilesTarget,
                                       Quota::gProjectId);
+  maxfiles_admin = squota->GetQuota(SpaceQuota::kGroupFilesTarget,
+                                    Quota::gAdminId);
   freefiles_user = maxfiles_user - squota->GetQuota(SpaceQuota::kUserFilesIs,
                    uid);
   freefiles_group = maxfiles_group - squota->GetQuota(SpaceQuota::kGroupFilesIs,
                     gid);
   freefiles_project = maxfiles_project - squota->GetQuota(
                         SpaceQuota::kGroupFilesIs, Quota::gProjectId);
+  freefiles_admin = maxfiles_project - squota->GetQuota(
+                      SpaceQuota::kGroupFilesIs, Quota::gAdminId);
 
   if (freefiles_user > freefiles) {
     freefiles = freefiles_user;
@@ -2153,6 +2235,15 @@ Quota::GetQuotaInfo(SpaceQuota* squota, uid_t uid, gid_t gid,
 
   if (maxfiles_project > maxfiles) {
     maxfiles = maxfiles_project;
+  }
+
+  // implement admin quota concept
+  if (maxfiles_admin  && maxfiles_admin < maxfiles) {
+    maxfiles = maxfiles_admin;
+  }
+
+  if (maxfiles_admin && freefiles_admin < freefiles) {
+    freefiles = freefiles_admin;
   }
 
   if (!freefiles && (maxfiles == 0)) {
