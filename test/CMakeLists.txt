@@ -50,6 +50,7 @@ add_executable(xrdcpshrink XrdCpShrink.cc)
 add_executable(xrdcptruncate XrdCpTruncate.cc)
 add_executable(xrdcppartial XrdCpPartial.cc)
 add_executable(xrdcpupdate XrdCpUpdate.cc)
+add_executable(xrdcpslowwriter XrdCpSlowWriter.cc)
 add_executable(eos-udp-dumper EosUdpDumper.cc)
 add_executable(eos-mmap EosMmap.cc)
 add_executable(eoshashbench EosHashBenchmark.cc)
@@ -79,6 +80,7 @@ target_link_libraries(xrdcptruncate ${XROOTD_POSIX_LIBRARY} ${XROOTD_UTILS_LIBRA
 target_link_libraries(xrdcpposixcache ${XROOTD_POSIX_LIBRARY} ${XROOTD_UTILS_LIBRARY})
 target_link_libraries(xrdcppartial ${XROOTD_POSIX_LIBRARY} ${XROOTD_UTILS_LIBRARY})
 target_link_libraries(xrdcpupdate ${XROOTD_POSIX_LIBRARY} ${XROOTD_UTILS_LIBRARY})
+target_link_libraries(xrdcpslowwriter ${XROOTD_CL_LIBRARY})
 target_link_libraries(eoshashbench eosCommon ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(testhmacsha256 eosCommon ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(eos-udp-dumper)
@@ -126,7 +128,7 @@ set_target_properties(eoschecksumbench PROPERTIES COMPILE_FLAGS "-D_FILE_OFFSET_
 install(
   TARGETS xrdstress.exe xrdcpabort xrdcprandom xrdcpextend xrdcpshrink xrdcpappend
           xrdcptruncate xrdcpholes xrdcpbackward xrdcpdownloadrandom xrdcppartial xrdcpupdate
-          xrdcpposixcache eoschecksumbench eos-udp-dumper eos-mmap eos-io-tool
+          xrdcpposixcache xrdcpslowwriter eoschecksumbench eos-udp-dumper eos-mmap eos-io-tool
   RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_SBINDIR})
 
 install(
