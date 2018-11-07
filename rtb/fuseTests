@@ -1,0 +1,143 @@
+#!/usr/bin/env python
+
+import os, pdb, sys, time, traceback
+import argparse, threading
+
+
+prefix = "/eos/"
+dirs = ["user", "u1", "u2"]
+suffix = "/t/tobbicke/eosfusetests"
+
+class starter:
+
+    def __init__(self, args, dirs):
+	self.args = args
+	xx = dict(XRD_RUNFORKHANDLER=1, EOS_FUSE_PING_TIMEOUT=15, EOS_FUSE_DEBUG=0, EOS_FUSE_LOWLEVEL_DEBUG=0)
+	for k, v in xx.items():
+	    os.environ[k] = str(v)
+
+	self.dirs = dirs
+
+    def getDirs(self):
+	return self.dirs
+
+    def getPath(self, d):
+	return prefix + d
+
+    def run(self):
+	#if self.args.debug: pdb.set_trace()
+	for d in self.dirs:
+	    dd = self.getPath(d)
+	    ddd = dd + suffix
+	    if not os.path.isdir(ddd):
+		cmd = "sudo /usr/bin/eosd %s%s -obig_writes,max_readahead=131072,max_write=4194304,fsname=eos%s,allow_other,url=root://eosuser.cern.ch//eos/user/" % (prefix, d, d)
+		#os.system(cmd)
+
+
+class T1:
+
+    _pat = (102 * "0123456789") + "abc\n"	# 1k long
+    _targetSz = 256*1024			# 256k times 1k = 256 M
+    _targetSz = 16*1024
+    def __init__(self, args, fs):
+	self.args = args
+	self.fs = fs
+
+    def t1_reader(self, d, fPath):
+
+	fn = self.fs.getPath(d) + fPath
+
+	ts1 = time.time()
+	ts2 = 0
+	ts3 = 0
+	ts4 = 0
+	ts5 = 0
+	sleeps = 0
+
+	while True:
+	    if os.path.exists(fn):
+		if ts2 == 0: ts2 = time.time()
+		
+		with open(fn) as g:
+		    stlen = os.stat(fn).st_size
+		    gotLen = 0
+		    while True:
+			try:
+			    xx = g.read(1024)
+			    gotLen += len(xx)
+			except:
+			    traceback.print_exc()
+			    xx = ''
+
+			if xx != self._pat:
+			    if len(xx) == len(self._pat):
+				print "%s: pattern mismatch after pos %d: %s" % (d, gotLen, xx)
+			    break
+
+		print "%s gotLen %d (%d)" % (d, gotLen, stlen)
+		if gotLen > 0 and ts3 == 0:
+		    ts3 = time.time()
+		if gotLen > self._targetSz * 512:
+		    ts4 = time.time()
+		if gotLen >= self._targetSz:
+		    ts5 = time.time()
+		    print "%s: deltaTs %f, %f, %f, %f sleep=%d, len=%d" % (d, ts2-ts1, ts3-ts1, ts3-ts1, ts4-ts1, sleeps, gotLen) 
+		    return
+
+	    sleeps += 1
+	    time.sleep(0.1)
+
+    def run(self):
+
+
+	fPath = suffix + "/readWhileWritten"
+
+	if self.args.debug: pdb.set_trace()
+	try:
+	    os.unlink(self.fs.getPath(self.fs.getDirs()[0]) + fPath)
+	    time.sleep(1)
+	except OSError: pass
+
+	prim = self.fs.getPath(self.fs.getDirs()[0])
+	secs = dict([ (d, self.fs.getPath(d)) for d in self.fs.getDirs()[0:] ])
+	
+	T = dict( [ (d, threading.Thread(target=self.t1_reader, name=d, args=(d,fPath))) for d in  self.fs.getDirs() ] )
+
+
+
+	#pdb.set_trace()
+	with open(prim + fPath, "w") as f:
+	    ts1 = time.time()
+	    for t in T: T[t].start()
+
+	    f.write(self._pat)
+	    f.flush()
+	    for i in xrange(1,self._targetSz):
+		f.write(self._pat)
+		
+
+	ts2 = time.time()
+	print "\n\nWritten %s, delay %f\n" % (prim + fPath, ts2-ts1)
+
+	for t in T:
+	    T[t].join()
+
+
+	
+
+
+class T2:
+    pass
+
+	
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-d", "--debug", action="store_true")
+    args = parser.parse_args()
+
+    fs = starter(args, dirs)
+    fs.run()
+
+    t1 = T1(args, fs)
+    t1.run()

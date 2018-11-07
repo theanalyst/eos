@@ -1,0 +1,31 @@
+##!/bin/bash
+
+#once: ~/.rpmmacros
+# mkdir -p /tmp/tobbicke/rpm/SPECS
+# cat > ~/.rpmmacros <<EOFmacros
+# %_topdir /tmp/tobbicke/rpm
+# %_tmppath /tmp/tobbicke
+# EOFmacros
+
+
+#once: git submodule update --init --recursive
+#once: (cd build; cmake3 ..; )
+#
+set -x
+
+[[ -f rtb/rtb-build ]] || exit 1
+[[ -d build ]] || exit 1
+
+( cd build && rm -rf *; cmake3 .. -DPACKAGEONLY=1 && make srpm; )
+rpmbuild --rebuild --with=server --define "_rpmdir build/RPMS/" --define "_build_name_fmt %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" build/SRPMS/*
+mkdir cc7_artifacts 2> /dev/null
+rm -rf cc7_artifacts/*
+cp -R build/SRPMS build/RPMS cc7_artifacts
+#git clone https://gitlab.cern.ch/eos/eos-docker.git
+export BRANCH=citrine
+echo -e '[eos-depend]\nname=EOS dependencies \nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-7/x86_64/\ngpgcheck=0\nenabled=1\npriority=1\n' > eos-docker/eos.repo
+
+sudo eos-docker/scripts/remove_unused_images.sh
+sudo docker build -f eos-docker/Dockerfile .
+sudo docker images
+#sudo eos-docker/scripts/start_services.sh -i imageuid # e.g. 5669531313fb

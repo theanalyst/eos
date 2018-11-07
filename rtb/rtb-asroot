@@ -1,0 +1,41 @@
+export BRANCH=citrine
+echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-7/x86_64/\ngpgcheck=0\nenabled=1\nexclude=xrootd*\npriority=4\n' >> /etc/yum.repos.d/eos-depend.repo
+echo -e '\n[kio]\nname=kio\nbaseurl=https://dss-ci-repo.web.cern.ch/dss-ci-repo/kinetic/kineticio/el-7-x86_64\nenabled=1\n' >> /etc/yum.repos.d/eos-depend.repo
+cp /etc/yum.repos.d/eos-depend.repo /etc/yum-puppet.repos.d/
+
+  yum install -y git gcc gcc-c++ cmake readline readline-devel leveldb leveldb-devel zlib zlib-devel libattr libattr-devel libuuid libuuid-devel xfsprogs xfsprogs-devel sparsehash sparsehash-devel e2fsprogs e2fsprogs-devel libmicrohttpd libmicrohttpd-devel openssl openssl-devel openssl-static ncurses ncurses-devel ncurses-static protobuf-devel cppunit-devel openldap-devel hiredis-devel zeromq-devel jsoncpp-devel xrootd xrootd-server-devel xrootd-client-devel
+  yum install -y xrootd-private-devel cppzmq-devel libcurl-devel rpm-build
+  yum install -y cmake3 zlib zlib-static protobuf3 protobuf3-devel eos-rocksdb docker
+
+  yum install -y fuse3 fuse3-devel fuse3-libs
+
+  systemctl start docker
+
+
+  831  mkdir /data01/rtb
+  832  chown tobbicke /data01/rtb
+
+  836  yum install docker
+  843  docker network create eoscluster.cern.ch
+  846  docker network ls
+  850  cat /etc/sudoers.d/itprocos_vendor 
+  851  vim /etc/sudoers.d/tobbicke
+  852  systemctl enable docker
+  871  systemctl start docker
+  892  dmsetup ls
+  893  dmsetup
+  894  dmsetup info docker-9:4-2098003-cad4843c544d267ed35656a7a419b539466316ebb5d4d8827a0f29014d7746e5
+  895  dmsetup targets
+  896  dmsetup table
+  903  systemctl stop docker
+  904  dmsetup ls
+  907  systemctl restart docker
+
+export BRANCH=citrine
+echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-7/x86_64/\ngpgcheck=0\nenabled=1\nexclude=xrootd*\npriority=4\n' >> /etc/yum.repos.d/eos-depend.repo
+echo -e '\n[kio]\nname=kio\nbaseurl=https://dss-ci-repo.web.cern.ch/dss-ci-repo/kinetic/kineticio/el-7-x86_64\nenabled=1\n' >> /etc/yum.repos.d/eos-depend.repo
+cp /etc/yum.repos.d/eos-depend.repo /etc/yum-puppet.repos.d/
+cd /data01/rtb/eos
+yum-builddep --nogpgcheck -y build/SRPMS/*
+
+
