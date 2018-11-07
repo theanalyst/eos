@@ -1,0 +1,6 @@
+ sudo docker exec -i eos-mgm-test eos mkdir /eos/dockertest/testR
+ sudo docker exec -i eos-mgm-test eos chmod 777 /eos/dockertest/testR
+ sudo docker exec -i eos-mgm-test eos attr set default=replica /eos/dockertest/testR
+ sudo docker exec -i eos-mgm-test eos debug debug '*'
+ #sudo docker exec -i eos-mgm-test bash -c 'XRD_RUNFORKHANDLER=1 xrdstress -d root://localhost//eos/dockertest/testR -o wr -f 50 -s 1KB -n stress -j 10 -c -p'
+ sudo docker exec -i eos-mgm-test bash -c "xrdcp /etc/passwd root://localhost//eos/dockertest/testR/pwd'?eos.bookingsize=424242'"

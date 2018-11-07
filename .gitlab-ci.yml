@@ -119,7 +119,7 @@ before_script:
     - ./eos-docker/scripts/remove_unused_images.sh
     - docker pull gitlab-registry.cern.ch/dss/${EOS_IMG_NAME}${CI_COMMIT_TAG-$CI_PIPELINE_ID}
     - if [[ "$CI_JOB_NAME" == system_test_qdb* ]]; then sudo ./eos-docker/scripts/start_services.sh -q -i gitlab-registry.cern.ch/dss/${EOS_IMG_NAME}${CI_COMMIT_TAG-$CI_PIPELINE_ID}; else sudo ./eos-docker/scripts/start_services.sh -i gitlab-registry.cern.ch/dss/${EOS_IMG_NAME}${CI_COMMIT_TAG-$CI_PIPELINE_ID}; fi
-    - docker exec -i eos-client1-test git clone https://gitlab.cern.ch/dss/eosclient-tests.git
+    - docker exec -i eos-client1-test /bin/bash -c "git clone https://gitlab.cern.ch/dss/eosclient-tests.git && cd eosclient-tests && git checkout ${CI_COMMIT_REF_NAME} 2> /dev/null || true"
     - docker exec -i eos-mgm-test eos-instance-test-ci
     - docker exec -di eos-client1-test /bin/bash -c 'mkdir /eos1/; mount -t fuse eosxd -ofsname=mount-1 /eos1/'
     - docker exec -di eos-client1-test /bin/bash -c 'mkdir /eos2/; mount -t fuse eosxd -ofsname=mount-2 /eos2/'
