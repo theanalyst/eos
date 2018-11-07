@@ -1,0 +1,72 @@
+##!/bin/bash
+
+#once: ~/.rpmmacros
+# mkdir -p /tmp/tobbicke/rpm/SPECS
+# cat > ~/.rpmmacros <<EOFmacros
+# %_topdir /tmp/tobbicke/rpm
+# %_tmppath /tmp/tobbicke
+# EOFmacros
+
+
+#once: git submodule update --init --recursive
+#once: (cd build; cmake3 ..; )
+#
+set -x
+
+[[ -f rtb/build ]] || exit 1
+[[ -d build ]] || exit 1
+
+docker=true
+copy_srpm=false
+case "$1" in
+    srpm) docker=false; copy_srpm=true;;
+    rpm) docker=false;;
+esac
+
+$docker && {
+    mkdir ../cc7_artifacts 2> /dev/null
+    rm -rf ../cc7_artifacts/*
+
+
+#    xrdsssadmin -k eos -u root -g root list misc/etc/eos.keytab || {
+#        rm -f misc/etc/eos.keytab 2> /dev/null
+#        echo y|xrdsssadmin -k eos -u root -g root add misc/etc/eos.keytab 
+#    }
+}
+
+( cd build && rm -rf *; cmake3 .. -DPACKAGEONLY=1 && make srpm; )
+rpmdir="build/RPMS/"
+$docker || {
+    rpmdir="/tmp/tobbicke/rpm/RPMS/"
+    mkdir -p $rpmdir
+}
+$copy_srpm && {
+    cp -r build/SRPMS $rpmdir/.. 
+    exit
+}
+rpmbuild --rebuild --with=server --define "_rpmdir $rpmdir" --define "_build_name_fmt %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" build/SRPMS/* || exit
+#rpmbuild --rebuild --with=server --define "_topdir $(pwd)/build"  --define "_build_name_fmt %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" build/SRPMS/*
+
+
+$docker || exit
+
+cp -R build/SRPMS build/RPMS ../cc7_artifacts
+#git clone https://gitlab.cern.ch/eos/eos-docker.git
+export BRANCH=citrine
+#echo -e '[eos-depend]\nname=EOS Citrine Dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-7/x86_64/\ngpgcheck=0\nenabled=1\npriority=1\n' > ../eos-docker/eos.repo
+#cat > ../eos-docker/xrootd.repo <<EOFxrootd
+#[xrootd]
+#name=XRootD Stable repository
+#baseurl=http://storage-ci.web.cern.ch/storage-ci/xrootd/release/cc-7-x86_64/v4.8.2/
+#gpgcheck=0
+#enabled=1
+#priority=3
+#EOFxrootd
+
+cd ..
+sudo eos-docker/scripts/remove_unused_images.sh
+sudo docker build -f eos-docker/Dockerfile .
+sudo docker images
+#sudo eos-docker/scripts/start_services.sh -i imageuid # e.g. 5669531313fb
+#sudo docker exec -it eos-client-test bash 
+#
