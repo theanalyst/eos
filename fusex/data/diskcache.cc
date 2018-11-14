@@ -75,23 +75,23 @@ diskcache::init_daemonized(const cacheconfig& config)
   }
 
   sDirCleaner = std::make_shared<dircleaner>(config.location,
-		config.total_file_cache_size,
-		config.total_file_cache_inodes
-					    );
+                config.total_file_cache_size,
+                config.total_file_cache_inodes
+                                            );
   sDirCleaner->set_trim_suffix(".dc");
-
-  if (config.clean_on_startup) {
+  /* remove cache cleaning on startup
+  if (1) {
     eos_static_info("cleaning cache path=%s", config.location.c_str());
     sDirCleaner = std::make_shared<dircleaner>(config.location,
-		  config.total_file_cache_size,
-		  config.total_file_cache_inodes);
+      config.total_file_cache_size,
+      config.total_file_cache_inodes);
 
     if (sDirCleaner->cleanall(".dc")) {
       eos_static_err("cache cleanup failed");
       return -1;
     }
   }
-
+  */
   // start the disk cache leveling thread;
   return 0;
 }
@@ -118,7 +118,7 @@ diskcache::location(std::string& path, bool mkpath)
 {
   char cache_path[1024 + 20];
   snprintf(cache_path, sizeof(cache_path), "%s/%08lx/%08lX.dc",
-	   sLocation.c_str(), ino / 10000, ino);
+           sLocation.c_str(), ino / 10000, ino);
 
   if (mkpath) {
     eos::common::Path cPath(cache_path);
@@ -172,13 +172,13 @@ diskcache::attach(fuse_req_t req, std::string& acookie, int flag)
     // compare if the cookies are identical, otherwise we truncate to 0
     if (ccookie != acookie) {
       eos_static_debug("diskcache::attach truncating for cookie: %s <=> %s\n",
-		       ccookie.c_str(), acookie.c_str());
+                       ccookie.c_str(), acookie.c_str());
 
       if (truncate(0)) {
-	char msg[1024];
-	snprintf(msg, sizeof(msg),
-		 "failed to truncate to invalidate cache file - ino=%08lx", ino);
-	throw std::runtime_error(msg);
+        char msg[1024];
+        snprintf(msg, sizeof(msg),
+                 "failed to truncate to invalidate cache file - ino=%08lx", ino);
+        throw std::runtime_error(msg);
       }
 
       set_cookie(acookie);
@@ -207,7 +207,7 @@ diskcache::detach(std::string& cookie)
     }
 
     sDirCleaner->get_external_tree().change(detachstat.st_size - attachstat.st_size,
-					    0);
+                                            0);
     int rc = close(fd);
     fd = -1;
 
@@ -236,8 +236,8 @@ diskcache::unlink()
       rc = ::unlink(path.c_str());
 
       if (!rc) {
-	// a deleted file
-	sDirCleaner->get_external_tree().change(-buf.st_size, -1);
+        // a deleted file
+        sDirCleaner->get_external_tree().change(-buf.st_size, -1);
       }
     }
   }
@@ -305,7 +305,7 @@ diskcache::truncate(off_t offset)
 
   if (!rc) {
     sDirCleaner->get_external_tree().change(detachstat.st_size - attachstat.st_size,
-					    0);
+                                            0);
     attachstat.st_size = offset;
   }
 
@@ -361,7 +361,7 @@ diskcache::set_attr(const std::string& key, const std::string& value)
   }
 
   eos_static_debug("set_attr key=%s val=%s fd=%d\n", key.c_str(), value.c_str(),
-		   fd);
+                   fd);
   return -1;
 }
 

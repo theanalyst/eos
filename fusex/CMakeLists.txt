@@ -33,7 +33,6 @@ include_directories(
   ${OPENSSL_INCLUDE_DIR}
   ${PROTOBUF_INCLUDE_DIRS}
   ${JSONCPP_INCLUDE_DIR}
-  ${HIREDIS_INCLUDE_DIR}
   ${ZMQ_INCLUDE_DIR}
   ${LIBEVENT_INCLUDE_DIRS}
   ${BZ2_INCLUDE_DIRS}
@@ -91,7 +90,6 @@ set(EOSXD_COMMON_LINK_LIBRARIES
   ${OPENSSL_CRYPTO_LIBRARY}
   ${PROTOBUF_LIBRARY}
   ${JSONCPP_LIBRARIES}
-  ${HIREDIS_LIBRARIES}
   ${LIBEVENT_LIBRARIES}
   ${ZMQ_LIBRARIES}
   ${LIBRARIES_IF_ROCKSDB_WAS_FOUND}
@@ -112,8 +110,7 @@ add_library(eosxd-objects OBJECT
   cap/cap.cc cap/cap.hh
   data/data.cc data/data.hh
   ${SOURCES_IF_ROCKSDB_WAS_FOUND}
-  kv/RedisKV.cc           kv/RedisKV.hh
-                          kv/kv.hh
+                            kv/kv.hh
   misc/longstring.cc misc/longstring.hh
   misc/fusexrdlogin.cc misc/fusexrdlogin.hh
   data/cache.cc data/cache.hh data/bufferll.hh

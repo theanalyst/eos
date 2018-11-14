@@ -406,14 +406,12 @@ int journalcache::init(const cacheconfig& config)
 
 int journalcache::init_daemonized(const cacheconfig& config)
 {
-  if (config.clean_on_startup) {
-    eos_static_info("cleaning cache path=%s", config.journal.c_str());
-    dircleaner dc(config.journal.c_str());
-
-    if (dc.cleanall(".jc")) {
-      eos_static_err("cache cleanup failed");
-      return -1;
-    }
+  eos_static_info("cleaning cache path=%s", config.journal.c_str());
+  dircleaner dc(config.journal.c_str());
+  
+  if (dc.cleanall(".jc")) {
+    eos_static_err("cache cleanup failed");
+    return -1;
   }
 
   return 0;

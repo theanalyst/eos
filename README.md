@@ -65,7 +65,7 @@ bzip2 bzip2-devel libattr libattr-devel libuuid libuuid-devel \
 xfsprogs xfsprogs-devel sparsehash sparsehash-devel e2fsprogs e2fsprogs-devel \
 libmicrohttpd libmicrohttpd-devel openssl openssl-devel openssl-static \
 eos-folly eos-rocksdb ncurses ncurses-devel ncurses-static protobuf3-devel \
-cppunit-devel openldap-devel hiredis-devel zeromq-devel jsoncpp-devel \
+cppunit-devel openldap-devel zeromq-devel jsoncpp-devel \
 xrootd xrootd-server-devel xrootd-client-devel xrootd-private-devel \
 cppzmq-devel libcurl-devel libevent-devel jemalloc jemalloc-devel
 ```

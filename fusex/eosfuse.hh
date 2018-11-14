@@ -34,7 +34,6 @@
 #include "data/data.hh"
 #include "backend/backend.hh"
 #include "kv/kv.hh"
-#include "kv/RedisKV.hh"
 #include "llfusexx.hh"
 #include "auth/CredentialFinder.hh"
 #include "misc/Track.hh"
@@ -195,8 +194,6 @@ public:
     std::string statfilesuffix;
     std::string statfilepath;
     std::string logfilepath;
-    std::string mdcachehost;
-    int mdcacheport;
     std::string mdcachedir;
     std::string mqtargethost;
     std::string mqidentity;
@@ -236,6 +233,7 @@ public:
       uint32_t nocache_graceperiod;
       int leasetime;
       int write_size_flush_interval;
+      int inmemory_inodes;
       std::vector<std::string> no_fsync_suffixes;
     } options_t;
 

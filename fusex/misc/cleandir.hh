@@ -1,7 +1,7 @@
 //------------------------------------------------------------------------------
-//! @file cacheconfig.hh
+//! @file cleandir.hh
 //! @author Andreas-Joachim Peters CERN
-//! @brief cacheconfig class
+//! @brief Class implementing some convenience functions for filenames
 //------------------------------------------------------------------------------
 
 /************************************************************************
@@ -22,29 +22,44 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef FUSE_CACHECONFIG_HH_
-#define FUSE_CACHECONFIG_HH_
 
-enum cache_t {
-  INVALID, MEMORY, DISK
-};
+#ifndef FUSE_CLEANDIR_HH_
+#define FUSE_CLEANDIR_HH_
 
-struct cacheconfig {
-  cache_t type;
-  std::string location;
-  uint64_t total_file_cache_size; // total size of the file cache
-  uint64_t total_file_cache_inodes; // max number of inodes in the file cache
-  uint64_t per_file_cache_max_size; // per file maximum file cache size
-  uint64_t total_file_journal_size; // total size of the journal cache
-  uint64_t per_file_journal_max_size; // per file maximum journal cache size
-  uint64_t default_read_ahead_size; // default start value for read-ahead
-  uint64_t max_inflight_read_ahead_buffer_size; // max size of read-ahead-buffers
-  uint64_t max_inflight_write_buffer_size; // max size of write buffers
-  uint64_t max_read_ahead_size; // max value for read-ahead block size
-  size_t max_read_ahead_blocks; // max  number of read-ahead blocks
-  float clean_threshold; // filling percentage of the cache disk when we start to delete
-  std::string read_ahead_strategy; // string values 'none', 'static', 'dynamic'
-  std::string journal;
+#include <sys/types.h>
+#include <dirent.h>
+
+class cleandir
+{
+public:
+  static int remove(const std::string& path)
+  {
+    int retc = 0;
+    DIR* dirp = ::opendir(path.c_str());
+    struct dirent* item;
+
+    if (!dirp) {
+      return -1;
+    }
+
+    while ((item = ::readdir(dirp)) != NULL) {
+      std::string name = item->d_name;
+      std::string dpath = path;
+
+      if ((name == ".") ||
+          (name == "..")) {
+        continue;
+      }
+
+      dpath += "/";
+      dpath += name;
+      retc |= ::unlink(dpath.c_str());
+    }
+
+    ::closedir(dirp);
+    retc |= ::rmdir(path.c_str());
+    return retc;
+  }
 };
 
 #endif

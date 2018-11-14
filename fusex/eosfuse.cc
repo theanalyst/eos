@@ -33,6 +33,7 @@
 #include "eosfuse.hh"
 #include "misc/fusexrdlogin.hh"
 #include "misc/filename.hh"
+#include "misc/cleandir.hh"
 #include <string>
 #include <map>
 #include <set>
@@ -52,6 +53,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sched.h>
+
 #ifdef RICHACL_FOUND
 extern "C" { /* this 'extern "C"' brace will eventually end up in the .h file, then it can be removed */
 #include <sys/richacl.h>
@@ -61,6 +63,7 @@ extern "C" { /* this 'extern "C"' brace will eventually end up in the .h file, t
 
 #include <sys/resource.h>
 #include <sys/types.h>
+
 #include "common/XattrCompat.hh"
 
 #ifdef __APPLE__
@@ -484,6 +487,10 @@ EosFuse::run(int argc, char* argv[], void* userdata)
       root["options"]["write-size-flush-interval"] = 5;
     }
 
+    if (!root["options"].isMember("inmemory-inodes")) {
+      root["options"]["inmemory-inodes"] = 65536;
+    }
+
     // xrdcl default options
     XrdCl::DefaultEnv::GetEnv()->PutInt("TimeoutResolution", 1);
     XrdCl::DefaultEnv::GetEnv()->PutInt("ConnectionWindow", 10);
@@ -589,6 +596,7 @@ EosFuse::run(int argc, char* argv[], void* userdata)
     config.options.no_hardlinks = root["options"]["no-link"].asInt();
     config.options.write_size_flush_interval =
       root["options"]["write-size-flush-interval"].asInt();
+    config.options.inmemory_inodes = root["options"]["inmemory-inodes"].asInt();
 
     if (config.options.no_xattr) {
       disable_xattr();
@@ -613,8 +621,6 @@ EosFuse::run(int argc, char* argv[], void* userdata)
       root["recovery"]["write-open-noserver"].asInt();
     config.recovery.write_open_noserver_retrywindow =
       root["recovery"]["write-open-noserver-retrywindow"].asInt();
-    config.mdcachehost = root["mdcachehost"].asString();
-    config.mdcacheport = root["mdcacheport"].asInt();
     config.mdcachedir = root["mdcachedir"].asString();
     config.mqtargethost = root["mdzmqtarget"].asString();
     config.mqidentity = root["mdzmqidentity"].asString();
@@ -670,13 +676,6 @@ EosFuse::run(int argc, char* argv[], void* userdata)
 #endif
 
     // disallow conflicting options
-    if (!config.mdcachedir.empty() && (config.mdcacheport != 0 ||
-                                       !config.mdcachehost.empty())) {
-      std::cerr <<
-                "Options (mdcachehost, mdcacheport) conflict with (mdcachedir) - only one type of mdcache is allowed."
-                << std::endl;
-      exit(EINVAL);
-    }
 
     if (config.mdcachedir.length()) {
       // add the instance name to all cache directories
@@ -690,10 +689,6 @@ EosFuse::run(int argc, char* argv[], void* userdata)
     // default settings
     if (!config.statfilesuffix.length()) {
       config.statfilesuffix = "stats";
-    }
-
-    if (!config.mdcacheport) {
-      config.mdcacheport = 6379;
     }
 
     if (!config.mqtargethost.length()) {
@@ -729,6 +724,8 @@ EosFuse::run(int argc, char* argv[], void* userdata)
       char spid[16];
       snprintf(spid, sizeof(spid), "%d", getpid());
       config.mqidentity += spid;
+      config.mdcachedir += "/";
+      config.mdcachedir += suuid;
     }
 
     if (config.options.fdlimit > 0) {
@@ -755,12 +752,6 @@ EosFuse::run(int argc, char* argv[], void* userdata)
     config.options.fdlimit = nofilelimit.rlim_cur;
     // data caching configuration
     cconfig.type = cache_t::INVALID;
-
-    if (!config.mdcachehost.length() && !config.mdcachedir.length()) {
-      cconfig.clean_on_startup = true;
-    } else {
-      cconfig.clean_on_startup = false;
-    }
 
     if (root["cache"]["type"].asString() == "disk") {
       cconfig.type = cache_t::DISK;
@@ -953,6 +944,19 @@ EosFuse::run(int argc, char* argv[], void* userdata)
                 cconfig.location.c_str(), errno);
         exit(-1);
       }
+
+    {
+      char list[64];
+
+      if (::listxattr(cconfig.location.c_str(), list, sizeof(list))) {
+        if (errno == ENOTSUP) {
+          fprintf(stderr,
+                  "error: eosxd requires XATTR support on partition %s errno=%d\n",
+                  cconfig.location.c_str(), errno);
+          exit(-1);
+        }
+      }
+    }
 
     cconfig.total_file_cache_size = root["cache"]["size-mb"].asUInt64() * 1024 *
                                     1024;
@@ -1195,8 +1199,6 @@ EosFuse::run(int argc, char* argv[], void* userdata)
     }
 
 #endif
-    // initialize mKV in case no cache is configured to act as no-op
-    mKV.reset(new RedisKV());
 #ifdef ROCKSDB_FOUND
 
     if (!config.mdcachedir.empty()) {
@@ -1212,20 +1214,6 @@ EosFuse::run(int argc, char* argv[], void* userdata)
     }
 
 #endif
-
-    if (config.mdcachehost.length()) {
-      RedisKV* kv = new RedisKV();
-
-      if (kv->connect(config.name, config.mdcachehost, config.mdcacheport ?
-                      config.mdcacheport : 6379) != 0) {
-        fprintf(stderr, "error: failed to connect to md cache - connect-string=%s",
-                config.mdcachehost.c_str());
-        exit(EINVAL);
-      }
-
-      mKV.reset(kv);
-    }
-
     mdbackend.init(config.hostport, config.remotemountdir,
                    config.options.md_backend_timeout,
                    config.options.md_backend_put_timeout);
@@ -1302,7 +1290,7 @@ EosFuse::run(int argc, char* argv[], void* userdata)
       eos_static_warning("sss-keytabfile         := %s", config.ssskeytab.c_str());
     }
 
-    eos_static_warning("options                := backtrace=%d md-cache:%d md-enoent:%.02f md-timeout:%.02f md-put-timeout:%.02f data-cache:%d mkdir-sync:%d create-sync:%d symlink-sync:%d rename-sync:%d rmdir-sync:%d flush:%d flush-w-open:%d locking:%d no-fsync:%s ol-mode:%03o show-tree-size:%d free-md-asap:%d core-affinity:%d no-xattr:%d no-link:%d nocache-graceperiod:%d rm-rf-protect-level=%d rm-rf-bulk=%d t(lease)=%d t(size-flush)=%d",
+    eos_static_warning("options                := backtrace=%d md-cache:%d md-enoent:%.02f md-timeout:%.02f md-put-timeout:%.02f data-cache:%d mkdir-sync:%d create-sync:%d symlink-sync:%d rename-sync:%d rmdir-sync:%d flush:%d flush-w-open:%d locking:%d no-fsync:%s ol-mode:%03o show-tree-size:%d free-md-asap:%d core-affinity:%d no-xattr:%d no-link:%d nocache-graceperiod:%d rm-rf-protect-level=%d rm-rf-bulk=%d t(lease)=%d t(size-flush)=%d ino(in-mem)=%d",
                        config.options.enable_backtrace,
                        config.options.md_kernelcache,
                        config.options.md_kernelcache_enoent_timeout,
@@ -1328,7 +1316,8 @@ EosFuse::run(int argc, char* argv[], void* userdata)
                        config.options.rm_rf_protect_levels,
                        config.options.rm_rf_bulk,
                        config.options.leasetime,
-                       config.options.write_size_flush_interval
+                       config.options.write_size_flush_interval,
+                       config.options.inmemory_inodes
                       );
     eos_static_warning("cache                  := rh-type:%s rh-nom:%d rh-max:%d rh-blocks:%d max-rh-buffer=%lu max-wr-buffer=%lu tot-size=%ld tot-ino=%ld dc-loc:%s jc-loc:%s clean-thrs:%02f%%%",
                        cconfig.read_ahead_strategy.c_str(),
@@ -1405,6 +1394,12 @@ EosFuse::run(int argc, char* argv[], void* userdata)
     eos_static_warning("eosxd stopped version %s - FUSE protocol version %d",
                        VERSION, FUSE_USE_VERSION);
     eos_static_warning("********************************************************************************");
+
+    if (cleandir::remove(EosFuse::Instance().Config().mdcachedir)) {
+      eos_static_err("failed to clean-up directory '%s' errno=%d",
+                     EosFuse::Instance().Config().mdcachedir.c_str(), errno);
+    }
+
     tDumpStatistic.join();
     tStatCirculate.join();
     tMetaCacheFlush.join();
@@ -1443,6 +1438,12 @@ EosFuse::umounthandler(int sig, siginfo_t* si, void* ctx)
 {
   eos::common::handleSignal(sig, si, ctx);
   std::string systemline = "fusermount -u -z ";
+
+  if (cleandir::remove(EosFuse::Instance().Config().mdcachedir)) {
+    fprintf(stderr, "error: failed to clean-up directory '%s' errno=%d\n",
+            EosFuse::Instance().Config().mdcachedir.c_str(), errno);
+  }
+
   systemline += EosFuse::Instance().Config().localmountdir;
   system(systemline.c_str());
   fprintf(stderr, "# umounthandler: executing %s", systemline.c_str());

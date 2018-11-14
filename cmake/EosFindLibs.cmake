@@ -62,7 +62,6 @@ if(NOT PACKAGEONLY)
   find_package(SparseHash REQUIRED)
   find_package(libevent REQUIRED)
   find_package(jsoncpp REQUIRED)
-  find_package(hiredis REQUIRED)
   find_package(bz2 REQUIRED)
 
   if (Linux)

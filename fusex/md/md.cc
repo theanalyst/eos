@@ -82,6 +82,7 @@ metad::init(backend* _mdbackend)
   XrdSysMutexHelper mLock(mdmap);
   update(req, mdmap[1], "", true);
   next_ino.init(EosFuse::Instance().getKV());
+  mdmap.init(EosFuse::Instance().getKV());
   dentrymessaging = false;
 }
 
@@ -276,19 +277,16 @@ metad::forget(fuse_req_t req, fuse_ino_t ino, int nlookup)
   }
 
   if (has_flush(ino)) {
-    stat.inodes_stacked_inc();
     eos_static_debug("flush - ino=%016x", ino);
     return 0;
   }
 
   if (pmd->cap_count()) {
-    stat.inodes_stacked_inc();
     eos_static_debug("caps %d - ino=%016x", pmd->cap_count(), ino);
     return 0;
   }
 
   if (pmd->opendir_is()) {
-    stat.inodes_stacked_inc();
     eos_static_debug("opendir %d - ino=%016x", pmd->opendir_is(), ino);
     return 0;
   }
@@ -1361,6 +1359,10 @@ metad::dump_md(shared_md md, bool lock)
   jsonstring += "}\n";
   jsonstring += "\ncap-cnt: ";
   jsonstring += capcnt;
+  jsonstring += "\nlru-prev: ";
+  jsonstring += std::to_string(md->lru_prev());
+  jsonstring += "\nlru_next: ";
+  jsonstring += std::to_string(md->lru_next());
   jsonstring += "\n";
 
   if (lock) {
@@ -2246,6 +2248,7 @@ void
 metad::mdstackfree(ThreadAssistant& assistant)
 {
   size_t cnt = 0;
+  int max_inodes = EosFuse::Instance().Config().options.inmemory_inodes;
 
   while (!assistant.terminationRequested()) {
     cnt++;
@@ -2278,6 +2281,45 @@ metad::mdstackfree(ThreadAssistant& assistant)
           }
         }
       }
+    }
+
+    if (!EosFuse::Instance().Config().mdcachedir.empty()) {
+      // level the inodes stored in memory and eventually swap out into kv store
+      int swap_out_inodes = 0 ;
+
+      do {
+        swap_out_inodes = mdmap.sizeTS() - stat.inodes_stacked() - max_inodes;
+
+        if (swap_out_inodes > 0) {
+          eos_static_debug("swap-out %d inodes", swap_out_inodes);
+          // grab the last lru inode and swap out
+          mdmap.Lock();
+
+          if (EOS_LOGS_DEBUG) {
+            mdmap.lru_dump();
+          }
+
+          uint64_t inode_to_swap = mdmap.lru_oldest();
+          eos_static_debug("swap-out ino=%#llx", inode_to_swap);
+
+          if (mdmap.count(inode_to_swap)) {
+            shared_md md = mdmap[inode_to_swap];
+            mdmap.lru_remove(inode_to_swap);
+            eos_static_debug("swap-out lru-removed ino=%#llx oldest=%#llx", inode_to_swap,
+                             mdmap.lru_oldest());
+            mdmap[inode_to_swap] = 0;
+
+            if (mdmap.swap_out(md)) {
+              eos_static_err("swap-out failed for ino=%#llx", inode_to_swap);
+            }
+          } else {
+            eos_static_err("swap-out missing ino=%#llx", inode_to_swap);
+            swap_out_inodes = 0;
+          }
+
+          mdmap.UnLock();
+        }
+      } while (swap_out_inodes > 0);
     }
   }
 
@@ -2903,4 +2945,338 @@ metad::vmap::backward(fuse_ino_t lookup)
   XrdSysMutexHelper mLock(mMutex);
   auto it = bwd_map.find(lookup);
   return (it == bwd_map.end()) ? 0 : it->second;
+}
+
+
+/* -------------------------------------------------------------------------- */
+size_t
+metad::pmap::sizeTS()
+{
+  XrdSysMutexHelper mLock(this);
+  return size();
+}
+
+/* -------------------------------------------------------------------------- */
+bool
+metad::pmap::retrieveOrCreateTS(fuse_ino_t ino, shared_md& ret)
+{
+  XrdSysMutexHelper mLock(this);
+
+  if (this->retrieve(ino, ret)) {
+    return false;
+  }
+
+  ret = std::make_shared<mdx>();
+
+  if (ino) {
+    (*this)[ino] = ret;
+  }
+
+  return true;
+}
+
+/* -------------------------------------------------------------------------- */
+bool
+metad::pmap::retrieveTS(fuse_ino_t ino, shared_md& ret)
+{
+  XrdSysMutexHelper mLock(this);
+  return this->retrieve(ino, ret);
+}
+
+/* -------------------------------------------------------------------------- */
+bool
+metad::pmap::retrieve(fuse_ino_t ino, shared_md& ret)
+{
+  auto it = this->find(ino);
+
+  if (it == this->end()) {
+    return false;
+  }
+
+  ret = it->second;
+  eos_static_info("retc=%x", ret);
+
+  if (!ret) {
+    ret = std::make_shared<mdx>();
+
+    // swap-in this inode
+    if (swap_in(ino, ret)) {
+      eos_static_crit("failed to swap-in ino=%#llx", ino);
+      return false;
+    }
+
+    // attach the new object
+    (*this)[ino] = ret;
+  }
+
+  // update lru entry whenever we retrieve something
+  lru_update(ino, ret);
+  return true;
+}
+
+/* -------------------------------------------------------------------------- */
+uint64_t
+metad::pmap::lru_oldest() const
+{
+  return lru_last;
+}
+
+/* -------------------------------------------------------------------------- */
+void
+metad::pmap::lru_add(fuse_ino_t ino, shared_md md)
+{
+  if (ino == 1) {
+    return;
+  }
+
+  md->set_lru_prev(lru_first);
+  md->set_lru_next(0);
+
+  // lru list insert with outside lock handling
+  if (this->count(lru_first)) {
+    // connect the new inode to the head of the lru list
+    (*this)[lru_first]->set_lru_next(ino);
+  }
+
+  lru_first = ino;
+
+  if (!lru_last) {
+    lru_last = ino;
+  }
+
+  if (EOS_LOGS_DEBUG)
+    eos_static_debug("ino=%#llx first=%#llx last=%#llx prev=%llx next=%#llx", ino,
+                     lru_first, lru_last, md->lru_prev(), md->lru_next());
+}
+
+/* -------------------------------------------------------------------------- */
+void
+metad::pmap::lru_remove(fuse_ino_t ino)
+{
+  if (ino == 1) {
+    return;
+  }
+
+  uint64_t prev = 0;
+  uint64_t next = 0;
+
+  // lru list handling with outside lock handling
+  if (this->count(ino)) {
+    shared_md smd = (*this)[ino];
+    prev = (*this)[ino]->lru_prev();
+    next = (*this)[ino]->lru_next();
+
+    if (!prev && !next) {
+      // this might have been swapped-in
+      //      return lru_add(ino, smd);
+    }
+
+    if (this->count(prev)) {
+      (*this)[prev]->set_lru_next(next);
+    }
+
+    if (this->count(next)) {
+      (*this)[next]->set_lru_prev(prev);
+      // move the end of the lru list
+    }
+
+    if (EOS_LOGS_DEBUG) {
+      eos_static_debug("last:%#llx => %#llx (prev=%#llx)", lru_last, next, prev);
+    }
+
+    if (!prev) {
+      lru_last = next;
+    }
+  }
+
+  if (EOS_LOGS_DEBUG)
+    eos_static_info("ino=%#llx first=%#llx last=%#llx prev=%#llx next=%#llx", ino,
+                    lru_first, lru_last, prev, next);
+}
+
+/* -------------------------------------------------------------------------- */
+void
+metad::pmap::lru_update(fuse_ino_t ino, shared_md md)
+{
+  if (ino == 1) {
+    return;
+  }
+
+  if (lru_first == ino) {
+    return;
+  }
+
+  // move an lru item to the head of the list
+  uint64_t prev = md->lru_prev();
+  uint64_t next = md->lru_next();
+
+  if (!prev && !next) {
+    // add swapped-out inode in front
+    if (EOS_LOGS_DEBUG) {
+      eos_static_debug("ino=%#llx adding swapped-out inode in front", ino);
+    }
+
+    return lru_add(ino, md);
+  }
+
+  if (this->count(prev)) {
+    (*this)[prev]->set_lru_next(next);
+  }
+
+  if (this->count(next)) {
+    (*this)[next]->set_lru_prev(prev);
+  }
+
+  if (this->count(lru_first)) {
+    (*this)[lru_first]->set_lru_next(ino);
+    md->set_lru_prev(lru_first);
+    md->set_lru_next(0);
+    lru_first = ino;
+  }
+
+  if (!prev) {
+    lru_last = next;
+  }
+
+  if (EOS_LOGS_DEBUG)
+    eos_static_info("ino=%#llx first=%#llx last=%#llx prev=%#llx next=%#llx", ino,
+                    lru_first, lru_last, prev, next);
+}
+
+/* -------------------------------------------------------------------------- */
+void
+metad::pmap::lru_dump()
+{
+  uint64_t start = lru_first;
+  std::stringstream ss;
+
+  do {
+    if (this->count(start)) {
+      shared_md md = (*this)[start];
+      ss << std::endl << std::hex << start << "[" << md->lru_next() << ".." <<
+         md->lru_prev() << "]" <<
+         std::endl;
+
+      if (start == md->lru_prev()) {
+        eos_static_crit("corruption in list");
+        break;
+      }
+
+      start = md->lru_prev();
+    } else {
+      start = 0;
+    }
+  } while (start);
+
+  eos_static_debug("%s first=%#llx last=%#llx", ss.str().c_str(), lru_first,
+                   lru_last);
+}
+
+
+
+/* -------------------------------------------------------------------------- */
+int
+metad::pmap::swap_out(shared_md md)
+{
+  // serialize an in-memory md object into the kv store
+  std::string mdstream;
+
+  if (!md->SerializeToString(&mdstream)) {
+    return EFAULT;
+  }
+
+  if (store) {
+    std::string md_key = "md.";
+    md_key += std::to_string(md->id());
+
+    if (store->put(md_key, mdstream)) {
+      return EIO;
+    }
+  }
+
+  EosFuse::Instance().mds.stats().inodes_stacked_inc();
+  return 0;
+}
+
+/* -------------------------------------------------------------------------- */
+int
+metad::pmap::swap_in(fuse_ino_t ino, shared_md md)
+{
+  // deserialize an in-memory md object from the kv store
+  std::string mdstream;
+
+  if (store) {
+    std::string md_key = "md.";
+    md_key += std::to_string(ino);
+
+    if (store->get(md_key, mdstream)) {
+      return EIO;
+    }
+
+    if (!md->ParseFromString(mdstream)) {
+      return EFAULT;
+    }
+  }
+
+  EosFuse::Instance().mds.stats().inodes_stacked_dec();
+  return 0;
+}
+
+/* -------------------------------------------------------------------------- */
+void
+metad::pmap::insertTS(fuse_ino_t ino, shared_md& md)
+{
+  XrdSysMutexHelper mLock(this);
+  bool exists = this->count(ino);
+  (*this)[ino] = md;
+  // lru list handling
+
+  if (!exists) {
+    lru_add(ino, md);
+  }
+
+  if (EOS_LOGS_DEBUG) {
+    lru_dump();
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+bool
+metad::pmap::eraseTS(fuse_ino_t ino)
+{
+  XrdSysMutexHelper mLock(this);
+  // lru list handling
+  lru_remove(ino);
+  return this->erase(ino) ? true : false;
+}
+
+/* -------------------------------------------------------------------------- */
+void
+metad::pmap::retrieveWithParentTS(fuse_ino_t ino, shared_md& md, shared_md& pmd)
+{
+  // Atomically retrieve md objects for an inode, and its parent.
+  while (true) {
+    // In this particular case, we need to first lock mdmap, and then
+    // md.. The following algorithm is meant to avoid deadlocks with code
+    // which locks md first, and then mdmap.
+    md.reset();
+    pmd.reset();
+    XrdSysMutexHelper mLock(this);
+
+    if (!retrieve(ino, md)) {
+      return; // ino not there, nothing to do
+    }
+
+    // md has been found. Can we lock it?
+    if (md->Locker().CondLock()) {
+      // Success!
+      retrieve(md->pid(), pmd);
+      md->Locker().UnLock();
+      return;
+    }
+
+    // Nope, unlock mdmap and try again.
+    mLock.UnLock();
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  }
 }

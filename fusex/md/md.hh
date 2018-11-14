@@ -35,6 +35,7 @@
 #include "common/Logging.hh"
 #include "common/RWMutex.hh"
 #include "common/AssistedThread.hh"
+#include "kv/kv.hh"
 #include "misc/FuseId.hh"
 #include "XrdSys/XrdSysPthread.hh"
 #include <memory>
@@ -43,6 +44,7 @@
 #include <deque>
 #include <vector>
 #include <atomic>
+#include <string>
 #include <exception>
 #include <stdexcept>
 #include <sys/statvfs.h>
@@ -77,6 +79,8 @@ public:
       cap_count_reset();
       refresh = false;
       inline_size = 0;
+      _lru_prev.store(0, std::memory_order_seq_cst);
+      _lru_next.store(0, std::memory_order_seq_cst);
     }
 
     mdx(fuse_ino_t ino) : mdx()
@@ -284,6 +288,24 @@ public:
       inline_size = inlinesize;
     }
 
+    void set_lru_prev(uint64_t prev)
+    {
+      _lru_prev.store(prev, std::memory_order_seq_cst);
+    }
+    void set_lru_next(uint64_t next)
+    {
+      _lru_next.store(next, std::memory_order_seq_cst);
+    }
+
+    uint64_t lru_prev() const
+    {
+      return _lru_prev.load();
+    }
+    uint64_t lru_next() const
+    {
+      return _lru_next.load();
+    }
+
   private:
     XrdSysMutex mLock;
     XrdSysCondVar mSync;
@@ -298,6 +320,9 @@ public:
     std::map<std::string, uint64_t> todelete;
     std::map<std::string, uint64_t> _local_children;
     std::set<std::string> _local_enoent;
+
+    std::atomic<uint64_t> _lru_prev;
+    std::atomic<uint64_t> _lru_next;
   };
 
   typedef std::shared_ptr<mdx> shared_md;
@@ -344,91 +369,45 @@ public:
   {
   public:
 
-    pmap() { }
+    pmap()
+    {
+      lru_first = 0;
+      lru_last = 0;
+      store = 0 ;
+    }
+
+    void init(kv* _kv)
+    {
+      store = _kv;
+    }
 
     virtual ~pmap() { }
 
-    bool retrieveOrCreateTS(fuse_ino_t ino, shared_md& ret)
-    {
-      XrdSysMutexHelper mLock(this);
-
-      if (this->retrieve(ino, ret)) {
-        return false;
-      }
-
-      ret = std::make_shared<mdx>();
-
-      if (ino) {
-        (*this)[ino] = ret;
-      }
-
-      return true;
-    }
-
     // TS stands for "thread-safe"
 
-    bool retrieveTS(fuse_ino_t ino, shared_md& ret)
-    {
-      XrdSysMutexHelper mLock(this);
-      return this->retrieve(ino, ret);
-    }
+    size_t sizeTS();
 
-    bool retrieve(fuse_ino_t ino, shared_md& ret)
-    {
-      auto it = this->find(ino);
+    bool retrieveOrCreateTS(fuse_ino_t ino, shared_md& ret);
+    bool retrieveTS(fuse_ino_t ino, shared_md& ret);
+    bool retrieve(fuse_ino_t ino, shared_md& ret);
+    void insertTS(fuse_ino_t ino, shared_md& md);
+    bool eraseTS(fuse_ino_t ino);
+    void retrieveWithParentTS(fuse_ino_t ino, shared_md& md, shared_md& pmd);
 
-      if (it == this->end()) {
-        return false;
-      }
+    uint64_t lru_oldest() const;
+    void lru_add(fuse_ino_t ino, shared_md md);
+    void lru_remove(fuse_ino_t ino);
+    void lru_update(fuse_ino_t ino, shared_md md);
+    void lru_dump();
 
-      ret = it->second;
-      return true;
-    }
+    int swap_out(shared_md md);
+    int swap_in(fuse_ino_t ino, shared_md md);
 
-    // TS stands for "thread-safe"
 
-    void insertTS(fuse_ino_t ino, shared_md& md)
-    {
-      XrdSysMutexHelper mLock(this);
-      (*this)[ino] = md;
-    }
-
-    // TS stands for "thread-safe"
-
-    bool eraseTS(fuse_ino_t ino)
-    {
-      XrdSysMutexHelper mLock(this);
-      return this->erase(ino) ? true : false;
-    }
-
-    void retrieveWithParentTS(fuse_ino_t ino, shared_md& md, shared_md& pmd)
-    {
-      // Atomically retrieve md objects for an inode, and its parent.
-      while (true) {
-        // In this particular case, we need to first lock mdmap, and then
-        // md.. The following algorithm is meant to avoid deadlocks with code
-        // which locks md first, and then mdmap.
-        md.reset();
-        pmd.reset();
-        XrdSysMutexHelper mLock(this);
-
-        if (!retrieve(ino, md)) {
-          return; // ino not there, nothing to do
-        }
-
-        // md has been found. Can we lock it?
-        if (md->Locker().CondLock()) {
-          // Success!
-          retrieve(md->pid(), pmd);
-          md->Locker().UnLock();
-          return;
-        }
-
-        // Nope, unlock mdmap and try again.
-        mLock.UnLock();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-      }
-    }
+  private:
+    uint64_t lru_first;
+    uint64_t lru_last;
+    kv* store;
   };
 
   //----------------------------------------------------------------------------
