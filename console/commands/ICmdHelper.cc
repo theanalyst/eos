@@ -213,3 +213,16 @@ ICmdHelper::AddRouteInfo(std::string& cmd)
 
   cmd += oss.str();
 }
+
+// #TODO put tokenizer and token as class field
+bool
+ICmdHelper::next_token(eos::common::StringTokenizer& tokenizer,
+                       std::string& token)
+{
+  if (!(token = tokenizer.GetSToken()).length()) {
+    return false;
+  } else {
+    return true;
+  }
+}
+
