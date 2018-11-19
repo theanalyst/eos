@@ -86,6 +86,7 @@ add_library(
   proc/admin/Backup.cc
   proc/admin/Config.cc
   proc/admin/Debug.cc
+  proc/admin/DebugCmd.cc proc/admin/DebugCmd.hh
   proc/admin/FsCmd.cc
   proc/admin/Fsck.cc
   proc/admin/Fusex.cc
@@ -129,6 +130,8 @@ add_library(
   proc/user/Version.cc
   proc/user/Who.cc
   proc/user/Whoami.cc
+  proc/admin/GroupCmd.cc proc/admin/GroupCmd.hh
+  proc/admin/IoCmd.cc proc/admin/IoCmd.hh
   Quota.cc
   Scheduler.cc
   Vid.cc

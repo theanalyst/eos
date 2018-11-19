@@ -179,6 +179,45 @@ Report::Dump(XrdOucString& out, bool dumpsec)
 
   out += "\n";
 }
+void
+Report::Dump(std::string& out, bool dumpsec)
+{
+  char dumpline[16384];
+  snprintf(dumpline, sizeof(dumpline) - 1,
+           "uid=%d gid=%d rb=%llu rb_min=%llu rb_max=%llu rb_sigma=%.02f "
+           "rv_op=%llu rvb_min=%llu rvb_max=%llu rvb_sum=%llu rvb_sigma=%.02f "
+           "rs_op=%llu rsb_min=%llu rsb_max=%llu rsb_sum=%llu rsb_sigma=%.02f "
+           "rc_min=%lu rc_max=%lu rc_sum=%lu rc_sigma=%.02f "
+           "wb=%llu wb_min=%llu wb_max=%llu wb_sigma=%.02f sfwdb=%llu "
+           "sbwdb=%llu sxlfwdb=%llu sxlbwdb=%llu nrc=%llu nwc=%llu "
+           "nfwds=%llu nbwds=%llu nxlfwds=%llu nxlbwds=%llu rt=%.02f rvt=%.02f"
+           "wt=%.02f osize=%llu csize=%llu ots=%llu.%llu cts=%llu.%llu "
+           "td=%s host=%s logid=%s",
+           uid, gid, rb, rb_min, rb_max, rb_sigma,
+           rv_op, rvb_min, rvb_max, rvb_sum, rvb_sigma,
+           rs_op, rsb_min, rsb_max, rsb_sum, rsb_sigma,
+           rc_min, rc_max, rc_sum, rc_sigma,
+           wb, wb_min, wb_max, wb_sigma, sfwdb,
+           sbwdb, sxlfwdb, sxlbwdb, nrc, nwc,
+           nfwds, nbwds, nxlfwds, nxlbwds, rt, rvt,
+           wt, osize, csize, ots, otms, cts, ctms,
+           td.c_str(), host.c_str(), logid.c_str());
+  out += dumpline;
+
+  if (dumpsec) {
+    snprintf(dumpline, sizeof(dumpline) - 1,
+             " sec_prot=\"%s\" sec_name=\"%s\" sec_host=\"%s\" "
+             "sec_vorg=\"%s\" sec_grps=\"%s\" sec_role=\"%s\" "
+             "sec_info=\"%s\" sec_app=\"%s\"",
+             sec_prot.c_str(), sec_name.c_str(), sec_host.c_str(),
+             sec_vorg.c_str(), sec_grps.c_str(), sec_role.c_str(),
+             sec_info.c_str(), sec_app.c_str());
+    out += dumpline;
+  }
+
+  out += "\n";
+}
+
 /*----------------------------------------------------------------------------*/
 
 EOSCOMMONNAMESPACE_END

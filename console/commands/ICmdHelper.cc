@@ -213,3 +213,21 @@ ICmdHelper::AddRouteInfo(std::string& cmd)
 
   cmd += oss.str();
 }
+
+
+bool
+ICmdHelper::next_token(eos::common::StringTokenizer& tokenizer,
+                       std::string& token)
+{
+  const char* tmp = tokenizer.GetToken();
+
+  //token = (tmp ? tmp : "");
+  if (!tmp) {
+    token = "";
+    return false;
+  } else {
+    token = tmp;
+    return true;
+  }
+}
+

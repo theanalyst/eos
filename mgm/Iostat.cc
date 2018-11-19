@@ -898,6 +898,447 @@ Iostat::PrintOut(XrdOucString& out, bool summary, bool details,
   Mutex.UnLock();
 }
 
+void
+Iostat::PrintOut(std::string& out, bool summary, bool details,
+                 bool monitoring, bool numerical, bool top,
+                 bool domain, bool apps)
+{
+  Mutex.Lock();
+  std::string format_s = (!monitoring ? "s" : "os");
+  std::string format_ss = (!monitoring ? "-s" : "os");
+  std::string format_l = (!monitoring ? "+l" : "ol");
+  std::string format_ll = (!monitoring ? "l." : "ol");
+  std::vector<std::string> tags;
+
+  for (auto tit = IostatUid.begin(); tit != IostatUid.end(); ++tit) {
+    tags.push_back(tit->first);
+  }
+
+  std::sort(tags.begin(), tags.end());
+
+  if (summary) {
+    TableFormatterBase table;
+    TableData table_data;
+
+    if (!monitoring) {
+      table.SetHeader({
+        std::make_tuple("who", 3, format_ss),
+        std::make_tuple("io value", 24, format_s),
+        std::make_tuple("sum", 8, format_l),
+        std::make_tuple("1min", 8, format_l),
+        std::make_tuple("5min", 8, format_l),
+        std::make_tuple("1h", 8, format_l),
+        std::make_tuple("24h", 8, format_l)
+      });
+    } else {
+      table.SetHeader({
+        std::make_tuple("uid", 0, format_ss),
+        std::make_tuple("gid", 0, format_s),
+        std::make_tuple("measurement", 0, format_s),
+        std::make_tuple("total", 0, format_l),
+        std::make_tuple("60s", 0, format_l),
+        std::make_tuple("300s", 0, format_l),
+        std::make_tuple("3600s", 0, format_l),
+        std::make_tuple("86400s", 0, format_l)
+      });
+    }
+
+    for (const auto& elem : tags) {
+      const char* tag = elem.c_str();
+      table_data.emplace_back();
+      TableRow& row = table_data.back();
+      row.emplace_back("all", format_ss);
+
+      if (monitoring) {
+        row.emplace_back("all", format_s);
+      }
+
+      row.emplace_back(tag, format_s);
+      row.emplace_back(GetTotal(tag), format_l);
+      row.emplace_back(GetTotalAvg60(tag), format_l);
+      row.emplace_back(GetTotalAvg300(tag), format_l);
+      row.emplace_back(GetTotalAvg3600(tag), format_l);
+      row.emplace_back(GetTotalAvg86400(tag), format_l);
+    }
+
+    table.AddRows(table_data);
+    out += table.GenerateTable(HEADER).c_str();
+    table_data.clear();
+    //! UDP Popularity Broadcast Target
+    {
+      XrdSysMutexHelper mLock(BroadcastMutex);
+
+      if (!mUdpPopularityTarget.empty()) {
+        TableFormatterBase table_udp;
+
+        if (!monitoring) {
+          table_udp.SetHeader({
+            std::make_tuple("UDP Popularity Broadcast Target", 32, format_ss)
+          });
+        } else {
+          table_udp.SetHeader({ std::make_tuple("udptarget", 0, format_ss) });
+        }
+
+        for (const auto& elem : mUdpPopularityTarget) {
+          table_data.emplace_back();
+          table_data.back().emplace_back(elem.c_str(), format_ss);
+        }
+
+        table_udp.AddRows(table_data);
+        out += table_udp.GenerateTable(HEADER).c_str();
+      }
+    }
+  }
+
+  if (details) {
+    std::vector<std::tuple<std::string, std::string, unsigned long long,
+        double, double, double, double>> uidout, gidout;
+    //! User statistic
+    TableFormatterBase table_user;
+    TableData table_data;
+
+    if (!monitoring) {
+      table_user.SetHeader({
+        std::make_tuple("user", 4, format_ss),
+        std::make_tuple("io value", 24, format_s),
+        std::make_tuple("sum", 8, format_l),
+        std::make_tuple("1min", 8, format_l),
+        std::make_tuple("5min", 8, format_l),
+        std::make_tuple("1h", 8, format_l),
+        std::make_tuple("24h", 8, format_l)
+      });
+    } else {
+      table_user.SetHeader({
+        std::make_tuple("uid", 0, format_ss),
+        std::make_tuple("measurement", 0, format_s),
+        std::make_tuple("total", 0, format_l),
+        std::make_tuple("60s", 0, format_l),
+        std::make_tuple("300s", 0, format_l),
+        std::make_tuple("3600s", 0, format_l),
+        std::make_tuple("86400s", 0, format_l)
+      });
+    }
+
+    for (auto tuit = IostatAvgUid.begin(); tuit != IostatAvgUid.end(); tuit++) {
+      for (auto it = tuit->second.begin(); it != tuit->second.end(); ++it) {
+        std::string username;
+
+        if (numerical) {
+          username = std::to_string(it->first);
+        } else {
+          int terrc = 0;
+          username = eos::common::Mapping::UidToUserName(it->first, terrc);
+        }
+
+        uidout.emplace_back(std::make_tuple(username, tuit->first.c_str(),
+                                            IostatUid[tuit->first][it->first],
+                                            it->second.GetAvg60(), it->second.GetAvg300(),
+                                            it->second.GetAvg3600(), it->second.GetAvg86400()));
+      }
+    }
+
+    std::sort(uidout.begin(), uidout.end());
+
+    for (auto& tup : uidout) {
+      table_data.emplace_back();
+      TableRow& row = table_data.back();
+      row.emplace_back(std::get<0>(tup), format_ss);
+      row.emplace_back(std::get<1>(tup), format_s);
+      row.emplace_back(std::get<2>(tup), format_l);
+      row.emplace_back(std::get<3>(tup), format_l);
+      row.emplace_back(std::get<4>(tup), format_l);
+      row.emplace_back(std::get<5>(tup), format_l);
+      row.emplace_back(std::get<6>(tup), format_l);
+    }
+
+    table_user.AddRows(table_data);
+    out += table_user.GenerateTable(HEADER).c_str();
+    table_data.clear();
+    //! Group statistic
+    TableFormatterBase table_group;
+
+    if (!monitoring) {
+      table_group.SetHeader({
+        std::make_tuple("group", 5, format_ss),
+        std::make_tuple("io value", 24, format_s),
+        std::make_tuple("sum", 8, format_l),
+        std::make_tuple("1min", 8, format_l),
+        std::make_tuple("5min", 8, format_l),
+        std::make_tuple("1h", 8, format_l),
+        std::make_tuple("24h", 8, format_l)
+      });
+    } else {
+      table_group.SetHeader({
+        std::make_tuple("gid", 0, format_ss),
+        std::make_tuple("measurement", 0, format_s),
+        std::make_tuple("total", 0, format_l),
+        std::make_tuple("60s", 0, format_l),
+        std::make_tuple("300s", 0, format_l),
+        std::make_tuple("3600s", 0, format_l),
+        std::make_tuple("86400s", 0, format_l)
+      });
+    }
+
+    for (auto tgit = IostatAvgGid.begin(); tgit != IostatAvgGid.end(); tgit++) {
+      for (auto it = tgit->second.begin(); it != tgit->second.end(); ++it) {
+        std::string groupname;
+
+        if (numerical) {
+          groupname = std::to_string(it->first);
+        } else {
+          int terrc = 0;
+          groupname = eos::common::Mapping::GidToGroupName(it->first, terrc);
+        }
+
+        gidout.emplace_back(std::make_tuple(groupname, tgit->first.c_str(),
+                                            IostatGid[tgit->first][it->first],
+                                            it->second.GetAvg60(), it->second.GetAvg300(),
+                                            it->second.GetAvg3600(), it->second.GetAvg86400()));
+      }
+    }
+
+    std::sort(gidout.begin(), gidout.end());
+
+    for (auto& tup : gidout) {
+      table_data.emplace_back();
+      TableRow& row = table_data.back();
+      row.emplace_back(std::get<0>(tup), format_ss);
+      row.emplace_back(std::get<1>(tup), format_s);
+      row.emplace_back(std::get<2>(tup), format_l);
+      row.emplace_back(std::get<3>(tup), format_l);
+      row.emplace_back(std::get<4>(tup), format_l);
+      row.emplace_back(std::get<5>(tup), format_l);
+      row.emplace_back(std::get<6>(tup), format_l);
+    }
+
+    table_group.AddRows(table_data);
+    out += table_group.GenerateTable(HEADER).c_str();
+  }
+
+  if (top) {
+    TableFormatterBase table;
+    TableData table_data;
+
+    if (!monitoring) {
+      table.SetHeader({
+        std::make_tuple("io value", 18, format_ss),
+        std::make_tuple("ranking by", 10, format_s),
+        std::make_tuple("rank", 8, format_ll),
+        std::make_tuple("who", 4, format_s),
+        std::make_tuple("sum", 8, format_l)
+      });
+    } else {
+      table.SetHeader({
+        std::make_tuple("measurement", 0, format_ss),
+        std::make_tuple("rank", 0, format_ll),
+        std::make_tuple("uid", 0, format_s),
+        std::make_tuple("gid", 0, format_s),
+        std::make_tuple("counter", 0, format_l)
+      });
+    }
+
+    for (auto it = tags.begin(); it != tags.end(); ++it) {
+      std::vector <std::tuple<unsigned long long, uid_t>> uidout, gidout;
+      table.AddSeparator();
+
+      // by uid name
+      for (auto sit : IostatUid[*it]) {
+        uidout.push_back(std::make_tuple(sit.second, sit.first));
+      }
+
+      std::sort(uidout.begin(), uidout.end());
+      std::reverse(uidout.begin(), uidout.end());
+      int topplace = 0;
+
+      for (auto sit : uidout) {
+        topplace++;
+        uid_t uid = std::get<1>(sit);
+        unsigned long long counter = std::get<0>(sit);
+        std::string username;
+
+        if (numerical) {
+          username = std::to_string(uid);
+        } else {
+          int terrc = 0;
+          username = eos::common::Mapping::UidToUserName(uid, terrc);
+        }
+
+        table_data.emplace_back();
+        TableRow& row = table_data.back();
+        row.emplace_back(it->c_str(), format_ss);
+
+        if (!monitoring) {
+          row.emplace_back("user", format_s);
+        }
+
+        row.emplace_back(topplace, format_ll);
+        row.emplace_back(username, format_s);
+
+        if (monitoring) {
+          row.emplace_back("", "", "", true);
+        }
+
+        row.emplace_back(counter, format_l);
+      }
+
+      // by gid name
+      for (auto sit : IostatGid[*it]) {
+        gidout.push_back(std::make_tuple(sit.second, sit.first));
+      }
+
+      std::sort(gidout.begin(), gidout.end());
+      std::reverse(gidout.begin(), gidout.end());
+      topplace = 0;
+
+      for (auto sit : gidout) {
+        topplace++;
+        uid_t gid = std::get<1>(sit);
+        unsigned long long counter = std::get<0>(sit);
+        std::string groupname;
+
+        if (numerical) {
+          groupname = std::to_string(gid);
+        } else {
+          int terrc = 0;
+          groupname = eos::common::Mapping::GidToGroupName(gid, terrc);
+        }
+
+        table_data.emplace_back();
+        TableRow& row = table_data.back();
+        row.emplace_back(it->c_str(), format_ss);
+
+        if (!monitoring) {
+          row.emplace_back("group", format_s);
+        }
+
+        row.emplace_back(topplace, format_ll);
+
+        if (monitoring) {
+          row.emplace_back("", "", "", true);
+        }
+
+        row.emplace_back(groupname, format_s);
+        row.emplace_back(counter, format_l);
+      }
+    }
+
+    table.AddRows(table_data);
+    out += table.GenerateTable(HEADER).c_str();
+  }
+
+  if (domain) {
+    TableFormatterBase table;
+    TableData table_data;
+
+    if (!monitoring) {
+      table.SetHeader({
+        std::make_tuple("io", 3, format_ss),
+        std::make_tuple("domain", 24, format_s),
+        std::make_tuple("1min", 8, format_l),
+        std::make_tuple("5min", 8, format_l),
+        std::make_tuple("1h", 8, format_l),
+        std::make_tuple("24h", 8, format_l)
+      });
+    } else {
+      table.SetHeader({
+        std::make_tuple("measurement", 0, format_ss),
+        std::make_tuple("domain", 0, format_s),
+        std::make_tuple("60s", 0, format_l),
+        std::make_tuple("300s", 0, format_l),
+        std::make_tuple("3600s", 0, format_l),
+        std::make_tuple("86400s", 0, format_l)
+      });
+    }
+
+    // IO out bytes
+    for (auto it = IostatAvgDomainIOrb.begin(); it != IostatAvgDomainIOrb.end();
+         ++it) {
+      table_data.emplace_back();
+      TableRow& row = table_data.back();
+      std::string name = !monitoring ? "out" : "domain_io_out";
+      row.emplace_back(name, format_ss);
+      row.emplace_back(it->first.c_str(), format_s);
+      row.emplace_back(it->second.GetAvg60(), format_l);
+      row.emplace_back(it->second.GetAvg300(), format_l);
+      row.emplace_back(it->second.GetAvg3600(), format_l);
+      row.emplace_back(it->second.GetAvg86400(), format_l);
+    }
+
+    // IO in bytes
+    for (auto it = IostatAvgDomainIOwb.begin(); it != IostatAvgDomainIOwb.end();
+         ++it) {
+      table_data.emplace_back();
+      TableRow& row = table_data.back();
+      std::string name = !monitoring ? "in" : "domain_io_in";
+      row.emplace_back(name, format_ss);
+      row.emplace_back(it->first.c_str(), format_s);
+      row.emplace_back(it->second.GetAvg60(), format_l);
+      row.emplace_back(it->second.GetAvg300(), format_l);
+      row.emplace_back(it->second.GetAvg3600(), format_l);
+      row.emplace_back(it->second.GetAvg86400(), format_l);
+    }
+
+    table.AddRows(table_data);
+    out += table.GenerateTable(HEADER).c_str();
+  }
+
+  if (apps) {
+    TableFormatterBase table;
+    TableData table_data;
+
+    if (!monitoring) {
+      table.SetHeader({
+        std::make_tuple("io", 3, format_ss),
+        std::make_tuple("application", 24, format_s),
+        std::make_tuple("1min", 8, format_l),
+        std::make_tuple("5min", 8, format_l),
+        std::make_tuple("1h", 8, format_l),
+        std::make_tuple("24h", 8, format_l)
+      });
+    } else {
+      table.SetHeader({
+        std::make_tuple("measurement", 0, format_ss),
+        std::make_tuple("application", 0, format_s),
+        std::make_tuple("60s", 0, format_l),
+        std::make_tuple("300s", 0, format_l),
+        std::make_tuple("3600s", 0, format_l),
+        std::make_tuple("86400s", 0, format_l)
+      });
+    }
+
+    // IO out bytes
+    for (auto it = IostatAvgAppIOrb.begin(); it != IostatAvgAppIOrb.end(); ++it) {
+      table_data.emplace_back();
+      TableRow& row = table_data.back();
+      std::string name = (!monitoring ? "out" : "app_io_out");
+      row.emplace_back(name, format_ss);
+      row.emplace_back(it->first.c_str(), format_s);
+      row.emplace_back(it->second.GetAvg60(), format_l);
+      row.emplace_back(it->second.GetAvg300(), format_l);
+      row.emplace_back(it->second.GetAvg3600(), format_l);
+      row.emplace_back(it->second.GetAvg86400(), format_l);
+    }
+
+    // IO in bytes
+    for (auto it = IostatAvgAppIOwb.begin(); it != IostatAvgAppIOwb.end(); ++it) {
+      table_data.emplace_back();
+      TableRow& row = table_data.back();
+      std::string name = (!monitoring ? "in" : "app_io_in");
+      row.emplace_back(name, format_ss);
+      row.emplace_back(it->first.c_str(), format_s);
+      row.emplace_back(it->second.GetAvg60(), format_l);
+      row.emplace_back(it->second.GetAvg300(), format_l);
+      row.emplace_back(it->second.GetAvg3600(), format_l);
+      row.emplace_back(it->second.GetAvg86400(), format_l);
+    }
+
+    table.AddRows(table_data);
+    out += table.GenerateTable(HEADER).c_str();
+  }
+
+  Mutex.UnLock();
+}
+
 /* ------------------------------------------------------------------------- */
 void
 Iostat::PrintNs(XrdOucString& out, XrdOucString option)
@@ -1279,6 +1720,8 @@ Iostat::PrintNs(XrdOucString& out, XrdOucString option)
     PopularityMutex.UnLock();
   }
 }
+
+
 
 //------------------------------------------------------------------------------
 // Save current uid/gid counters to a dump file
