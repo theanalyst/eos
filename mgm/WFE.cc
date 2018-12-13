@@ -1564,7 +1564,6 @@ WFE::Job::DoIt(bool issync, std::string& errorMsg, const char* const ininfo)
   return retc;
 }
 
-
 /*----------------------------------------------------------------------------*/
 /**
  * @brief Handles "proto" method events

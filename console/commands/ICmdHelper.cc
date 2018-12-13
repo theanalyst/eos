@@ -214,7 +214,6 @@ ICmdHelper::AddRouteInfo(std::string& cmd)
   cmd += oss.str();
 }
 
-
 bool
 ICmdHelper::next_token(eos::common::StringTokenizer& tokenizer,
                        std::string& token)
