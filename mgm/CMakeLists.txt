@@ -250,7 +250,7 @@ add_library(EosMgmHttp MODULE
 
 target_link_libraries(
   EosMgmHttp PUBLIC
-  XrdHttpUtils
+  XrdHttp-4
   eosCommon
   eosCommonServer
 )
