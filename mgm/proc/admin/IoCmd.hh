@@ -1,10 +1,11 @@
+//------------------------------------------------------------------------------
 // File: IoCmd.hh
 // Author: Fabio Luchetti - CERN
 //------------------------------------------------------------------------------
 
 /************************************************************************
  * EOS - the CERN Disk Storage System                                   *
- * Copyright (C) 2017 CERN/Switzerland                                  *
+ * Copyright (C) 2018 CERN/Switzerland                                  *
  *                                                                      *
  * This program is free software: you can redistribute it and/or modify *
  * it under the terms of the GNU General Public License as published by *
@@ -56,7 +57,6 @@ public:
   eos::console::ReplyProto ProcessRequest() noexcept override;
 
 private:
-
   //----------------------------------------------------------------------------
   //! Execute stat subcommand
   //!
@@ -76,16 +76,7 @@ private:
                    eos::console::ReplyProto& reply);
 
   //----------------------------------------------------------------------------
-  //! Execute stat subcommand
-  //!
-  //! @param disable disable subcommand proto object
-  //! @param reply reply proto object
-  //----------------------------------------------------------------------------
-  int DisableSubcmd(const eos::console::IoProto_DisableProto& disable,
-                    eos::console::ReplyProto& reply);
-
-  //----------------------------------------------------------------------------
-  //! Execute stat subcommand
+  //! Execute report subcommand
   //!
   //! @param report report subcommand proto object
   //! @param reply reply proto object
@@ -94,19 +85,13 @@ private:
                    eos::console::ReplyProto& reply);
 
   //----------------------------------------------------------------------------
-  //! Execute stat subcommand
+  //! Execute ns subcommand
   //!
   //! @param ns ns subcommand proto object
   //! @param reply reply proto object
   //----------------------------------------------------------------------------
   int NsSubcmd(const eos::console::IoProto_NsProto& ns,
                eos::console::ReplyProto& reply);
-
-
-
-
 };
-
-
 
 EOSMGMNAMESPACE_END

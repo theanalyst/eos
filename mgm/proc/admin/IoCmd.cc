@@ -5,7 +5,7 @@
 
 /************************************************************************
  * EOS - the CERN Disk Storage System                                   *
- * Copyright (C) 2017 CERN/Switzerland                                  *
+ * Copyright (C) 2018 CERN/Switzerland                                  *
  *                                                                      *
  * This program is free software: you can redistribute it and/or modify *
  * it under the terms of the GNU General Public License as published by *
@@ -48,10 +48,6 @@ IoCmd::ProcessRequest() noexcept
     EnableSubcmd(io.enable(), reply);
     break;
 
-  case eos::console::IoProto::kDisable:
-    DisableSubcmd(io.disable(), reply);
-    break;
-
   case eos::console::IoProto::kReport:
     ReportSubcmd(io.report(), reply);
     break;
@@ -68,11 +64,15 @@ IoCmd::ProcessRequest() noexcept
   return reply;
 }
 
+//------------------------------------------------------------------------------
+// Execute stat subcommand
+//------------------------------------------------------------------------------
 int IoCmd::StatSubcmd(const eos::console::IoProto_StatProto& stat,
                       eos::console::ReplyProto& reply)
 {
   // If nothing is selected, we show the summary information
   if (!(stat.apps() | stat.domain() | stat.top() | stat.details())) {
+    // @todo(faluchet): i think summary is not used at all. Is it still needed?
     //stat.set_summary(true);
     eos_static_info("io stat");
     gOFS->IoStats->PrintOut(stdOut, true, stat.details(), stat.monitoring(),
@@ -85,56 +85,112 @@ int IoCmd::StatSubcmd(const eos::console::IoProto_StatProto& stat,
                             stat.top(), stat.domain(), stat.apps());
   }
 
+  // @todo(faluchet): to answer your question. In this particular case it's not needed.
+  // It all depends on you if you need to pass the return code further down. The same
+  // also applies for the rest of the subcommands.
   return SFS_OK; //TOCK is this needed?
 }
 
+//------------------------------------------------------------------------------
+// Execute enable subcommand
+//------------------------------------------------------------------------------
 int IoCmd::EnableSubcmd(const eos::console::IoProto_EnableProto& enable,
                         eos::console::ReplyProto& reply)
 {
-  if ((!enable.reports()) && (!enable.namespacex())) {
-    if (enable.upd_address().length()) {
-      if (gOFS->IoStats->AddUdpTarget(enable.upd_address().c_str())) {
-        stdOut += ("success: enabled IO udp target " + enable.upd_address()).c_str();
-      } else {
-        stdErr += ("error: IO udp target was not configured " +
-                   enable.upd_address()).c_str();
-        retc = EINVAL;
-      }
-    } else {
-      if (enable.popularity()) {
-        gOFS->IoStats->Start(); // always enable collection otherwise we don't get anything for popularity reporting
-
-        if (gOFS->IoStats->StartPopularity()) {
-          stdOut += "success: enabled IO popularity collection";
+  if (enable.switchh()) {
+    if ((!enable.reports()) && (!enable.namespacex())) {
+      if (enable.upd_address().length()) {
+        if (gOFS->IoStats->AddUdpTarget(enable.upd_address().c_str())) {
+          stdOut += ("success: enabled IO udp target " + enable.upd_address()).c_str();
         } else {
-          stdErr += "error: IO popularity collection already enabled";
+          stdErr += ("error: IO udp target was not configured " +
+                     enable.upd_address()).c_str();
           retc = EINVAL;
         }
       } else {
-        if (gOFS->IoStats->StartCollection()) {
-          stdOut += "success: enabled IO report collection";
+        if (enable.popularity()) {
+          // Always enable collection otherwise we don't get anything for
+          // popularity reporting
+          gOFS->IoStats->Start();
+
+          if (gOFS->IoStats->StartPopularity()) {
+            stdOut += "success: enabled IO popularity collection";
+          } else {
+            stdErr += "error: IO popularity collection already enabled";
+            retc = EINVAL;
+          }
         } else {
-          stdErr += "error: IO report collection already enabled";
+          if (gOFS->IoStats->StartCollection()) {
+            stdOut += "success: enabled IO report collection";
+          } else {
+            stdErr += "error: IO report collection already enabled";
+            retc = EINVAL;
+          }
+        }
+      }
+    } else {
+      if (enable.reports()) {
+        if (gOFS->IoStats->StartReport()) {
+          stdOut += "success: enabled IO report store";
+        } else {
+          stdErr += "error: IO report store already enabled";
+          retc = EINVAL;
+        }
+      }
+
+      if (enable.namespacex()) {
+        if (gOFS->IoStats->StartReportNamespace()) {
+          stdOut += "success: enabled IO report namespace";
+        } else {
+          stdErr += "error: IO report namespace already enabled";
           retc = EINVAL;
         }
       }
     }
   } else {
-    if (enable.reports()) {
-      if (gOFS->IoStats->StartReport()) {
-        stdOut += "success: enabled IO report store";
+    if ((!enable.reports()) && (!enable.namespacex())) {
+      if (enable.upd_address().length()) {
+        if (gOFS->IoStats->RemoveUdpTarget(enable.upd_address().c_str())) {
+          stdOut += ("success: disabled IO udp target " + enable.upd_address()).c_str();
+        } else {
+          stdErr += ("error: IO udp target was not configured " +
+                     enable.upd_address()).c_str();
+          retc = EINVAL;
+        }
       } else {
-        stdErr += "error: IO report store already enabled";
-        retc = EINVAL;
+        if (enable.popularity()) {
+          if (gOFS->IoStats->StopPopularity()) {
+            stdOut += "success: disabled IO popularity collection";
+          } else {
+            stdErr += "error: IO popularity collection already disabled";
+            retc = EINVAL;
+          }
+        } else {
+          if (gOFS->IoStats->StopCollection()) {
+            stdOut += "success: disabled IO report collection";
+          } else {
+            stdErr += "error: IO report collection already disabled";
+            retc = EINVAL;
+          }
+        }
       }
-    }
+    } else {
+      if (enable.reports()) {
+        if (gOFS->IoStats->StopReport()) {
+          stdOut += "success: disabled IO report store";
+        } else {
+          stdErr += "error: IO report store already enabled";
+          retc = EINVAL;
+        }
+      }
 
-    if (enable.namespacex()) {
-      if (gOFS->IoStats->StartReportNamespace()) {
-        stdOut += "success: enabled IO report namespace";
-      } else {
-        stdErr += "error: IO report namespace already enabled";
-        retc = EINVAL;
+      if (enable.namespacex()) {
+        if (gOFS->IoStats->StopReportNamespace()) {
+          stdOut += "success: disabled IO report namespace";
+        } else {
+          stdErr += "error: IO report namespace already disabled";
+          retc = EINVAL;
+        }
       }
     }
   }
@@ -142,58 +198,9 @@ int IoCmd::EnableSubcmd(const eos::console::IoProto_EnableProto& enable,
   return SFS_OK;
 }
 
-int IoCmd::DisableSubcmd(const eos::console::IoProto_DisableProto& disable,
-                         eos::console::ReplyProto& reply)
-{
-  if ((!disable.reports()) && (!disable.namespacex())) {
-    if (disable.upd_address().length()) {
-      if (gOFS->IoStats->RemoveUdpTarget(disable.upd_address().c_str())) {
-        stdOut += ("success: disabled IO udp target " + disable.upd_address()).c_str();
-      } else {
-        stdErr += ("error: IO udp target was not configured " +
-                   disable.upd_address()).c_str();
-        retc = EINVAL;
-      }
-    } else {
-      if (disable.popularity()) {
-        if (gOFS->IoStats->StopPopularity()) {
-          stdOut += "success: disabled IO popularity collection";
-        } else {
-          stdErr += "error: IO popularity collection already disabled";
-          retc = EINVAL;
-        }
-      } else {
-        if (gOFS->IoStats->StopCollection()) {
-          stdOut += "success: disabled IO report collection";
-        } else {
-          stdErr += "error: IO report collection already disabled";
-          retc = EINVAL;
-        }
-      }
-    }
-  } else {
-    if (disable.reports()) {
-      if (gOFS->IoStats->StopReport()) {
-        stdOut += "success: disabled IO report store";
-      } else {
-        stdErr += "error: IO report store already enabled";
-        retc = EINVAL;
-      }
-    }
-
-    if (disable.namespacex()) {
-      if (gOFS->IoStats->StopReportNamespace()) {
-        stdOut += "success: disabled IO report namespace";
-      } else {
-        stdErr += "error: IO report namespace already disabled";
-        retc = EINVAL;
-      }
-    }
-  }
-
-  return SFS_OK;
-}
-
+//------------------------------------------------------------------------------
+// Execute report subcommand
+//------------------------------------------------------------------------------
 int IoCmd::ReportSubcmd(const eos::console::IoProto_ReportProto& report,
                         eos::console::ReplyProto& reply)
 {
@@ -204,6 +211,9 @@ int IoCmd::ReportSubcmd(const eos::console::IoProto_ReportProto& report,
   return retc;
 }
 
+//------------------------------------------------------------------------------
+// Execute ns subcommand
+//------------------------------------------------------------------------------
 int IoCmd::NsSubcmd(const eos::console::IoProto_NsProto& ns,
                     eos::console::ReplyProto& reply)
 {

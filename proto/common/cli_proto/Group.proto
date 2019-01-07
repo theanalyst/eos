@@ -14,7 +14,7 @@ message GroupProto {
     enum OutFormat {
       NONE                  = 0; //
       MONITORING            = 1; // [-m]
-      LONGER                = 2; // [-l]
+      LISTING               = 2; // [-l]
       IOGROUP               = 3; // [--io]
       IOFS                  = 4; // [--IO]
     }

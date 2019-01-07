@@ -10,7 +10,7 @@
  * This program is free software: you can redistribute it and/or modify *
  * it under the terms of the GNU General Public License as published by *
  * the Free Software Foundation, either version 3 of the License, or    *
- * (at your token) any later version.                                  *
+ * (at your token) any later version.                                   *
  *                                                                      *
  * This program is distributed in the hope that it will be useful,      *
  * but WITHOUT ANY WARRANTY; without even the implied warranty of       *
@@ -21,13 +21,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-
 #include "common/StringTokenizer.hh"
 #include "common/Path.hh"
 #include "console/ConsoleMain.hh"
 #include "console/commands/ICmdHelper.hh"
 
-int com_io_help();
+void com_io_help();
 
 //------------------------------------------------------------------------------
 //! Class IoHelper
@@ -59,7 +58,9 @@ public:
   bool ParseCommand(const char* arg) override;
 };
 
-
+//------------------------------------------------------------------------------
+// Parse command line input
+//------------------------------------------------------------------------------
 bool IoHelper::ParseCommand(const char* arg)
 {
   eos::console::IoProto* io = mReq.mutable_io();
@@ -71,7 +72,7 @@ bool IoHelper::ParseCommand(const char* arg)
     return false;
   }
 
-  /* one of { stat, ns, report, enable, disable } */
+  // one of { stat, ns, report, enable, disable }
   if (token == "stat") {
     eos::console::IoProto_StatProto* stat = io->mutable_stat();
 
@@ -108,6 +109,7 @@ bool IoHelper::ParseCommand(const char* arg)
         ns->set_last_week(true);
       } else if (token == "-f") {
         ns->set_hotfiles(true);
+        // @todo(faluchet) is this commented line still needed ?
         /* (token == "-100" || token == "-1000" || token == "-10000" || token == "-a" ) */
       } else if (token == "-100") {
         ns->set_count(eos::console::IoProto_NsProto::ONEHUNDRED);
@@ -128,8 +130,10 @@ bool IoHelper::ParseCommand(const char* arg)
 
     eos::console::IoProto_ReportProto* report = io->mutable_report();
     report->set_path(token);
-  } else if (token == "enable") {
+  } else if (token == "enable" || token == "disable") {
     eos::console::IoProto_EnableProto* enable = io->mutable_enable();
+    (token == "enable") ? (enable->set_switchh(true)) : (enable->set_switchh(
+          false));
 
     while (next_token(tokenizer, token)) {
       if (token == "-r") {
@@ -143,26 +147,6 @@ bool IoHelper::ParseCommand(const char* arg)
           return false;
         } else {
           enable->set_upd_address(token);
-        }
-      } else {
-        return false;
-      }
-    }
-  } else if (token == "disable") { // #TODO merge with enable
-    eos::console::IoProto_DisableProto* disable = io->mutable_disable();
-
-    while (next_token(tokenizer, token)) {
-      if (token == "-r") {
-        disable->set_reports(true);
-      } else if (token == "-p") {
-        disable->set_popularity(true);
-      } else if (token == "-n") {
-        disable->set_namespacex(true);
-      } else if (token == "--udp") {
-        if (!next_token(tokenizer, token) || (token.find("-") == 0)) {
-          return false;
-        } else {
-          disable->set_upd_address(token);
         }
       } else {
         return false;
@@ -199,7 +183,10 @@ int com_protoio(char* arg)
   return global_retc;
 }
 
-int com_io_help()
+//------------------------------------------------------------------------------
+// Print help message
+//------------------------------------------------------------------------------
+void com_io_help()
 {
   std::ostringstream oss;
   oss
@@ -246,6 +233,4 @@ int com_io_help()
       << std::endl
       << std::endl;
   std::cerr << oss.str() << std::endl;
-  global_retc = EINVAL;
-  return (0);
 }
