@@ -359,7 +359,13 @@ Storage::Publish()
                                              mFsVect[i]->getIOPS());
           success &= mFsVect[i]->SetDouble("stat.disk.bw",
                                            mFsVect[i]->getSeqBandwidth()); // in MB
-          success &= mFsVect[i]->SetLongLong("stat.http.port", gOFS.mHttpdPort);
+
+	  if (getenv("EOSFSTXRDHTTP")) {
+	    success &= mFsVect[i]->SetLongLong("stat.http.port", strtoull(getenv("EOSFSTXRDHTTP"),0,10));
+	  } else {
+	    success &= mFsVect[i]->SetLongLong("stat.http.port", gOFS.mHttpdPort);
+	  }
+
           {
             // we have to set something which is not empty to update the value
             if (!r_open_hotfiles.length()) {

@@ -115,7 +115,7 @@ EOSFSTNAMESPACE_BEGIN
 // Constructor
 //------------------------------------------------------------------------------
 XrdFstOfs::XrdFstOfs() :
-  eos::common::LogId(), mHostName(NULL), mHttpd(0),
+  eos::common::LogId(), mHostName(NULL),
   Simulate_IO_read_error(false), Simulate_IO_write_error(false),
   Simulate_XS_read_error(false), Simulate_XS_write_error(false),
   Simulate_FMD_open_error(false)
@@ -144,6 +144,8 @@ XrdFstOfs::XrdFstOfs() :
   gOFS.WOpenFid.set_deleted_key(0);
   gOFS.WNoDeleteOnCloseFid.clear_deleted_key();
   gOFS.WNoDeleteOnCloseFid.set_deleted_key(0);
+
+  setenv("EOSFSTOFS", std::to_string((unsigned long long)this).c_str(),1);
 }
 
 //------------------------------------------------------------------------------
@@ -151,9 +153,6 @@ XrdFstOfs::XrdFstOfs() :
 //------------------------------------------------------------------------------
 XrdFstOfs::~XrdFstOfs()
 {
-  if (mHttpd) {
-    delete mHttpd;
-  }
 }
 
 //------------------------------------------------------------------------------
@@ -723,10 +722,9 @@ XrdFstOfs::Configure(XrdSysError& Eroute, XrdOucEnv* envP)
     mHttpdPort = strtol(getenv("EOS_FST_HTTP_PORT"), 0, 10);
   }
 
-  mHttpd = new HttpServer(mHttpdPort);
-
-  if (mHttpd) {
-    mHttpd->Start();
+  Httpd.reset(new eos::fst::HttpServer(mHttpdPort));  
+  if (mHttpdPort) {
+    Httpd->Start();
   }
 
   eos_notice("FST_HOST=%s FST_PORT=%ld FST_HTTP_PORT=%d VERSION=%s RELEASE=%s KEYTABADLER=%s",
