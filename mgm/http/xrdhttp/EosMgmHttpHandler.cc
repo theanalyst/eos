@@ -60,14 +60,28 @@ EosMgmHttpHandler::ProcessReq(XrdHttpExtReq &req)
     response->AddHeader("Date",  eos::common::Timing::utctime(time(NULL)));
 
     auto headers = response->GetHeaders();
+
     for ( auto it = headers.begin(); it != headers.end(); ++it) {
-      if (it->first == "Content-Length") {
+      std::string key = it->first;
+      std::string val = it->second;
+      if (key == "Content-Length") {
 	// this is added by SendSimpleResp, don't add it here
 	continue;
       }
-      header += it->first;
+      if (mRedirectToHttps) {
+	if (key == "Location") {
+	  if (normalized_headers["xrd-http-prot"] == "https") {
+	    if (!normalized_headers.count("xrd-http-redirect-http") || 
+		(normalized_headers["xrd-http-redirect-http"] == "0") ) {
+	      // write http: as https:
+	      val.insert(4,"s");
+	    }
+	  }
+	}
+      }
+      header += key;
       header += ": ";
-      header += it->second;
+      header += val;
       header += "\r\n";
     }
 
@@ -91,6 +105,15 @@ EosMgmHttpHandler::Init(const char *cfgfile)
 {
   if (getenv("EOSMGMOFS")) {
     OFS = (XrdMgmOfs*) (strtoull(getenv("EOSMGMOFS"),0,10));
+
+    std::string cfg;
+    eos::common::StringConversion::LoadFileIntoString(cfgfile, cfg);
+
+    if (cfg.find("eos::mgm::http::redirect-to-https=1") != std::string::npos) {
+      mRedirectToHttps = true;
+    }
+
+    eos_static_notice("configuration: redirect-to-https:%d", mRedirectToHttps);
   }
   return 0;
 }
