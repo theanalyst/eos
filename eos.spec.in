@@ -478,6 +478,7 @@ The EOS shell client.
 /opt/eos/lib64/protobuf3/libprotobuf.so.15
 /opt/eos/xrootd/
 %endif
+%{_sysconfdir}/bash_completion.d/eos
 
 # This file is required by both the eos-fuse and eos-fusex package, therefore
 # to avoid any conflicts we distribute it with eos-client.
