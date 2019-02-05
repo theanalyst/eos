@@ -472,6 +472,7 @@ The EOS shell client.
 /opt/eos/xrootd/
 %endif
 %endif
+%{_sysconfdir}/bash_completion.d/eos
 
 # This file is required by both the eos-fuse and eos-fusex package, therefore
 # to avoid any conflicts we distribute it with eos-client.
