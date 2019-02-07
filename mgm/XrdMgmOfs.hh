@@ -1613,8 +1613,8 @@ public:
   int mGRPCPort; ///< port of the grpc server, default 50051
   int mFusexPort; ///< port of the FUSEX brocasz MQZ, default 1100
   bool mTapeAwareGcDefaultSpaceEnable; ///< Flag to mark if tape aware garbage collection should be enabled
-  TapeAwareGc& mTapeAwareGc; ///< Tape aware garbage collector
   eos::common::XrdConnPool mXrdConnPool; ///< XRD connection pool
+  TapeAwareGc mTapeAwareGc; ///< Tape aware garbage collector
 
 private:
   std::map<std::string, XrdMgmOfsDirectory*>

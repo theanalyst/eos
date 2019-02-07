@@ -185,7 +185,6 @@ XrdMgmOfs::XrdMgmOfs(XrdSysError* ep):
   mGRPCPort(50051),
   mFusexPort(1100),
   mTapeAwareGcDefaultSpaceEnable(false),
-  mTapeAwareGc(TapeAwareGc::instance()),
   mJeMallocHandler(new eos::common::JeMallocHandler()),
   mDoneOrderlyShutdown(false)
 {
