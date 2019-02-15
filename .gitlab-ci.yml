@@ -452,6 +452,8 @@ k8s_unit_test:
   dependencies:
     - cc7_docker_image_commit
   allow_failure: true
+  only:
+    - ci_on_k8s
   tags:
     - shell-with-docker
     - k8s_node
