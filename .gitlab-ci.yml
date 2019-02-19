@@ -457,7 +457,6 @@ k8s-unit-test:
     - shell-with-docker
     - k8s_node
 
-   
 
 unit_test:
   stage: test
