@@ -432,7 +432,7 @@ prod_docker_image_tag:
     - tags
 
 
-k8s_unit_test:
+k8s-unit-test:
   stage: test
   script:
     - cd /home/gitlab-runner
