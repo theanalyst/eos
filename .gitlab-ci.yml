@@ -6,7 +6,6 @@ stages:
   - clean
 
 
-
 before_script:
   - source gitlab-ci/export_branch.sh
   - echo "Exporting BRANCH=${BRANCH}"
