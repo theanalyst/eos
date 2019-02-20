@@ -170,15 +170,8 @@ Storage::Storage(const char* meta_dir)
 
   mThreadSet.insert(tid);
   eos_info("starting filesystem communication thread");
-
-  if ((rc = XrdSysThread::Run(&tid, Storage::StartFsCommunicator,
-                              static_cast<void*>(this),
-                              0, "Communicator Thread"))) {
-    eos_crit("cannot start communicator thread");
-    mZombie = true;
-  }
-
-  mThreadSet.insert(tid);
+  mCommunicatorThread.reset(&Storage::Communicator, this);
+  mCommunicatorThread.setName("Communicator Thread");
   eos_info("starting daemon supervisor thread");
 
   if ((rc = XrdSysThread::Run(&tid, Storage::StartDaemonSupervisor,
@@ -638,17 +631,6 @@ Storage::StartFsVerify(void* pp)
 {
   Storage* storage = (Storage*) pp;
   storage->Verify();
-  return 0;
-}
-
-//------------------------------------------------------------------------------
-// Start communicator thread
-//------------------------------------------------------------------------------
-void*
-Storage::StartFsCommunicator(void* pp)
-{
-  Storage* storage = (Storage*) pp;
-  storage->Communicator();
   return 0;
 }
 

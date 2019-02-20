@@ -36,15 +36,6 @@
 EOSMGMNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
-// Return the single instance of this class
-//------------------------------------------------------------------------------
-TapeAwareGc &
-TapeAwareGc::instance() {
-  static TapeAwareGc s_instance;
-  return s_instance;
-}
-
-//------------------------------------------------------------------------------
 // Constructor
 //------------------------------------------------------------------------------
 TapeAwareGc::TapeAwareGc():
@@ -52,7 +43,8 @@ TapeAwareGc::TapeAwareGc():
   m_cachedDefaultSpaceMinFreeBytes(
     0, // Initial value
     TapeAwareGc::getDefaultSpaceMinNbFreeBytes, // Value getter
-    10) // Maximum age of cached value in seconds
+    10), // Maximum age of cached value in seconds
+  m_nbGarbageCollectedFiles(0)
 {
 }
 
@@ -63,17 +55,16 @@ TapeAwareGc::~TapeAwareGc()
 {
   try {
     // m_enabled is an std::atomic and is set within enable() after m_worker
-    if(m_enabled && m_worker) {
+    if (m_enabled && m_worker) {
       m_stop.setToTrue();
       m_worker->join();
     }
-  } catch(std::exception &ex) {
+  } catch (std::exception& ex) {
     eos_static_err("msg=\"%s\"", ex.what());
-  } catch(...) {
+  } catch (...) {
     eos_static_err("msg=\"Caught an unknown exception\"");
   }
 }
-
 
 //------------------------------------------------------------------------------
 // Enable the GC
@@ -83,15 +74,17 @@ TapeAwareGc::enable() noexcept
 {
   try {
     // Do nothing if the calling thread is not the first to call start()
-    if (m_enabledMethodCalled.test_and_set()) return;
+    if (m_enabledMethodCalled.test_and_set()) {
+      return;
+    }
 
     m_enabled = true;
-
-    std::function<void()> entryPoint = std::bind(&TapeAwareGc::workerThreadEntryPoint, this);
+    std::function<void()> entryPoint = std::bind(
+                                         &TapeAwareGc::workerThreadEntryPoint, this);
     m_worker.reset(new std::thread(entryPoint));
-  } catch(std::exception &ex) {
+  } catch (std::exception& ex) {
     eos_static_err("msg=\"%s\"", ex.what());
-  } catch(...) {
+  } catch (...) {
     eos_static_err("msg=\"Caught an unknown exception\"");
   }
 }
@@ -104,44 +97,49 @@ TapeAwareGc::workerThreadEntryPoint() noexcept
 {
   try {
     eos_static_info("msg=\"TapeAwareGc worker thread started\"");
-  } catch(...) {
+  } catch (...) {
   }
 
   do {
-    while(!m_stop && garbageCollect()) {};
-  } while(!m_stop.waitForTrue(std::chrono::seconds(10)));
+    while (!m_stop && tryToGarbageCollectASingleFile()) {
+      m_nbGarbageCollectedFiles++;
+    };
+  } while (!m_stop.waitForTrue(std::chrono::seconds(10)));
 }
 
 //------------------------------------------------------------------------------
 // Notify GC the specified file has been opened
 //------------------------------------------------------------------------------
 void
-TapeAwareGc::fileOpened(const std::string &path, const IFileMD &fmd) noexcept
+TapeAwareGc::fileOpened(const std::string& path, const IFileMD& fmd) noexcept
 {
-  if(!m_enabled) return;
+  if (!m_enabled) {
+    return;
+  }
 
   try {
     // Only consider files that have a CTA archive ID as only these can be
     // guaranteed to have been successfully closed, committed and intended for
     // tape storage
-    if(!fmd.hasAttribute("CTA_ArchiveFileId")) return;
+    if (!fmd.hasAttribute("CTA_ArchiveFileId")) {
+      return;
+    }
 
     const auto fid = fmd.getId();
     const std::string preamble = createLogPreamble(path, fid);
     eos_static_info(preamble.c_str());
-
     std::lock_guard<std::mutex> lruQueueLock(m_lruQueueMutex);
     const bool exceededBefore = m_lruQueue.maxQueueSizeExceeded();
     m_lruQueue.fileAccessed(fid);
 
     // Only log crossing the max queue size threshold - don't log each access
-    if(!exceededBefore && m_lruQueue.maxQueueSizeExceeded()) {
+    if (!exceededBefore && m_lruQueue.maxQueueSizeExceeded()) {
       eos_static_warning("%s msg=\"Tape aware max queue size has been passed - "
-        "new files will be ignored\"", preamble.c_str());
+                         "new files will be ignored\"", preamble.c_str());
     }
-  } catch(std::exception &ex) {
+  } catch (std::exception& ex) {
     eos_static_err("msg=\"%s\"", ex.what());
-  } catch(...) {
+  } catch (...) {
     eos_static_err("msg=\"Caught an unknown exception\"");
   }
 }
@@ -150,27 +148,29 @@ TapeAwareGc::fileOpened(const std::string &path, const IFileMD &fmd) noexcept
 // Notify GC a replica of the specified file has been committed
 //------------------------------------------------------------------------------
 void
-TapeAwareGc::fileReplicaCommitted(const std::string &path, const IFileMD &fmd) noexcept
+TapeAwareGc::fileReplicaCommitted(const std::string& path,
+                                  const IFileMD& fmd) noexcept
 {
-  if(!m_enabled) return;
+  if (!m_enabled) {
+    return;
+  }
 
   try {
     const auto fid = fmd.getId();
     const std::string preamble = createLogPreamble(path, fid);
     eos_static_info(preamble.c_str());
-
     std::lock_guard<std::mutex> lruQueueLock(m_lruQueueMutex);
     const bool exceededBefore = m_lruQueue.maxQueueSizeExceeded();
     m_lruQueue.fileAccessed(fid);
 
     // Only log crossing the max queue size threshold - don't log each access
-    if(!exceededBefore && m_lruQueue.maxQueueSizeExceeded()) {
+    if (!exceededBefore && m_lruQueue.maxQueueSizeExceeded()) {
       eos_static_warning("%s msg=\"Tape aware max queue size has been passed - "
-        "new files will be ignored\"", preamble.c_str());
+                         "new files will be ignored\"", preamble.c_str());
     }
-  } catch(std::exception &ex) {
+  } catch (std::exception& ex) {
     eos_static_err("msg=\"%s\"", ex.what());
-  } catch(...) {
+  } catch (...) {
     eos_static_err("msg=\"Caught an unknown exception\"");
   }
 }
@@ -186,7 +186,7 @@ TapeAwareGc::getDefaultSpaceMinNbFreeBytes() noexcept
 {
   try {
     return getSpaceConfigMinNbFreeBytes("default");
-  } catch(...) {
+  } catch (...) {
     return 0;
   }
 }
@@ -198,25 +198,32 @@ TapeAwareGc::getDefaultSpaceMinNbFreeBytes() noexcept
 // returned.
 //------------------------------------------------------------------------------
 uint64_t
-TapeAwareGc::getSpaceConfigMinNbFreeBytes(const std::string &name) noexcept
+TapeAwareGc::getSpaceConfigMinNbFreeBytes(const std::string& name) noexcept
 {
   try {
     std::string valueStr;
     {
       eos::common::RWMutexReadLock lock(FsView::gFsView.ViewMutex);
       const auto spaceItor = FsView::gFsView.mSpaceView.find(name);
-      if (FsView::gFsView.mSpaceView.end() == spaceItor) return 0;
-      if (nullptr == spaceItor->second) return 0;
-      const auto &space = *(spaceItor->second);
+
+      if (FsView::gFsView.mSpaceView.end() == spaceItor) {
+        return 0;
+      }
+
+      if (nullptr == spaceItor->second) {
+        return 0;
+      }
+
+      const auto& space = *(spaceItor->second);
       valueStr = space.GetConfigMember("tapeawaregc.minfreebytes");
     }
 
-    if(valueStr.empty()) {
-     return 0;
+    if (valueStr.empty()) {
+      return 0;
     } else {
       return toUint64(valueStr);
     }
-  } catch(...) {
+  } catch (...) {
     return 0;
   }
 }
@@ -225,14 +232,14 @@ TapeAwareGc::getSpaceConfigMinNbFreeBytes(const std::string &name) noexcept
 // Return the integer representation of the specified string
 //------------------------------------------------------------------------------
 uint64_t
-TapeAwareGc::toUint64(const std::string &str) noexcept
+TapeAwareGc::toUint64(const std::string& str) noexcept
 {
   try {
     uint64_t result = 0;
     std::istringstream iss(str);
     iss >> result;
     return result;
-  } catch(...) {
+  } catch (...) {
     return 0;
   }
 }
@@ -241,16 +248,16 @@ TapeAwareGc::toUint64(const std::string &str) noexcept
 // Return number of free bytes in the specified space
 //------------------------------------------------------------------------------
 uint64_t
-TapeAwareGc::getSpaceNbFreeBytes(const std::string &name)
+TapeAwareGc::getSpaceNbFreeBytes(const std::string& name)
 {
   eos::common::RWMutexReadLock lock(FsView::gFsView.ViewMutex);
   const auto spaceItor = FsView::gFsView.mSpaceView.find(name);
 
-  if(FsView::gFsView.mSpaceView.end() == spaceItor) {
+  if (FsView::gFsView.mSpaceView.end() == spaceItor) {
     throw SpaceNotFound(std::string("Cannot find space ") + name);
   }
 
-  if(nullptr == spaceItor->second) {
+  if (nullptr == spaceItor->second) {
     throw SpaceNotFound(std::string("Cannot find space ") + name);
   }
 
@@ -258,44 +265,50 @@ TapeAwareGc::getSpaceNbFreeBytes(const std::string &name)
 }
 
 //------------------------------------------------------------------------------
-// Garage collect
+// Try to garage collect a single file if necessary and possible
 //------------------------------------------------------------------------------
 bool
-TapeAwareGc::garbageCollect() noexcept
+TapeAwareGc::tryToGarbageCollectASingleFile() noexcept
 {
   try {
     bool defaultSpaceMinFreeBytesHasChanged = false;
     const auto defaultSpaceMinFreeBytes =
       m_cachedDefaultSpaceMinFreeBytes.get(defaultSpaceMinFreeBytesHasChanged);
-    if(defaultSpaceMinFreeBytesHasChanged) {
+
+    if (defaultSpaceMinFreeBytesHasChanged) {
       std::ostringstream msg;
-      msg << "msg=\"defaultSpaceMinFreeBytes has been changed to " << defaultSpaceMinFreeBytes << "\"";
+      msg << "msg=\"defaultSpaceMinFreeBytes has been changed to " <<
+          defaultSpaceMinFreeBytes << "\"";
       eos_static_info(msg.str().c_str());
     }
 
     try {
       // Return no file was garbage collected if there is still enough free space
       const auto actualDefaultSpaceNbFreeBytes = getSpaceNbFreeBytes("default");
-      if(actualDefaultSpaceNbFreeBytes >= defaultSpaceMinFreeBytes) return false;
-    } catch(SpaceNotFound) {
+
+      if (actualDefaultSpaceNbFreeBytes >= defaultSpaceMinFreeBytes) {
+        return false;
+      }
+    } catch (SpaceNotFound) {
       // Return no file was garbage collected if the space was not found
       return false;
     }
 
     IFileMD::id_t fid;
-
     {
       std::lock_guard<std::mutex> lruQueueLock(m_lruQueueMutex);
-      if (m_lruQueue.empty()) return false; // No file was garbage collected
+
+      if (m_lruQueue.empty()) {
+        return false;  // No file was garbage collected
+      }
+
       fid = m_lruQueue.getAndPopFidOfLeastUsedFile();
     }
-
     const auto result = stagerrmAsRoot(fid);
-
     std::ostringstream preamble;
     preamble << "fxid=" << std::hex << fid;
 
-    if(0 == result.retc()) {
+    if (0 == result.retc()) {
       std::ostringstream msg;
       msg << preamble.str() << " msg=\"Garbage collected file using stagerrm\"";
       eos_static_info(msg.str().c_str());
@@ -304,34 +317,31 @@ TapeAwareGc::garbageCollect() noexcept
       {
         std::ostringstream msg;
         msg << preamble.str() << " msg=\"Unable to stagerrm file at this time: "
-          << result.std_err() << "\"";
+            << result.std_err() << "\"";
         eos_static_info(msg.str().c_str());
       }
-
       // Prefetch before taking lock because metadata may not be in memory
       Prefetcher::prefetchFileMDAndWait(gOFS->eosView, fid);
       common::RWMutexReadLock lock(gOFS->eosViewRWMutex);
       const auto fmd = gOFS->eosFileService->getFileMD(fid);
 
-      if(nullptr != fmd && 0 != fmd->getContainerId()) {
+      if (nullptr != fmd && 0 != fmd->getContainerId()) {
         std::ostringstream msg;
         msg << preamble.str() << " msg=\"Putting file back in GC queue"
-          " because it is still in the namespace\"";
+            " because it is still in the namespace\"";
         eos_static_info(msg.str().c_str());
-
         std::lock_guard<std::mutex> lruQueueLock(m_lruQueueMutex);
         m_lruQueue.fileAccessed(fid);
       } else {
         std::ostringstream msg;
         msg << preamble.str() << " msg=\"Not returning file to GC queue"
-          " because it is not in the namespace\"";
+            " because it is not in the namespace\"";
         eos_static_info(msg.str().c_str());
       }
     }
-
-  } catch(std::exception &ex) {
+  } catch (std::exception& ex) {
     eos_static_err("msg=\"%s\"", ex.what());
-  } catch(...) {
+  } catch (...) {
     eos_static_err("msg=\"Caught an unknown exception\"");
   }
 
@@ -346,12 +356,10 @@ TapeAwareGc::stagerrmAsRoot(const IFileMD::id_t fid)
 {
   eos::common::Mapping::VirtualIdentity rootVid;
   eos::common::Mapping::Root(rootVid);
-
   eos::console::RequestProto req;
   eos::console::StagerRmProto* stagerRm = req.mutable_stagerrm();
   auto file = stagerRm->add_file();
   file->set_fid(fid);
-
   StagerRmCmd cmd(std::move(req), rootVid);
   return cmd.ProcessRequest();
 }
@@ -360,12 +368,10 @@ TapeAwareGc::stagerrmAsRoot(const IFileMD::id_t fid)
 // Return the preamble to be placed at the beginning of every log message
 //----------------------------------------------------------------------------
 std::string
-TapeAwareGc::createLogPreamble(const std::string &path, const IFileMD::id_t fid)
+TapeAwareGc::createLogPreamble(const std::string& path, const IFileMD::id_t fid)
 {
   std::ostringstream preamble;
-
   preamble << "fxid=" << std::hex << fid << " path=\"" << path << "\"";
-
   return preamble.str();
 }
 

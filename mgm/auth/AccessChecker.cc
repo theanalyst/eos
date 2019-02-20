@@ -34,15 +34,14 @@ EOSMGMNAMESPACE_BEGIN
 //
 // All information required to make a decision are passed to this function.
 //----------------------------------------------------------------------------
-bool AccessChecker::checkContainer(IContainerMD *cont,
-  const eos::IContainerMD::XAttrMap &linkedAttrs, int mode,
-  const eos::common::Mapping::VirtualIdentity &vid)
+bool AccessChecker::checkContainer(IContainerMD* cont,
+                                   const eos::IContainerMD::XAttrMap& linkedAttrs, int mode,
+                                   const eos::common::Mapping::VirtualIdentity& vid)
 {
   //----------------------------------------------------------------------------
   // Construct Acl object
   //----------------------------------------------------------------------------
   Acl acl(linkedAttrs, vid);
-
   //----------------------------------------------------------------------------
   // Delegate to method taking receiving acl object instead of linked xattrs
   //----------------------------------------------------------------------------
@@ -54,35 +53,35 @@ bool AccessChecker::checkContainer(IContainerMD *cont,
 // a decision are passed to this function, no external information should
 // be needed.
 //------------------------------------------------------------------------------
-bool AccessChecker::checkContainer(IContainerMD *cont, const Acl &acl,
-	int mode, const eos::common::Mapping::VirtualIdentity &vid)
+bool AccessChecker::checkContainer(IContainerMD* cont, const Acl& acl,
+                                   int mode, const eos::common::Mapping::VirtualIdentity& vid)
 {
   //----------------------------------------------------------------------------
   // Allow root to do anything
   //----------------------------------------------------------------------------
-  if(vid.uid == 0) {
-  	return true;
+  if (vid.uid == 0) {
+    return true;
   }
 
   //----------------------------------------------------------------------------
   // Always allow daemon to read / browse
   //----------------------------------------------------------------------------
-  if(vid.uid == DAEMONUID && (!(mode & W_OK)) ) {
-  	return true;
+  if (vid.uid == DAEMONUID && (!(mode & W_OK))) {
+    return true;
   }
 
   //----------------------------------------------------------------------------
   // A non-root attempting to write an immutable directory?
   //----------------------------------------------------------------------------
-  if(acl.HasAcl() && (!acl.IsMutable() && (mode & W_OK))) {
-  	return false;
+  if (acl.HasAcl() && (!acl.IsMutable() && (mode & W_OK))) {
+    return false;
   }
 
   //----------------------------------------------------------------------------
   // A non-root attempting to prepare, but no explicit Acl allowing prepare?
   //----------------------------------------------------------------------------
-  if( (mode & P_OK) && (!acl.HasAcl() || !acl.CanPrepare()) ) {
-  	return false;
+  if ((mode & P_OK) && (!acl.HasAcl() || !acl.CanPrepare())) {
+    return false;
   }
 
   //----------------------------------------------------------------------------
@@ -93,36 +92,51 @@ bool AccessChecker::checkContainer(IContainerMD *cont, const Acl &acl,
   //----------------------------------------------------------------------------
   // Access granted, or we have no Acls? We're done.
   //----------------------------------------------------------------------------
-  if(basicCheck || !acl.HasAcl()) {
-  	return basicCheck;
+  if (basicCheck || !acl.HasAcl()) {
+    return basicCheck;
   }
 
   //----------------------------------------------------------------------------
   // Basic check denied us access... let's see if we can recover through Acls
   //----------------------------------------------------------------------------
 
-  if ((mode & W_OK) && (!acl.CanWrite() && !cont->access(vid.uid, vid.gid, W_OK) )) {
+  //if ((mode & W_OK) && (!acl.CanWrite() && !cont->access(vid.uid, vid.gid, W_OK) ))
+  if ((mode & W_OK) &&
+      (acl.CanNotWrite() ||
+       (!acl.CanWrite() && !cont->access(vid.uid, vid.gid, W_OK))
+      )
+     ) {
     //--------------------------------------------------------------------------
     // Asking for write permission, and neither basic check, nor Acls grant us
     // write. Deny.
     //--------------------------------------------------------------------------
-  	return false;
+    return false;
   }
 
-  if ((mode & R_OK) && (!acl.CanRead() && !cont->access(vid.uid, vid.gid, R_OK) )) {
+  // if ((mode & R_OK) && (!acl.CanRead() && !cont->access(vid.uid, vid.gid, R_OK) ))
+  if ((mode & R_OK) &&
+      (acl.CanNotRead() ||
+       (!acl.CanRead() && !cont->access(vid.uid, vid.gid, R_OK))
+      )
+     ) {
     //--------------------------------------------------------------------------
     // Asking for read permission, and neither basic check, nor Acls grant us
     // read. Deny.
     //--------------------------------------------------------------------------
-  	return false;
+    return false;
   }
 
-  if ((mode & X_OK) && (!acl.CanBrowse() && !cont->access(vid.uid, vid.gid, X_OK) )) {
+  // if ((mode & X_OK) && (!acl.CanBrowse() && !cont->access(vid.uid, vid.gid, X_OK) ))
+  if ((mode & X_OK) &&
+      (acl.CanNotBrowse() ||
+       (!acl.CanBrowse() && !cont->access(vid.uid, vid.gid, X_OK))
+      )
+     ) {
     //--------------------------------------------------------------------------
     // Asking for browse permission, and neither basic check, nor Acls grant us
     // browse. Deny.
     //--------------------------------------------------------------------------
-  	return false;
+    return false;
   }
 
   //----------------------------------------------------------------------------
@@ -135,20 +149,20 @@ bool AccessChecker::checkContainer(IContainerMD *cont, const Acl &acl,
 // Check access to the given file. The parent directory of the file
 // needs to be checked separately!
 //------------------------------------------------------------------------------
-bool AccessChecker::checkFile(IFileMD *file, int mode,
-  const eos::common::Mapping::VirtualIdentity &vid)
+bool AccessChecker::checkFile(IFileMD* file, int mode,
+                              const eos::common::Mapping::VirtualIdentity& vid)
 {
   //----------------------------------------------------------------------------
   // We only check browse permissions for files, for now.
   //----------------------------------------------------------------------------
-  if( !(mode & X_OK) ) {
+  if (!(mode & X_OK)) {
     return true;
   }
 
   //----------------------------------------------------------------------------
   // root can do anything
   //----------------------------------------------------------------------------
-  if(vid.uid == 0) {
+  if (vid.uid == 0) {
     return true;
   }
 
@@ -157,17 +171,17 @@ bool AccessChecker::checkFile(IFileMD *file, int mode,
   gid_t gid = file->getCGid();
 
   // both uid and gid match? return OR-match
-  if(vid.uid == uid && vid.gid == gid) {
+  if (vid.uid == uid && vid.gid == gid) {
     return (flags & S_IXUSR) || (flags & S_IXGRP);
   }
 
   // user check
-  if(vid.uid == uid) {
+  if (vid.uid == uid) {
     return (flags & S_IXUSR);
   }
 
   // group check
-  if(vid.gid == gid) {
+  if (vid.gid == gid) {
     return (flags & S_IXGRP);
   }
 

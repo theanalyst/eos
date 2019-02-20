@@ -49,11 +49,15 @@
 EOSMGMNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
-//! Singleton class implementing a tape aware garbage collector
+//! A tape aware garbage collector
 //------------------------------------------------------------------------------
 class TapeAwareGc
 {
 public:
+  //----------------------------------------------------------------------------
+  //! Constructor
+  //----------------------------------------------------------------------------
+  TapeAwareGc();
 
   //----------------------------------------------------------------------------
   //! Destructor
@@ -63,17 +67,12 @@ public:
   //----------------------------------------------------------------------------
   //! Delete copy constructor
   //----------------------------------------------------------------------------
-  TapeAwareGc(const TapeAwareGc &) = delete;
+  TapeAwareGc(const TapeAwareGc&) = delete;
 
   //----------------------------------------------------------------------------
   //! Delete assignment operator
   //----------------------------------------------------------------------------
-  TapeAwareGc &operator=(const TapeAwareGc &) = delete;
-
-  //----------------------------------------------------------------------------
-  //! @return the single instance of this class
-  //----------------------------------------------------------------------------
-  static TapeAwareGc &instance();
+  TapeAwareGc& operator=(const TapeAwareGc&) = delete;
 
   //----------------------------------------------------------------------------
   //! Enable the GC
@@ -88,7 +87,7 @@ public:
   //! @param path file path
   //! @param fmd file metadata
   //----------------------------------------------------------------------------
-  void fileOpened(const std::string &path, const IFileMD &fmd) noexcept;
+  void fileOpened(const std::string& path, const IFileMD& fmd) noexcept;
 
   //----------------------------------------------------------------------------
   //! Notify GC a replica of the specified file has been committed
@@ -98,8 +97,8 @@ public:
   //! @param path file path
   //! @param fmd file metadata
   //----------------------------------------------------------------------------
-  void fileReplicaCommitted(const std::string &path, const IFileMD &fmd)
-    noexcept;
+  void fileReplicaCommitted(const std::string& path, const IFileMD& fmd)
+  noexcept;
 
 private:
 
@@ -107,19 +106,22 @@ private:
   //! Boolean flag that starts with a value of false and can have timed waits on
   //! its value becoming true.
   //----------------------------------------------------------------------------
-  class BlockingFlag {
+  class BlockingFlag
+  {
   public:
 
     //--------------------------------------------------------------------------
     //! Constructor
     //--------------------------------------------------------------------------
-    BlockingFlag(): m_flag(false) {
+    BlockingFlag(): m_flag(false)
+    {
     }
 
     //--------------------------------------------------------------------------
     //! Boolean operator
     //--------------------------------------------------------------------------
-    operator bool() const {
+    operator bool() const
+    {
       std::unique_lock<std::mutex> lock(m_mutex);
       return m_flag;
     }
@@ -131,22 +133,25 @@ private:
     //! @return True if the flag has been set to true, else false if a timeout
     //! has occurred
     //--------------------------------------------------------------------------
-    template<class Duration> bool waitForTrue(Duration duration) noexcept {
+    template<class Duration> bool waitForTrue(Duration duration) noexcept
+    {
       try {
         std::unique_lock<std::mutex> lock(m_mutex);
-        return m_cond.wait_for(lock, duration, [&]{return m_flag;});
-      } catch(std::exception &ex) {
+        return m_cond.wait_for(lock, duration, [&] {return m_flag;});
+      } catch (std::exception& ex) {
         eos_static_err("msg=\"%s\"", ex.what());
-      } catch(...) {
+      } catch (...) {
         eos_static_err("msg=\"Caught an unknown exception\"");
       }
+
       return false;
     }
 
     //--------------------------------------------------------------------------
     //! Sets the flag to true and wakes all threads waiting on waitForTrue()
     //--------------------------------------------------------------------------
-    void setToTrue() {
+    void setToTrue()
+    {
       std::unique_lock<std::mutex> lock(m_mutex);
       m_flag = true;
       m_cond.notify_all();
@@ -168,6 +173,7 @@ private:
     //! The flag
     //--------------------------------------------------------------------------
     bool m_flag;
+
   }; // class BlockingFlag
 
 
@@ -190,18 +196,13 @@ private:
   TapeAwareGcLru m_lruQueue;
 
   //----------------------------------------------------------------------------
-  //! @brief Private constructor to enforce only one instance
-  //----------------------------------------------------------------------------
-  TapeAwareGc();
-
-  //----------------------------------------------------------------------------
   //! Entry point for the GC worker thread
   //----------------------------------------------------------------------------
   void workerThreadEntryPoint() noexcept;
 
   /// Thrown when a given space cannot be found
   struct SpaceNotFound: public std::runtime_error {
-    SpaceNotFound(const std::string &msg): std::runtime_error(msg) {}
+    SpaceNotFound(const std::string& msg): std::runtime_error(msg) {}
   };
 
   //----------------------------------------------------------------------------
@@ -220,7 +221,7 @@ private:
   //!
   //! @param name The name of the space
   //----------------------------------------------------------------------------
-  static uint64_t getSpaceConfigMinNbFreeBytes(const std::string &name) noexcept;
+  static uint64_t getSpaceConfigMinNbFreeBytes(const std::string& name) noexcept;
 
   //----------------------------------------------------------------------------
   //! @return Number of free bytes in the specified space
@@ -228,14 +229,14 @@ private:
   //! @param name The name of the space
   //! @throw SpaceNotFound If the specified space annot be found
   //----------------------------------------------------------------------------
-  static uint64_t getSpaceNbFreeBytes(const std::string &name);
+  static uint64_t getSpaceNbFreeBytes(const std::string& name);
 
   //----------------------------------------------------------------------------
-  //! Garbage collect
+  //! Try to garbage collect a single file if necessary and possible
   //!
-  //! \return True if a file was garabage collected
+  //! \return True if a file was garbage collected
   //----------------------------------------------------------------------------
-  bool garbageCollect() noexcept;
+  bool tryToGarbageCollectASingleFile() noexcept;
 
   //----------------------------------------------------------------------------
   //! Execute stagerrm as user root
@@ -251,8 +252,8 @@ private:
   //! @param path file path
   //! @param fid EOS file identifier
   //----------------------------------------------------------------------------
-  static std::string createLogPreamble(const std::string &path,
-    const IFileMD::id_t fid);
+  static std::string createLogPreamble(const std::string& path,
+                                       const IFileMD::id_t fid);
 
   //----------------------------------------------------------------------------
   //! Returns the integer representation of the specified string or zero if the
@@ -261,7 +262,7 @@ private:
   //! @param str string to be parsed
   //! @return the integer representation of the specified string
   //----------------------------------------------------------------------------
-  static uint64_t toUint64(const std::string &str) noexcept;
+  static uint64_t toUint64(const std::string& str) noexcept;
 
   //----------------------------------------------------------------------------
   //! Cached value for the minum number of free bytes to be available in the
@@ -270,6 +271,12 @@ private:
   //! collecting disk replicas.
   //----------------------------------------------------------------------------
   TapeAwareGcCachedValue<uint64_t> m_cachedDefaultSpaceMinFreeBytes;
+
+  //----------------------------------------------------------------------------
+  //! Counter that is incremented each time a file is successfully garabage
+  //! collected.
+  //----------------------------------------------------------------------------
+  uint64_t m_nbGarbageCollectedFiles;
 };
 
 EOSMGMNAMESPACE_END

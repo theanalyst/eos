@@ -72,24 +72,34 @@ Acl::Acl(const char* path, XrdOucErrInfo& error,
 //------------------------------------------------------------------------------
 void
 Acl::SetFromAttrMap(const eos::IContainerMD::XAttrMap& attrmap,
-                    const eos::common::Mapping::VirtualIdentity& vid, eos::IFileMD::XAttrMap *attrmapF)
+                    const eos::common::Mapping::VirtualIdentity& vid,
+                    eos::IFileMD::XAttrMap* attrmapF)
 {
   bool evalUseracl;
   std::string useracl = "";
 
   if (attrmapF != NULL && attrmapF->count("user.acl") > 0) {
-      evalUseracl = true;
-      useracl = (*attrmapF)["user.acl"];
+    evalUseracl = true;
+    useracl = (*attrmapF)["user.acl"];
   } else {
     auto it = attrmap.find("user.acl");
     evalUseracl = (it != attrmap.end());
-    if (evalUseracl) useracl = it->second;
+
+    if (evalUseracl) {
+      useracl = it->second;
+    }
   }
 
   std::string sysAcl;
   auto it = attrmap.find("sys.acl");
-  if(it != attrmap.end()) {
+
+  if (it != attrmap.end()) {
     sysAcl = it->second;
+  }
+
+  if (EOS_LOGS_DEBUG) {
+    eos_static_debug("sysacl='%s' useracl='%s' evalUseracl=%d", sysAcl.c_str(),
+                     useracl.c_str(), evalUseracl);
   }
 
   Set(sysAcl, useracl, vid, evalUseracl);
@@ -121,11 +131,14 @@ Acl::Set(std::string sysacl, std::string useracl,
   // By default nothing is granted
   mHasAcl = false;
   mCanRead = false;
+  mCanNotRead = false;
   mCanWrite = false;
+  mCanNotWrite = false;
   mCanWriteOnce = false;
   mCanUpdate = false;
   mCanNotUpdate = false;
   mCanBrowse = false;
+  mCanNotBrowse = false;
   mCanChmod = false;
   mCanNotChmod = false;
   mCanChown = false;
@@ -136,6 +149,11 @@ Acl::Set(std::string sysacl, std::string useracl,
   mIsMutable = true;
   mCanArchive = false;
   mCanPrepare = false;
+
+  if (EOS_LOGS_DEBUG) {
+    eos_static_debug("acl='%s' length=%d allowUserAcl=%d", acl.c_str(),
+                     acl.length(), allowUserAcl);
+  }
 
   // no acl definition
   if (!acl.length()) {
@@ -180,6 +198,11 @@ Acl::Set(std::string sysacl, std::string useracl,
       groupname = "_INVAL_";
     }
 
+    if (EOS_LOGS_DEBUG) {
+      eos_static_debug("username '%s' groupname '%s'", username.c_str(),
+                       groupname.c_str());
+    }
+
     std::string usr_name_tag = "u:";
     usr_name_tag += username;
     usr_name_tag += ":";
@@ -190,8 +213,11 @@ Acl::Set(std::string sysacl, std::string useracl,
     std::string keytag = "k:";
     keytag += vid.key;
     keytag += ":";;
-    eos_static_debug("%s %s %s %s %s", usertag.c_str(), grouptag.c_str(),
-                     usr_name_tag.c_str(), grp_name_tag.c_str(), keytag.c_str());
+
+    if (EOS_LOGS_DEBUG) eos_static_debug("%s %s %s %s %s", usertag.c_str(),
+                                           grouptag.c_str(),
+                                           usr_name_tag.c_str(), grp_name_tag.c_str(), keytag.c_str());
+
     // Rule interpretation logic
     char denials[256];
     memset(denials, 0, sizeof(denials));        /* start with no denials */
@@ -250,7 +276,7 @@ Acl::Set(std::string sysacl, std::string useracl,
           }
 
           if (reallow && !(c == 'u' || c == 'd')) {
-            eos_static_debug("'+' Acl flag ignored for '%c'", c);
+            eos_static_info("'+' Acl flag ignored for '%c'", c);
           }
 
           switch (c) {
@@ -362,11 +388,13 @@ Acl::Set(std::string sysacl, std::string useracl,
 
     if (denials['r']) {
       mCanRead = false;
+      mCanNotRead = true;
       eos_static_debug("deny r");
     }
 
     if (denials['x']) {
       mCanBrowse = false;
+      mCanNotBrowse = true;
       eos_static_debug("deny x");
     }
 
@@ -392,9 +420,12 @@ Acl::Set(std::string sysacl, std::string useracl,
 
     if (denials['w']) {
       mCanWrite = false;
+      mCanNotWrite = true;
       eos_static_debug("deny w");
-    } else if (mCanWrite) {         /* if mCanWrite, grant mCanUpdate implicitely *unless* 'u' is denied */
-      mCanUpdate = true;            /* this could be reverted a few lines further down were 'u' denied */
+    } else if (
+      mCanWrite) {         /* if mCanWrite, grant mCanUpdate implicitely *unless* 'u' is denied */
+      mCanUpdate =
+        true;            /* this could be reverted a few lines further down were 'u' denied */
     }
 
     if (denials['d']) {
@@ -415,12 +446,14 @@ Acl::Set(std::string sysacl, std::string useracl,
 
     if (EOS_LOGS_DEBUG) {
       eos_static_debug(
-        "mCanRead %d mCanWrite %d mCanWriteOnce %d mCanUpdate %d mCanNotUpdate %d mCanBrowse %d mCanChmod %d mCanChown %d mCanNotDelete %d"
-        "mCanNotChmod %d mCanDelete %d mCanSetQuota %d mHasAcl %d mHasEgroup %d mIsMutable %d mCanArchive %d mCanPrepare %d",
-        mCanRead, mCanWrite, mCanWriteOnce, mCanUpdate, mCanNotUpdate, mCanBrowse, mCanChmod,
-        mCanChown, mCanNotDelete,
-        mCanNotChmod, mCanDelete, mCanSetQuota, mHasAcl, mHasEgroup, mIsMutable,
-        mCanArchive, mCanPrepare);
+        "mCanRead %d mCanNotRead %d mCanWrite %d mCanNotWrite %d mCanWriteOnce %d mCanUpdate %d mCanNotUpdate %d "
+        "mCanBrowse %d mCanNotBrowse %d mCanChmod %d mCanChown %d mCanNotDelete %d mCanNotChmod %d "
+        "mCanDelete %d mCanSetQuota %d mHasAcl %d mHasEgroup %d mIsMutable %d mCanArchive %d mCanPrepare %d",
+        mCanRead, mCanNotRead, mCanWrite, mCanNotWrite, mCanWriteOnce, mCanUpdate,
+        mCanNotUpdate,
+        mCanBrowse, mCanNotBrowse, mCanChmod, mCanChown, mCanNotDelete, mCanNotChmod,
+        mCanDelete, mCanSetQuota, mHasAcl, mHasEgroup, mIsMutable, mCanArchive,
+        mCanPrepare);
     }
   }
 }
@@ -460,7 +493,8 @@ Acl::IsValid(const std::string& value, XrdOucErrInfo& error, bool is_sys_acl,
   regexErrorCode = regcomp(&regex, regexString.c_str(), REG_EXTENDED);
 
   if (regexErrorCode) {
-    eos_static_debug("regcomp regexErrorCode=%d regex '%s'", regexErrorCode, regexString.c_str());      // the setErrInfo below does not always produce a visible result
+    eos_static_debug("regcomp regexErrorCode=%d regex '%s'", regexErrorCode,
+                     regexString.c_str());      // the setErrInfo below does not always produce a visible result
     error.setErrInfo(2, "failed to compile regex");
     regfree(&regex);
     return false;

@@ -40,7 +40,7 @@ Logging& gLogging = reinterpret_cast<Logging&>(logging_buf);
 LoggingInitializer::LoggingInitializer()
 {
   if (sCounter++ == 0) {
-    new(&gLogging) Logging();  // placement new
+    new (&gLogging) Logging(); // placement new
   }
 }
 
@@ -236,7 +236,6 @@ Logging::log(const char* func, const char* file, int line, const char* logid,
       // we do log-message fanout
       if (gLogFanOut.count("*")) {
         fprintf(gLogFanOut["*"], "%s\n", buffer);
-        fflush(gLogFanOut["*"]);
       }
 
       if (gLogFanOut.count(File.c_str())) {
@@ -248,7 +247,6 @@ Logging::log(const char* func, const char* file, int line, const char* logid,
                 EOS_TEXTNORMAL,
                 sourceline,
                 ptr);
-        fflush(gLogFanOut[File.c_str()]);
         buffer[15] = ' ';
       } else {
         if (gLogFanOut.count("#")) {
@@ -264,16 +262,13 @@ Logging::log(const char* func, const char* file, int line, const char* logid,
                   func,
                   ptr
                  );
-          fflush(gLogFanOut["#"]);
           buffer[15] = ' ';
         }
       }
 
       fprintf(stderr, "%s\n", buffer);
-      fflush(stderr);
     } else {
       fprintf(stderr, "%s\n", buffer);
-      fflush(stderr);
     }
   }
 
