@@ -678,6 +678,7 @@ k8s_stress_test:
 # Testing framework
 #-------------------------------------------------------------------------------
 
+
 system_test:
   stage: test
   <<: *system_test_template_definition
