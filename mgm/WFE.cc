@@ -1666,43 +1666,43 @@ WFE::Job::HandleProtoMethodPrepareEvent(const std::string &fullPath, std::string
   uid_t cuid = 99;
   gid_t cgid = 99;
 
-  if (!onDisk) {
-    eos::common::RWMutexWriteLock lock;
-    lock.Grab(gOFS->eosViewRWMutex);
-    auto fmd = gOFS->eosFileService->getFileMD(mFid);
-
-    try {
-      if (fmd->hasAttribute(RETRIEVES_ATTR_NAME)) {
-        retrieveCntr = std::stoul(fmd->getAttribute(RETRIEVES_ATTR_NAME));
-      }
-    } catch (...) {
-      lock.Release();
-      eos_static_err("Could not determine ongoing retrieves for file %s. Check the %s extended attribute",
-        fullPath.c_str(), RETRIEVES_ATTR_NAME);
-      MoveWithResults(EAGAIN);
-      return EAGAIN;
-    }
-
-    try {
-      fmd->setAttribute(RETRIEVES_ATTR_NAME, std::to_string(retrieveCntr + 1));
-
+//if (!onDisk) {
+//  eos::common::RWMutexWriteLock lock;
+//  lock.Grab(gOFS->eosViewRWMutex);
+//  auto fmd = gOFS->eosFileService->getFileMD(mFid);
+//
+//  try {
+//    if (fmd->hasAttribute(RETRIEVES_ATTR_NAME)) {
+//      retrieveCntr = std::stoul(fmd->getAttribute(RETRIEVES_ATTR_NAME));
+//    }
+//  } catch (...) {
+//    lock.Release();
+//    eos_static_err("Could not determine ongoing retrieves for file %s. Check the %s extended attribute",
+//      fullPath.c_str(), RETRIEVES_ATTR_NAME);
+//    MoveWithResults(EAGAIN);
+//    return EAGAIN;
+//  }
+//
+//  try {
+//    fmd->setAttribute(RETRIEVES_ATTR_NAME, std::to_string(retrieveCntr + 1));
+//
       // if we are the first to retrieve the file
-      if (retrieveCntr == 0ul && onTape) {
-        fmd->setAttribute(RETRIEVES_ERROR_ATTR_NAME, "");
+//    if (retrieveCntr == 0ul && onTape) {
+//      fmd->setAttribute(RETRIEVES_ERROR_ATTR_NAME, "");
         // Read these attributes here to optimize locking
-        cuid = fmd->getCUid();
-        cgid = fmd->getCGid();
-      }
+//      cuid = fmd->getCUid();
+//      cgid = fmd->getCGid();
+//    }
 
-      gOFS->eosView->updateFileStore(fmd.get());
-    } catch (eos::MDException& ex) {
-      lock.Release();
-      eos_static_err("Could not write attributes %s and %s for file %s. Not doing the retrieve.",
-        RETRIEVES_ATTR_NAME, RETRIEVES_ERROR_ATTR_NAME, fullPath.c_str());
-      MoveWithResults(EAGAIN);
-      return EAGAIN;
-    }
-  }
+//    gOFS->eosView->updateFileStore(fmd.get());
+//  } catch (eos::MDException& ex) {
+//    lock.Release();
+//    eos_static_err("Could not write attributes %s and %s for file %s. Not doing the retrieve.",
+//      RETRIEVES_ATTR_NAME, RETRIEVES_ERROR_ATTR_NAME, fullPath.c_str());
+//    MoveWithResults(EAGAIN);
+//    return EAGAIN;
+//  }
+//}
 
   if (onDisk) {
     eos_static_info("File %s is already on disk, nothing to prepare.",
