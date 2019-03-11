@@ -49,7 +49,7 @@ EosFstHttpHandler::ProcessReq(XrdHttpExtReq &req)
   if (req.verb == "PUT") {
     verb = "CREATE"; // CREATE makes sure, the the handler just opens the file and all writes are done later
   }
-  std::unique_ptr<eos::common::ProtocolHandler> handler = OFS->Httpd->XrdHttpHandler(verb,
+  std::unique_ptr<eos::common::ProtocolHandler> handler = OFS->mHttpd->XrdHttpHandler(verb,
 										     req.resource, 
 										     normalized_headers,
 										     query,
@@ -111,7 +111,7 @@ EosFstHttpHandler::ProcessReq(XrdHttpExtReq &req)
 	    eos_static_debug("pos=%llu size=%u", pos, buffer.capacity());
 	  }
 
-	  nread = OFS->Httpd->FileReader(handler.get(),pos, &buffer[0], buffer.capacity());
+	  nread = OFS->mHttpd->FileReader(handler.get(),pos, &buffer[0], buffer.capacity());
 
 	  if (nread >= 0) {
 	    pos += nread;
@@ -122,7 +122,7 @@ EosFstHttpHandler::ProcessReq(XrdHttpExtReq &req)
 	  }
 	} while ( (pos != content_length) && (nread>0) && !retc);
 
-	OFS->Httpd->FileClose(handler.get(), retc);
+	OFS->mHttpd->FileClose(handler.get(), retc);
 	return retc;
       }
     }
@@ -169,7 +169,7 @@ EosFstHttpHandler::ProcessReq(XrdHttpExtReq &req)
 			    content_read, rbytes);
 	    retc = -1;
 	  } else {
-	    retc |= OFS->Httpd->FileWriter(handler.get(),
+	    retc |= OFS->mHttpd->FileWriter(handler.get(),
 					   req.verb,
 					   req.resource, 
 					   normalized_headers,
@@ -190,7 +190,7 @@ EosFstHttpHandler::ProcessReq(XrdHttpExtReq &req)
 	if (!retc) {
 	  // trigger the close handler by calling with empty body
 	  body.clear();
-	  retc |= OFS->Httpd->FileWriter(handler.get(),
+	  retc |= OFS->mHttpd->FileWriter(handler.get(),
 					 req.verb,
 					 req.resource, 
 					 normalized_headers,
