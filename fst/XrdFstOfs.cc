@@ -89,6 +89,10 @@ extern "C"
                                          const char*       configFn,
                                          XrdOucEnv*        envP)
   {
+    if (XrdOfsFS) {
+      return XrdOfsFS;
+    }
+
     OfsEroute.SetPrefix("FstOfs_");
     OfsEroute.logger(Logger);
     // Disable XRootD log rotation

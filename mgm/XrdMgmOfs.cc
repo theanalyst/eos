@@ -120,6 +120,10 @@ XrdSfsGetFileSystem(XrdSfsFileSystem* native_fs,
                     XrdSysLogger* lp,
                     const char* configfn)
 {
+  if (gOFS) {
+    // initialize filesystems only once
+    return gOFS;
+  }
   gMgmOfsEroute.SetPrefix("MgmOfs_");
   gMgmOfsEroute.logger(lp);
   static XrdMgmOfs myFS(&gMgmOfsEroute);
