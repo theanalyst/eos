@@ -188,7 +188,6 @@ BuildRequires: libasan
 #%endif
 #%endif
 
-
 %if %{use_systemd}
 BuildRequires: systemd
 %endif
