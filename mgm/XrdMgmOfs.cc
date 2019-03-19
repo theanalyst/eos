@@ -634,8 +634,31 @@ XrdMgmOfs::prepare(XrdSfsPrep& pargs, XrdOucErrInfo& error,
   std::string cmd = "mgm.pcmd=event";
   int retc = SFS_OK;
   std::list<std::pair<char**, char**>> pathsWithPrepare;
-  std::string event = pargs.opts & Prep_FRESH ? "sync::abort_prepare" :
-                      "sync::prepare";
+
+  // Initialise the request ID for the Prepare request to the one provided by XRootD
+  XrdOucString reqid(pargs.reqid);
+
+  std::string event;
+  if(pargs.opts & Prep_STAGE) {
+    event = "sync::prepare";
+
+    // Override the XRootD-supplied request ID.
+    //
+    // Note: To use the default request ID supplied in pargs.reqid, return SFS_OK instead of SFS_DATA.
+    //       Overriding is only possible in the case of PREPARE. In the case of ABORT and QUERY requests,
+    //       pargs.reqid will contain the request ID that was returned by the corresponding PREPARE.
+    reqid = "eos-generated-part:" + reqid;
+    error.setErrInfo(reqid.length() + 1, reqid.c_str());
+    retc = SFS_DATA;
+  } else if(pargs.opts & Prep_CANCEL) {
+    event = "sync::abort_prepare";
+  } else if(pargs.opts & Prep_QUERY) {
+    Emsg(epname, error, ENOENT, "prepare - Query not implemented");
+    return SFS_ERROR;
+  } else {
+    Emsg(epname, error, ENOENT, "prepare - invalid value for pargs.opts=", std::to_string(pargs.opts).c_str());
+    return SFS_ERROR;
+  }
 
   // check that all files exist
   while (pptr) {
