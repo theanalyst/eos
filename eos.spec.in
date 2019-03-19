@@ -454,7 +454,10 @@ The EOS shell client.
 %{_libdir}/libeosCommon.so.%{version}
 %{_libdir}/libeosCommon.so.%{major_version}
 %{_libdir}/libeosCommon.so
+<<<<<<< HEAD
 %{_sysconfdir}/bash_completion.d/eos
+=======
+>>>>>>> SPEC: don't require eos-protobuf3 for run-time but add the single library to eos-client
 # The eos-client package ships the protobuf library built by us for SLC6 and EL&
 %if %{?_with_stage_protobuf3_rh:1}%{!?_with_stage_protobuf3_rh:0}
 %if 0%{distribution} == 6 || 0%{distribution} == 7
