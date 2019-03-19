@@ -13,6 +13,10 @@ XrdVERSIONINFO(XrdSfsGetFileSystem, EosMgmHttp);
 bool 
 EosMgmHttpHandler::MatchesPath(const char *verb, const char *path)
 {
+
+  if (std::string(verb) == "POST") {
+    return false;
+  }
   if (EOS_LOGS_DEBUG) {
     eos_static_debug("verb=%s path=%s", verb, path);
   }
