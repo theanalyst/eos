@@ -228,18 +228,15 @@ yum localinstall -y http://storage-ci.web.cern.ch/storage-ci/eos/citrine-depend/
 test -e $RPM_BUILD_ROOT && rm -r $RPM_BUILD_ROOT
 mkdir -p build
 cd build
-<<<<<<< HEAD
+
 %if "%{?compiler}" == "gcc"
   %if 0%{distribution} == 6 || 0%{distribution} == 7
+    ../utils/eos-xrootd-install.sh %{EOS_XROOTD_VERSION}
     scl enable %{devtoolset} "%{cmake} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=RelWithDebInfo %{build_flags}"
+    scl enable %{devtoolset} "env XROOTD_ROOT_DIR=/opt/eos/xrootd/ %{cmake_cmd} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_SKIP_BUILD_RPATH=false -DCMAKE_BUILD_WITH_INSTALL_RPATH=false -DCMAKE_INSTALL_RPATH=/opt/eos/xrootd/lib64/,/usr/lib64/ -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=true %{build_flags}"
   %else
     %{cmake} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=RelWithDebInfo %{build_flags}
   %endif
-=======
-%if 0%{distribution} == 6 || 0%{distribution} == 7
-../utils/eos-xrootd-install.sh %{EOS_XROOTD_VERSION}
-scl enable devtoolset-6 "%{cmake_cmd} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_SKIP_BUILD_RPATH=false -DCMAKE_BUILD_WITH_INSTALL_RPATH=false -DCMAKE_INSTALL_RPATH=/opt/eos/xrootd/lib64/,/usr/lib64/ -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=true %{build_flags}"
->>>>>>> BUILD: move to /opt/eos/xrootd installation and adjust compilation/packaging accordingly
 %else
   %if 0%{distribution} == 7
     scl enable llvm-toolset-7 "CC=clang CXX=clang++ %{cmake} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=RelWithDebInfo %{build_flags}"
@@ -466,10 +463,8 @@ The EOS shell client.
 %{_libdir}/libeosCommon.so.%{version}
 %{_libdir}/libeosCommon.so.%{major_version}
 %{_libdir}/libeosCommon.so
-<<<<<<< HEAD
 %{_sysconfdir}/bash_completion.d/eos
-=======
->>>>>>> SPEC: don't require eos-protobuf3 for run-time but add the single library to eos-client
+
 # The eos-client package ships the protobuf library built by us for SLC6 and EL&
 %if %{?_with_stage_protobuf3_rh:1}%{!?_with_stage_protobuf3_rh:0}
 %if 0%{distribution} == 6 || 0%{distribution} == 7
