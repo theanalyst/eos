@@ -638,6 +638,7 @@ XrdMgmOfs::prepare(XrdSfsPrep& pargs, XrdOucErrInfo& error,
   // Initialise the request ID for the Prepare request to the one provided by XRootD
   XrdOucString reqid(pargs.reqid);
 
+  // Validate the event type
   std::string event;
   if(pargs.opts & Prep_STAGE) {
     event = "sync::prepare";
@@ -648,15 +649,13 @@ XrdMgmOfs::prepare(XrdSfsPrep& pargs, XrdOucErrInfo& error,
     //       Overriding is only possible in the case of PREPARE. In the case of ABORT and QUERY requests,
     //       pargs.reqid will contain the request ID that was returned by the corresponding PREPARE.
     reqid = "eos-generated-part:" + reqid;
-    error.setErrInfo(reqid.length() + 1, reqid.c_str());
-    retc = SFS_DATA;
   } else if(pargs.opts & Prep_CANCEL) {
     event = "sync::abort_prepare";
   } else if(pargs.opts & Prep_QUERY) {
-    Emsg(epname, error, ENOENT, "prepare - Query not implemented");
+    Emsg(epname, error, ENOSYS, "prepare - Query not implemented");
     return SFS_ERROR;
   } else {
-    Emsg(epname, error, ENOENT, "prepare - invalid value for pargs.opts=", std::to_string(pargs.opts).c_str());
+    Emsg(epname, error, EINVAL, "prepare - invalid value for pargs.opts=", std::to_string(pargs.opts).c_str());
     return SFS_ERROR;
   }
 
@@ -799,6 +798,12 @@ XrdMgmOfs::prepare(XrdSfsPrep& pargs, XrdOucErrInfo& error,
       retc = Emsg(epname, error, ret_wfe,
                   errMsg.c_str(), prep_path.c_str());
     }
+  }
+
+  // Return the generated request ID to the client
+  if(pargs.opts & Prep_STAGE) {
+    error.setErrInfo(reqid.length() + 1, reqid.c_str());
+    retc = SFS_DATA;
   }
 
   EXEC_TIMING_END("Prepare");
