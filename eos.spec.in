@@ -67,6 +67,11 @@
 %endif
 
 #-------------------------------------------------------------------------------
+# /opt/eos/xrootd install version (shipped by eos-client for SLC6/EL7)
+#-------------------------------------------------------------------------------
+%EOS_XROOTD_VERSION 4.8.5
+
+#-------------------------------------------------------------------------------
 # Package definitions
 #-------------------------------------------------------------------------------
 Summary: The EOS project
@@ -178,7 +183,6 @@ BuildRequires: libasan
 %endif
 %endif
 
-
 # Add eos-protobuf3 build for SLC6 and EL7
 #%if 0%{?distribution} == 6
 #BuildRequires: eos-protobuf3 eos-protobuf3-devel eos-protobuf3-compiler
@@ -224,12 +228,18 @@ yum localinstall -y http://storage-ci.web.cern.ch/storage-ci/eos/citrine-depend/
 test -e $RPM_BUILD_ROOT && rm -r $RPM_BUILD_ROOT
 mkdir -p build
 cd build
+<<<<<<< HEAD
 %if "%{?compiler}" == "gcc"
   %if 0%{distribution} == 6 || 0%{distribution} == 7
     scl enable %{devtoolset} "%{cmake} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=RelWithDebInfo %{build_flags}"
   %else
     %{cmake} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=RelWithDebInfo %{build_flags}
   %endif
+=======
+%if 0%{distribution} == 6 || 0%{distribution} == 7
+../utils/eos-xrootd-install.sh %{EOS_XROOTD_VERSION}
+scl enable devtoolset-6 "%{cmake_cmd} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_SKIP_BUILD_RPATH=false -DCMAKE_BUILD_WITH_INSTALL_RPATH=false -DCMAKE_INSTALL_RPATH=/opt/eos/xrootd/lib64/,/usr/lib64/ -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=true %{build_flags}"
+>>>>>>> BUILD: move to /opt/eos/xrootd installation and adjust compilation/packaging accordingly
 %else
   %if 0%{distribution} == 7
     scl enable llvm-toolset-7 "CC=clang CXX=clang++ %{cmake} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=RelWithDebInfo %{build_flags}"
@@ -248,6 +258,8 @@ cd build
 %if 0%{distribution} == 6 || 0%{distribution} == 7
 mkdir -p $RPM_BUILD_ROOT/opt/eos/lib64/protobuf3/
 cp -f /opt/eos/lib64/protobuf3/libprotobuf.so.15 $RPM_BUILD_ROOT/opt/eos/lib64/protobuf3/
+mkdir -p $RPM_BUILD_ROOT/opt/eos/xrootd/
+cp -af /opt/eos/xrootd/ $RPM_BUILD_ROOT/opt/eos/xrootd/
 %endif
 %endif
 echo "Installed!"
@@ -462,6 +474,7 @@ The EOS shell client.
 %if %{?_with_stage_protobuf3_rh:1}%{!?_with_stage_protobuf3_rh:0}
 %if 0%{distribution} == 6 || 0%{distribution} == 7
 /opt/eos/lib64/protobuf3/libprotobuf.so.15
+/opt/eos/xrootd/
 %endif
 %endif
 
