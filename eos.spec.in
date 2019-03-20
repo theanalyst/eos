@@ -476,6 +476,7 @@ The EOS shell client.
 # The eos-client package ships the protobuf library built by us for SLC6 and EL&
 %if 0%{distribution} == 6 || 0%{distribution} == 7
 /opt/eos/lib64/protobuf3/libprotobuf.so.15
+/opt/eos/xrootd/
 %endif
 
 # This file is required by both the eos-fuse and eos-fusex package, therefore
