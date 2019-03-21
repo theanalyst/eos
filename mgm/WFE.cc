@@ -1785,74 +1785,78 @@ WFE::Job::HandleProtoMethodAbortPrepareEvent(const std::string &fullPath, const 
   EXEC_TIMING_BEGIN("Proto::Prepare::Abort");
   gOFS->MgmStats.Add("Proto::Prepare::Abort", 0, 0, 1);
 
-  auto retrieveCntr = 0;
+  XattrSet prepareReqIds;
   {
     eos::common::RWMutexWriteLock lock;
     lock.Grab(gOFS->eosViewRWMutex);
     auto fmd = gOFS->eosFileService->getFileMD(mFid);
 
     try {
-      if (fmd->hasAttribute(RETRIEVES_ATTR_NAME)) {
-        retrieveCntr = std::stoi(fmd->getAttribute(RETRIEVES_ATTR_NAME));
+      if(fmd->hasAttribute(RETRIEVE_REQID_ATTR_NAME)) {
+        prepareReqIds.deserialize(fmd->getAttribute(RETRIEVE_REQID_ATTR_NAME));
       }
-    } catch (...) {
+    } catch(...) {
       lock.Release();
       eos_static_err("Could not determine ongoing retrieves for file %s. Check the %s extended attribute",
-        fullPath.c_str(), RETRIEVES_ATTR_NAME);
+        fullPath.c_str(), RETRIEVE_REQID_ATTR_NAME);
       MoveWithResults(EAGAIN);
       return EAGAIN;
     }
 
     try {
-      if (retrieveCntr > 0) {
-        fmd->setAttribute(RETRIEVES_ATTR_NAME, std::to_string(retrieveCntr - 1));
-        gOFS->eosView->updateFileStore(fmd.get());
+      // Remove the request ID from the list in the Xattr
+      XrdOucEnv opaque(ininfo);
+      const char* const opaqueRequestId = opaque.Get("mgm.reqid");
+      if(opaqueRequestId == nullptr) {
+        throw_mdexception(EINVAL, "Extended attribute mgm.reqid does not exist.");
       }
+      if(prepareReqIds.values.erase(opaqueRequestId) != 1) {
+        throw_mdexception(EINVAL, "Request ID not found in extended attribute.");
+      }
+      fmd->setAttribute(RETRIEVE_REQID_ATTR_NAME, prepareReqIds.serialize());
+      gOFS->eosView->updateFileStore(fmd.get());
     } catch (eos::MDException& ex) {
       lock.Release();
-      eos_static_err("Could not write attribute %s for file %s. Not doing the retrieve.",
-        RETRIEVES_ATTR_NAME, fullPath.c_str());
+      eos_static_err("Could not write attribute %s for file %s. Not doing the abort retrieve.",
+        RETRIEVE_REQID_ATTR_NAME, fullPath.c_str());
       MoveWithResults(EAGAIN);
       return EAGAIN;
     }
   }
 
-  // optimization for reduced memory IO during write lock
-  if (retrieveCntr == 1) {
-    cta::xrd::Request request;
-    auto notification = request.mutable_notification();
-    notification->mutable_cli()->mutable_user()->set_username(GetUserName(mVid.uid));
-    notification->mutable_cli()->mutable_user()->set_groupname(GetGroupName(mVid.gid));
-    for (const auto& attribute : CollectAttributes(fullPath))
-    {
-      google::protobuf::MapPair<std::string, std::string> attr(attribute.first,
-        attribute.second);
-      notification->mutable_file()->mutable_xattr()->insert(attr);
-    }
-    uid_t cuid = 99;
-    gid_t cgid = 99;
-    {
-      eos::common::RWMutexReadLock rlock(gOFS->eosViewRWMutex);
-      auto fmd = gOFS->eosFileService->getFileMD(mFid);
-      cuid = fmd->getCUid();
-      cgid = fmd->getCGid();
-    }
-    notification->mutable_file()->mutable_owner()->set_username(GetUserName(cuid));
-    notification->mutable_file()->mutable_owner()->set_groupname(GetGroupName(
-      cgid));
-    notification->mutable_wf()->set_event(cta::eos::Workflow::ABORT_PREPARE);
-    notification->mutable_file()->set_lpath(fullPath);
-    notification->mutable_wf()->mutable_instance()->set_name(
-      gOFS->MgmOfsInstanceName.c_str());
-    notification->mutable_file()->set_fid(mFid);
-    auto s_ret = SendProtoWFRequest(this, fullPath, request, errorMsg);
-    EXEC_TIMING_END("Proto::Prepare::Abort");
-    return s_ret;
-  } else {
-    // retrieve counter hasn't reached 0 yet, we just return OK
+  if(!prepareReqIds.values.empty()) {
+    // There are other pending Prepare requests on this file, just return OK
     MoveWithResults(SFS_OK);
     return SFS_OK;
   }
+
+  // optimization for reduced memory IO during write lock
+  cta::xrd::Request request;
+  auto notification = request.mutable_notification();
+  notification->mutable_cli()->mutable_user()->set_username(GetUserName(mVid.uid));
+  notification->mutable_cli()->mutable_user()->set_groupname(GetGroupName(mVid.gid));
+  for (const auto& attribute : CollectAttributes(fullPath))
+  {
+    google::protobuf::MapPair<std::string, std::string> attr(attribute.first, attribute.second);
+    notification->mutable_file()->mutable_xattr()->insert(attr);
+  }
+  uid_t cuid = 99;
+  gid_t cgid = 99;
+  {
+    eos::common::RWMutexReadLock rlock(gOFS->eosViewRWMutex);
+    auto fmd = gOFS->eosFileService->getFileMD(mFid);
+    cuid = fmd->getCUid();
+    cgid = fmd->getCGid();
+  }
+  notification->mutable_file()->mutable_owner()->set_username(GetUserName(cuid));
+  notification->mutable_file()->mutable_owner()->set_groupname(GetGroupName(cgid));
+  notification->mutable_wf()->set_event(cta::eos::Workflow::ABORT_PREPARE);
+  notification->mutable_file()->set_lpath(fullPath);
+  notification->mutable_wf()->mutable_instance()->set_name(gOFS->MgmOfsInstanceName.c_str());
+  notification->mutable_file()->set_fid(mFid);
+  auto s_ret = SendProtoWFRequest(this, fullPath, request, errorMsg);
+  EXEC_TIMING_END("Proto::Prepare::Abort");
+  return s_ret;
 }
 
 int
@@ -1945,8 +1949,8 @@ WFE::Job::resetRetreiveCounterAndErrorMsg(const std::string &fullPath) {
   try {
     eos::common::RWMutexWriteLock lock(gOFS->eosViewRWMutex);
     auto fmd = gOFS->eosFileService->getFileMD(mFid);
-    fmd->setAttribute(RETRIEVES_ATTR_NAME, "0");
-    fmd->setAttribute(RETRIEVES_ERROR_ATTR_NAME, "");
+    fmd->setAttribute(RETRIEVE_REQID_ATTR_NAME, "0");
+    fmd->setAttribute(RETRIEVE_ERROR_ATTR_NAME, "");
     gOFS->eosView->updateFileStore(fmd.get());
 
     return;
@@ -2081,8 +2085,8 @@ WFE::Job::HandleProtoMethodRetrieveFailedEvent(const std::string &fullPath)
   try {
     eos::common::RWMutexWriteLock lock(gOFS->eosViewRWMutex);
     auto fmd = gOFS->eosFileService->getFileMD(mFid);
-    fmd->setAttribute(RETRIEVES_ATTR_NAME, "0");
-    fmd->setAttribute(RETRIEVES_ERROR_ATTR_NAME, mErrorMesssage);
+    fmd->setAttribute(RETRIEVE_REQID_ATTR_NAME, "0");
+    fmd->setAttribute(RETRIEVE_ERROR_ATTR_NAME, mErrorMesssage);
     gOFS->eosView->updateFileStore(fmd.get());
   } catch (eos::MDException& ex) {
     eos_static_err("Could not reset retrieves counter and set retrieve error attribute for file %s.",
