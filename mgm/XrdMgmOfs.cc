@@ -769,6 +769,8 @@ XrdMgmOfs::prepare(XrdSfsPrep& pargs, XrdOucErrInfo& error,
     prep_info += (int)vid.uid;
     prep_info += "&mgm.rgid=";
     prep_info += (int)vid.gid;
+    prep_info += "&mgm.reqid=";
+    prep_info += reqid.c_str();
     XrdSecEntity lClient(vid.prot.c_str());
     lClient.name = (char*) vid.name.c_str();
     lClient.tident = (char*) vid.tident.c_str();
