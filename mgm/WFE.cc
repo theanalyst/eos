@@ -1749,6 +1749,7 @@ WFE::Job::HandleProtoMethodPrepareEvent(const std::string &fullPath, const char*
   // Create human readable timestamp
   auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   std::string ctime = std::ctime(&time);
+  ctime.resize(ctime.length()-1);
 
   if(sendResult == 0) {
     // Update the timestamp of the last Prepare request that was successfully sent
@@ -1762,13 +1763,14 @@ WFE::Job::HandleProtoMethodPrepareEvent(const std::string &fullPath, const char*
     }
   } else {
     if(errorMsg.empty()) { errorMsg = "Prepare handshake failed"; }
-    std::string errorMsgAttr = ctime.substr(0, ctime.length() - 1) + " -> " + errorMsg;
+    std::string errorMsgAttr = ctime + " -> " + errorMsg;
 
     eos::common::RWMutexWriteLock lock(gOFS->eosViewRWMutex);
     auto fmd = gOFS->eosFileService->getFileMD(mFid);
     try {
       // Delete the request ID from the extended attributes so it can be retried
       fmd->setAttribute(RETRIEVE_REQID_ATTR_NAME, "");
+      fmd->setAttribute(RETRIEVE_REQTIME_ATTR_NAME, "");
       fmd->setAttribute(RETRIEVE_ERROR_ATTR_NAME, errorMsgAttr);
       gOFS->eosView->updateFileStore(fmd.get());
     } catch(eos::MDException& ex) {}
@@ -1806,17 +1808,17 @@ WFE::Job::HandleProtoMethodAbortPrepareEvent(const std::string &fullPath, const 
       XrdOucEnv opaque(ininfo);
       const char* const opaqueRequestId = opaque.Get("mgm.reqid");
       if(opaqueRequestId == nullptr) {
-        throw_mdexception(EINVAL, "Extended attribute mgm.reqid does not exist.");
+        throw_mdexception(EINVAL, "mgm.reqid not found in opaque data");
       }
       if(prepareReqIds.values.erase(opaqueRequestId) != 1) {
-        throw_mdexception(EINVAL, "Request ID not found in extended attribute.");
+        throw_mdexception(EINVAL, "Request ID not found in extended attributes");
       }
       fmd->setAttribute(RETRIEVE_REQID_ATTR_NAME, prepareReqIds.serialize());
       gOFS->eosView->updateFileStore(fmd.get());
-    } catch (eos::MDException& ex) {
+    } catch(eos::MDException &ex) {
       lock.Release();
-      eos_static_err("Could not write attribute %s for file %s. Not doing the abort retrieve.",
-        RETRIEVE_REQID_ATTR_NAME, fullPath.c_str());
+      eos_static_err("Error accessing attribute %s for file %s: %s. Not doing the abort retrieve.",
+        RETRIEVE_REQID_ATTR_NAME, fullPath.c_str(), ex.what());
       MoveWithResults(EAGAIN);
       return EAGAIN;
     }
@@ -1853,6 +1855,17 @@ WFE::Job::HandleProtoMethodAbortPrepareEvent(const std::string &fullPath, const 
   notification->mutable_wf()->mutable_instance()->set_name(gOFS->MgmOfsInstanceName.c_str());
   notification->mutable_file()->set_fid(mFid);
   auto s_ret = SendProtoWFRequest(this, fullPath, request, errorMsg);
+  if(s_ret == 0) {
+    eos::common::RWMutexWriteLock lock(gOFS->eosViewRWMutex);
+    auto fmd = gOFS->eosFileService->getFileMD(mFid);
+    try {
+      // All Prepare requests cancelled by the user:
+      // Delete the request time and error message from the extended attributes
+      fmd->setAttribute(RETRIEVE_REQTIME_ATTR_NAME, "");
+      fmd->setAttribute(RETRIEVE_ERROR_ATTR_NAME, "");
+      gOFS->eosView->updateFileStore(fmd.get());
+    } catch(eos::MDException& ex) {}
+  }
   EXEC_TIMING_END("Proto::Prepare::Abort");
   return s_ret;
 }
@@ -1933,7 +1946,7 @@ WFE::Job::HandleProtoMethodCloseEvent(const std::string &event, const std::strin
   EXEC_TIMING_BEGIN("Proto::Close");
   gOFS->MgmStats.Add("Proto::Close", 0, 0, 1);
 
-  if (mActions[0].mWorkflow == RETRIEVE_WRITTEN_WORKFLOW_NAME) resetRetreiveCounterAndErrorMsg(fullPath);
+  if (mActions[0].mWorkflow == RETRIEVE_WRITTEN_WORKFLOW_NAME) resetRetreiveIdListAndErrorMsg(fullPath);
 
   MoveWithResults(SFS_OK);
   EXEC_TIMING_END("Proto::Close");
@@ -1941,13 +1954,14 @@ WFE::Job::HandleProtoMethodCloseEvent(const std::string &event, const std::strin
 }
 
 void
-WFE::Job::resetRetreiveCounterAndErrorMsg(const std::string &fullPath) {
+WFE::Job::resetRetreiveIdListAndErrorMsg(const std::string &fullPath) {
   std::string errorMsg;
 
   try {
     eos::common::RWMutexWriteLock lock(gOFS->eosViewRWMutex);
     auto fmd = gOFS->eosFileService->getFileMD(mFid);
-    fmd->setAttribute(RETRIEVE_REQID_ATTR_NAME, "0");
+    fmd->setAttribute(RETRIEVE_REQID_ATTR_NAME, "");
+    fmd->setAttribute(RETRIEVE_REQTIME_ATTR_NAME, "");
     fmd->setAttribute(RETRIEVE_ERROR_ATTR_NAME, "");
     gOFS->eosView->updateFileStore(fmd.get());
 
@@ -2083,7 +2097,8 @@ WFE::Job::HandleProtoMethodRetrieveFailedEvent(const std::string &fullPath)
   try {
     eos::common::RWMutexWriteLock lock(gOFS->eosViewRWMutex);
     auto fmd = gOFS->eosFileService->getFileMD(mFid);
-    fmd->setAttribute(RETRIEVE_REQID_ATTR_NAME, "0");
+    fmd->setAttribute(RETRIEVE_REQID_ATTR_NAME, "");
+    fmd->setAttribute(RETRIEVE_REQTIME_ATTR_NAME, "");
     fmd->setAttribute(RETRIEVE_ERROR_ATTR_NAME, mErrorMesssage);
     gOFS->eosView->updateFileStore(fmd.get());
   } catch (eos::MDException& ex) {
