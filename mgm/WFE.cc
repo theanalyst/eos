@@ -1655,11 +1655,10 @@ WFE::Job::HandleProtoMethodPrepareEvent(const std::string &fullPath, const char*
 
   // Check if we have a disk replica and if not, whether it's on tape
   if(gOFS->_stat(fullPath.c_str(), &buf, errInfo, mVid, nullptr, nullptr, false) == 0) {
-    onDisk = ((buf.st_mode & EOS_TAPE_MODE_T) ? buf.st_nlink - 1 : buf.st_nlink) > 0;
-    onTape = (buf.st_mode & EOS_TAPE_MODE_T) != 0;
+    onDisk = ((buf.st_mode & EOS_TAPE_MODE_T) ? buf.st_nlink-1 : buf.st_nlink) > 0;
+    onTape =  (buf.st_mode & EOS_TAPE_MODE_T) != 0;
   } else {
-    eos_static_err("Cannot determine file and disk replicas, not doing the prepare. Reason: %s",
-      errInfo.getErrText());
+    eos_static_err("Cannot determine file and disk replicas, not doing the prepare. Reason: %s", errInfo.getErrText());
     MoveWithResults(EAGAIN);
     return EAGAIN;
   }
@@ -1716,7 +1715,7 @@ WFE::Job::HandleProtoMethodPrepareEvent(const std::string &fullPath, const char*
     }
   }
 
-  // If we reached this point, the file is not on disk, it is on tape, and this is the first Prepare
+  // If we reached this point: the file is not on disk, it is on tape, and this is the first Prepare
   // request for this file. Proceed with issuing the Prepare request to the tape back-end.
 
   cta::xrd::Request request;
@@ -1725,49 +1724,48 @@ WFE::Job::HandleProtoMethodPrepareEvent(const std::string &fullPath, const char*
   notification->mutable_cli()->mutable_user()->set_groupname(GetGroupName(mVid.gid));
   for(const auto& attribute : CollectAttributes(fullPath))
   {
-    google::protobuf::MapPair<std::string, std::string> attr(attribute.first,
-      attribute.second);
+    google::protobuf::MapPair<std::string, std::string> attr(attribute.first, attribute.second);
     notification->mutable_file()->mutable_xattr()->insert(attr);
   }
   notification->mutable_wf()->set_event(cta::eos::Workflow::PREPARE);
   notification->mutable_file()->set_lpath(fullPath);
-  notification->mutable_wf()->mutable_instance()->set_name(
-    gOFS->MgmOfsInstanceName.c_str());
+  notification->mutable_wf()->mutable_instance()->set_name(gOFS->MgmOfsInstanceName.c_str());
   notification->mutable_file()->set_fid(mFid);
   notification->mutable_file()->mutable_owner()->set_username(GetUserName(cuid));
-  notification->mutable_file()->mutable_owner()->set_groupname(GetGroupName(
-    cgid));
+  notification->mutable_file()->mutable_owner()->set_groupname(GetGroupName(cgid));
   auto fxidString = StringConversion::FastUnsignedToAsciiHex(mFid);
   std::ostringstream destStream;
-  destStream << "root://" << gOFS->HostName << "/" << fullPath << "?eos.lfn=fxid:"
-    << fxidString;
-  destStream << "&eos.ruid=0&eos.rgid=0&eos.injection=1&eos.workflow=" <<
-    RETRIEVE_WRITTEN_WORKFLOW_NAME;
+  destStream << "root://" << gOFS->HostName << "/" << fullPath << "?eos.lfn=fxid:" << fxidString;
+  destStream << "&eos.ruid=0&eos.rgid=0&eos.injection=1&eos.workflow=" << RETRIEVE_WRITTEN_WORKFLOW_NAME;
   notification->mutable_transport()->set_dst_url(destStream.str());
   std::ostringstream errorReportStream;
   errorReportStream << "eosQuery://" << gOFS->HostName
     << "//eos/wfe/passwd?mgm.pcmd=event&mgm.fid=" << fxidString
-    << "&mgm.logid=cta&mgm.event=" << RETRIEVE_FAILED_WORKFLOW_NAME <<
-    "&mgm.workflow=default&mgm.path=/dummy_path&mgm.ruid=0&mgm.rgid=0&mgm.errmsg=";
-  notification->mutable_transport()->set_error_report_url(
-    errorReportStream.str());
+    << "&mgm.logid=cta&mgm.event=" << RETRIEVE_FAILED_WORKFLOW_NAME
+    << "&mgm.workflow=default&mgm.path=/dummy_path&mgm.ruid=0&mgm.rgid=0&mgm.errmsg=";
+  notification->mutable_transport()->set_error_report_url(errorReportStream.str());
   auto sendResult = SendProtoWFRequest(this, fullPath, request, errorMsg);
 
-  if(sendResult != 0) {
-    // Create human readable timestamp with the error message
-    auto time = std::chrono::system_clock::to_time_t(
-      std::chrono::system_clock::now());
-    std::string ctime = std::ctime(&time);
+  // Create human readable timestamp
+  auto time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+  std::string ctime = std::ctime(&time);
 
-    if(errorMsg.empty()) {
-      errorMsg = "Prepare handshake failed";
-    }
-
-    std::string errorMsgAttr = ctime.substr(0, ctime.length() - 1) + " -> " +
-                               errorMsg;
+  if(sendResult == 0) {
+    // Update the timestamp of the last Prepare request that was successfully sent
     eos::common::RWMutexWriteLock lock(gOFS->eosViewRWMutex);
     auto fmd = gOFS->eosFileService->getFileMD(mFid);
+    try {
+      fmd->setAttribute(RETRIEVE_REQTIME_ATTR_NAME, ctime);
+      gOFS->eosView->updateFileStore(fmd.get());
+    } catch(eos::MDException& ex) {
+      // fail silently if we couldn't update the timestamp
+    }
+  } else {
+    if(errorMsg.empty()) { errorMsg = "Prepare handshake failed"; }
+    std::string errorMsgAttr = ctime.substr(0, ctime.length() - 1) + " -> " + errorMsg;
 
+    eos::common::RWMutexWriteLock lock(gOFS->eosViewRWMutex);
+    auto fmd = gOFS->eosFileService->getFileMD(mFid);
     try {
       // Delete the request ID from the extended attributes so it can be retried
       fmd->setAttribute(RETRIEVE_REQID_ATTR_NAME, "");

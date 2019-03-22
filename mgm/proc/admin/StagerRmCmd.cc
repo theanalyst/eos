@@ -142,10 +142,11 @@ eos::mgm::StagerRmCmd::ProcessRequest() noexcept
       try {
         auto fmd = gOFS->eosView->getFile(path.c_str());
         fmd->setAttribute(eos::common::RETRIEVE_REQID_ATTR_NAME, "");
+        fmd->setAttribute(eos::common::RETRIEVE_REQTIME_ATTR_NAME, "");
         gOFS->eosView->updateFileStore(fmd.get());
       } catch (eos::MDException& ex) {
-        eos_static_err("Could not reset Prepare request ID list for file %s. Try removing the %s attribute.",
-                       path.c_str(), eos::common::RETRIEVE_REQID_ATTR_NAME);
+        eos_static_err("Could not reset Prepare request ID list for file %s. Try removing the %s and %s attributes.",
+                       path.c_str(), eos::common::RETRIEVE_REQID_ATTR_NAME, eos::common::RETRIEVE_REQTIME_ATTR_NAME);
       }
     }
   }
