@@ -643,15 +643,13 @@ XrdMgmOfs::prepare(XrdSfsPrep& pargs, XrdOucErrInfo& error,
   if(pargs.opts & Prep_STAGE) {
     event = "sync::prepare";
 #ifndef DONT_OVERRIDE_THE_XROOTD_GENERATED_REQUEST_ID
-    // Override the XRootD-supplied request ID.
-    //
-    // The default request ID is supplied in the format <part1>:<part2>.<part3>:<request ID>
-    // At least some parts of this need to be retained: checking with Andy
+    // Override the XRootD-supplied request ID. The request ID can be any arbitrary string, so long as
+    // it is guaranteed to be unique for each request.
     //
     // Note: To use the default request ID supplied in pargs.reqid, return SFS_OK instead of SFS_DATA.
     //       Overriding is only possible in the case of PREPARE. In the case of ABORT and QUERY requests,
-    //       pargs.reqid will contain the request ID that was returned by the corresponding PREPARE.
-    reqid += ":eos-generated-part";
+    //       pargs.reqid should contain the request ID that was returned by the corresponding PREPARE.
+    reqid = "eos-generated-part:" + reqid;
 #endif
   } else if(pargs.opts & Prep_CANCEL) {
     event = "sync::abort_prepare";
