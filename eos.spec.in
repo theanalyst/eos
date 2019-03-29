@@ -30,7 +30,11 @@
 # pass the "--with asan" flag to the rpmbuild command
 %bcond_without asan
 
-# Define required dependency for XRootD 
+# By default we build without code coverage. To enable it,
+# pass the "--with coverage" flag to the rpmbuild command
+%bcond_without coverage
+
+# Define required dependency for XRootD
 %define xrootd_version_min 1:4.8.2
 %define major_version @CPACK_PACKAGE_VERSION_MAJOR@
 
@@ -155,6 +159,7 @@ BuildRequires: systemd
 The EOS software package.
 %prep
 %setup -n %{name}-%{version}-@CPACK_PACKAGE_RELEASE@
+%global build_type RelWithDebInfo
 %global build_flags -DBUILD_MANPAGES=1 -DFUSEXCLIENT=1
 %if %{?_with_server:0}%{!?_with_server:1}
 %global build_flags %{build_flags} -DCLIENT=1
@@ -162,15 +167,19 @@ The EOS software package.
 %if %{?_with_asan:1}%{!?_with_asan:0}
 %global build_flags %{build_flags} -DASAN=1
 %endif
+%if %{?_with_coverage:1}%{!?_with_coverage:0}
+%global build_type Debug
+%global build_flags %{build_flags} -DCOVERAGE=1 -DCOV_CROSS_PROFILE=1
+%endif
 
 %build
 test -e $RPM_BUILD_ROOT && rm -r $RPM_BUILD_ROOT
 mkdir -p build
 cd build
 %if 0%{distribution} == 6 || 0%{distribution} == 7
-scl enable devtoolset-6 "%{cmake_cmd} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=RelWithDebInfo %{build_flags}"
+scl enable devtoolset-6 "%{cmake_cmd} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=%{build_type} %{build_flags}"
 %else
-%{cmake_cmd} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=RelWithDebInfo %{build_flags}
+%{cmake_cmd} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=%{build_type} %{build_flags}
 %endif
 %{__make} %{_smp_mflags}
 
@@ -783,6 +792,24 @@ Contains an instance and fuse test script and some test executables and test arc
 %{_sbindir}/eos-ns-quarkdb-tests
 %attr(444,daemon,daemon) %{_localstatedir}/eos/test/fuse/untar/untar.tgz
 %attr(444,daemon,daemon) %{_localstatedir}/eos/test/fuse/untar/xrootd.tgz
+
+%if %{?_with_coverage:1}%{!?_with_coverage:0}
+#-------------------------------------------------------------------------------
+# Package eos-coverage
+#-------------------------------------------------------------------------------
+%package -n eos-coverage
+
+Summary: The EOS coverage package
+Group: Applications/File
+
+%description -n eos-coverage
+Contains all the ".gcno" files needed to produce coverage data for EOS server.
+
+%files -n eos-coverage
+%defattr(-, root, root, -)
+
+%attr(755,daemon,daemon) %{_localstatedir}/eos/coverage/
+%endif
 
 #-------------------------------------------------------------------------------
 # Package eos-cleanup
