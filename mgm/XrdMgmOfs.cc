@@ -106,7 +106,10 @@ const char* XrdMgmOfs::gNameSpaceState[] = {"down", "booting", "booted", "failed
 XrdMgmOfs* gOFS = 0;
 
 // Set the version information
-XrdVERSIONINFO(XrdSfsGetFileSystem, MgmOfs);
+XrdVERSIONINFO(XrdSfsGetFileSystem,  MgmOfs);
+XrdVERSIONINFO(XrdSfsGetFileSystem2, MgmOfs);
+
+extern "C" {
 
 //------------------------------------------------------------------------------
 //! Filesystem Plugin factory function
@@ -117,7 +120,6 @@ XrdVERSIONINFO(XrdSfsGetFileSystem, MgmOfs);
 //!
 //! @returns configures and returns our MgmOfs object
 //------------------------------------------------------------------------------
-extern "C"
 XrdSfsFileSystem*
 XrdSfsGetFileSystem(XrdSfsFileSystem* native_fs,
                     XrdSysLogger* lp,
@@ -158,6 +160,32 @@ XrdSfsGetFileSystem(XrdSfsFileSystem* native_fs,
   return gOFS;
 }
 
+//------------------------------------------------------------------------------
+//! Filesystem Plugin factory function
+//!
+//! @description FileSystem2 version, to allow passing configuration info back
+//!              to XRootD. Configure with: xrootd.fslib -2 libXrdEosMgm.so
+//!
+//! @param native_fs (not used)
+//! @param lp the logger object
+//! @param configfn the configuration file name
+//! @param envP pass configuration information back to XrdXrootd
+//!
+//! @returns configures and returns our MgmOfs object
+//------------------------------------------------------------------------------
+XrdSfsFileSystem*
+XrdSfsGetFileSystem2(XrdSfsFileSystem* native_fs,
+                    XrdSysLogger* lp,
+                    const char* configfn,
+                    XrdOucEnv *envP)
+{
+  // Tell XRootD that MgmOfs implements the Prepare plugin
+  if(envP != nullptr) envP->Put("XRD_PrepHandler", "1");
+
+  return XrdSfsGetFileSystem(native_fs, lp, configfn);
+}
+
+} // extern "C"
 
 /******************************************************************************/
 /* MGM Meta Data Interface                                                    */
