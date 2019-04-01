@@ -27,6 +27,20 @@
 #include "namespace/ns_in_memory/accounting/FileSystemView.hh"
 #include "namespace/ns_in_memory/accounting/ContainerAccounting.hh"
 #include "namespace/ns_in_memory/accounting/SyncTimeAccounting.hh"
+
+/*----------------------------------------------------------------------------*/
+#ifdef COVERAGE_BUILD
+// Forward declaration of gcov flush API
+extern "C" void __gcov_flush();
+
+//------------------------------------------------------------------------------
+// Profiling function flushing coverage data
+//------------------------------------------------------------------------------
+extern "C" void plugin_coverage()
+{
+  __gcov_flush();
+}
+#endif
 /*----------------------------------------------------------------------------*/
 
 //------------------------------------------------------------------------------
