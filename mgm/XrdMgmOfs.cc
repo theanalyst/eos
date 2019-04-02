@@ -140,6 +140,8 @@ XrdSfsGetFileSystem(XrdSfsFileSystem* native_fs,
   // Disable XRootd log rotation
   lp->setRotate(0);
   gOFS = &myFS;
+  // Did we pass the "-2" option to the plugin in the config file?
+  gOFS->IsFileSystem2 = false;
   // By default enable stalling and redirection
   gOFS->IsStall = true;
   gOFS->IsRedirect = true;
@@ -179,10 +181,14 @@ XrdSfsGetFileSystem2(XrdSfsFileSystem* native_fs,
                     const char* configfn,
                     XrdOucEnv *envP)
 {
+  // Initialise gOFS
+  XrdSfsGetFileSystem(native_fs, lp, configfn);
+  gOFS->IsFileSystem2 = true;
+
   // Tell XRootD that MgmOfs implements the Prepare plugin
   if(envP != nullptr) envP->Put("XRD_PrepHandler", "1");
 
-  return XrdSfsGetFileSystem(native_fs, lp, configfn);
+  return gOFS;
 }
 
 } // extern "C"
@@ -670,15 +676,18 @@ XrdMgmOfs::prepare(XrdSfsPrep& pargs, XrdOucErrInfo& error,
   std::string event;
   if(pargs.opts & Prep_STAGE) {
     event = "sync::prepare";
-#ifndef DONT_OVERRIDE_THE_XROOTD_GENERATED_REQUEST_ID
-    // Override the XRootD-supplied request ID. The request ID can be any arbitrary string, so long as
-    // it is guaranteed to be unique for each request.
-    //
-    // Note: To use the default request ID supplied in pargs.reqid, return SFS_OK instead of SFS_DATA.
-    //       Overriding is only possible in the case of PREPARE. In the case of ABORT and QUERY requests,
-    //       pargs.reqid should contain the request ID that was returned by the corresponding PREPARE.
-    reqid = "eos-generated-part:" + reqid;
-#endif
+
+    if(gOFS->IsFileSystem2) {
+      // Override the XRootD-supplied request ID. The request ID can be any arbitrary string, so long as
+      // it is guaranteed to be unique for each request.
+      //
+      // Note: To use the default request ID supplied in pargs.reqid, return SFS_OK instead of SFS_DATA.
+      //       Overriding is only possible in the case of PREPARE. In the case of ABORT and QUERY requests,
+      //       pargs.reqid should contain the request ID that was returned by the corresponding PREPARE.
+
+      // This is a placeholder, to be replaced with an actual unique ID
+      reqid = "eos-generated-unique-id:" + reqid;
+    }
   } else if(pargs.opts & Prep_CANCEL) {
     event = "sync::abort_prepare";
   } else if(pargs.opts & Prep_QUERY) {
@@ -832,13 +841,11 @@ XrdMgmOfs::prepare(XrdSfsPrep& pargs, XrdOucErrInfo& error,
     }
   }
 
-#ifndef DONT_OVERRIDE_THE_XROOTD_GENERATED_REQUEST_ID
-  // Return the generated request ID to the client
-  if(pargs.opts & Prep_STAGE) {
+  // If we generated our own request ID, return it to the client
+  if(gOFS->IsFileSystem2 && (pargs.opts & Prep_STAGE)) {
     error.setErrInfo(reqid.length() + 1, reqid.c_str());
     retc = SFS_DATA;
   }
-#endif
 
   EXEC_TIMING_END("Prepare");
   return retc;
