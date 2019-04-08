@@ -193,6 +193,8 @@ Group: Applications/File
 Requires: xrootd >= %{xrootd_version_min}
 Requires: xrootd-client >= %{xrootd_version_min}
 Requires: xrootd-private-devel >= %{xrootd_version_min}
+# uses private ABI, need to exactly match whatever it was built against
+Requires: %( rpm -q xrootd-libs.%{_arch})
 Requires: eos-client = @CPACK_PACKAGE_VERSION@
 Requires: libmicrohttpd >= 0.9.38
 Requires: acl
