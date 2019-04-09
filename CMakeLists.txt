@@ -94,7 +94,6 @@ if(TESTCOVERAGE)
   )
 endif()
 
-
 #-------------------------------------------------------------------------------
 # Include generic functions and compiler definition parameters
 #-------------------------------------------------------------------------------
@@ -128,7 +127,6 @@ if (PYTHONINTERP_FOUND AND SPHINX_FOUND)
     WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/doc"
     COMMENT "Build HTML documentation with Sphinx ...")
 endif ()
-
 
 #-------------------------------------------------------------------------------
 # Generate man pages
