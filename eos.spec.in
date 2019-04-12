@@ -272,23 +272,23 @@ rm -rf $RPM_BUILD_ROOT
 Summary: The EOS server installation
 Group: Applications/File
 
+
+%if 0%{distribution} == 6 || 0%{distribution} == 7
+%else
 Requires: xrootd >= %{xrootd_version_min}
 Requires: xrootd-client >= %{xrootd_version_min}
 Requires: xrootd-private-devel >= %{xrootd_version_min}
+%endif
+
 Requires: eos-client = @CPACK_PACKAGE_VERSION@
-Requires: libmicrohttpd >= 0.9.38
 Requires: acl
 Requires: gdb
 Requires: jemalloc
 Requires: jsoncpp
 Requires: psmisc
 Requires: libcurl
+Requires: libmicrohttpd >= 0.9.38
 Requires: logrotate
-%if %{?fedora}%{!?fedora:0} >= 27
-Requires: protobuf >= 3.3
-%else
-Requires: protobuf3 >= 3.3
-%endif
 %if %{use_systemd}
 Requires: systemd
 %else
@@ -436,7 +436,11 @@ fi
 Summary: The EOS shell client
 Group: Applications/File
 
+%if 0%{distribution} == 6 || 0%{distribution} == 7
+%else
 Requires: xrootd-client >= %{xrootd_version_min}
+%endif
+
 %if %{?fedora}%{!?fedora:0} >= 27
 Requires: protobuf >= 3.3
 %else
