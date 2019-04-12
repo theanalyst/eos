@@ -256,7 +256,7 @@ cd build
 mkdir -p $RPM_BUILD_ROOT/opt/eos/lib64/protobuf3/
 cp -f /opt/eos/lib64/protobuf3/libprotobuf.so.15 $RPM_BUILD_ROOT/opt/eos/lib64/protobuf3/
 mkdir -p $RPM_BUILD_ROOT/opt/eos/xrootd/
-cp -af /opt/eos/xrootd/ $RPM_BUILD_ROOT/opt/eos/xrootd/
+cp -af /opt/eos/xrootd/* $RPM_BUILD_ROOT/opt/eos/xrootd/
 %endif
 %endif
 echo "Installed!"
