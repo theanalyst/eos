@@ -471,13 +471,10 @@ The EOS shell client.
 %if %{?_with_stage_protobuf3_rh:1}%{!?_with_stage_protobuf3_rh:0}
 %if 0%{distribution} == 6 || 0%{distribution} == 7
 /opt/eos/lib64/protobuf3/libprotobuf.so.15
-/opt/eos/xrootd/
 %endif
 %endif
-%{_sysconfdir}/bash_completion.d/eos
-# The eos-client package ships the protobuf library built by us for SLC6 and EL&
+
 %if 0%{distribution} == 6 || 0%{distribution} == 7
-/opt/eos/lib64/protobuf3/libprotobuf.so.15
 /opt/eos/xrootd/
 %endif
 %{_sysconfdir}/bash_completion.d/eos
