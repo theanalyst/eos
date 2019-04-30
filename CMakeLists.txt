@@ -223,7 +223,7 @@ set(EOS_ARCHIVE "${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_PACKAGE_
 set(SRPM_DEFINE --define "_source_filedigest_algorithm md5" --define "_binary_filedigest_algorithm md5")
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CLANG_BUILD)
-  LIST(APPEND RPM_DEFINE --define "compiler clang")
+  LIST(APPEND RPM_OPTIONS --with clang)
 endif()
 
 if (NOT CLIENT)
@@ -236,11 +236,11 @@ endif()
 
 add_custom_target(
   srpm
-  COMMAND rpmbuild -ts ${EOS_ARCHIVE} --define "_topdir ${CMAKE_BINARY_DIR}" ${SRPM_DEFINE} ${RPM_DEFINE} ${RPM_FEATURE})
+  COMMAND rpmbuild -ts ${EOS_ARCHIVE} --define "_topdir ${CMAKE_BINARY_DIR}" ${SRPM_DEFINE} ${RPM_OPTIONS})
 
 add_custom_target(
   rpm
-  COMMAND rpmbuild -tb ${EOS_ARCHIVE} --define "_topdir ${CMAKE_BINARY_DIR}" ${RPM_DEFINE} ${RPM_FEATURE})
+  COMMAND rpmbuild -tb ${EOS_ARCHIVE} --define "_topdir ${CMAKE_BINARY_DIR}" ${RPM_OPTIONS})
 
 add_dependencies(srpm dist)
 add_dependencies(rpm dist)
