@@ -16,7 +16,7 @@
 # pass the "--with asan" flag to the rpmbuild command
 %bcond_without asan
 
-# By default we don't stage eosprotobuf3 for RH6 and EL7
+# By default we stage eosprotobuf3 for RH6 and EL7
 %bcond_without stage_protobuf3_rh
 
 
@@ -214,7 +214,7 @@ The EOS software package.
 %global build_flags %{build_flags} -DASAN=1
 %endif
 
-%if %{?_with_stage_protobuf3_rh:1}%{!?_with_stage_protobuf3_rh:0}
+%if ! %{without_stage_protobuf3_rh}
 # Install eos-protobuf3 from remote repository for RH6 and EL7 builds because they will stage the protobuf library into /opt/eos
 %if 0%{?distribution} == 6 
 yum localinstall -y http://storage-ci.web.cern.ch/storage-ci/eos/citrine-depend/el-6/x86_64/eos-protobuf3-compiler-3.5.1-1.el6.eos.x86_64.rpm
@@ -261,7 +261,7 @@ cd build
 
 %if 0%{distribution} == 6 || 0%{distribution} == 7
 
-%if %{?_with_stage_protobuf3_rh:1}%{!?_with_stage_protobuf3_rh:0}
+%if ! %{without_stage_protobuf3_rh}
 mkdir -p $RPM_BUILD_ROOT/opt/eos/lib64/protobuf3/
 cp -f /opt/eos/lib64/protobuf3/libprotobuf.so.15 $RPM_BUILD_ROOT/opt/eos/lib64/protobuf3/
 %endif
