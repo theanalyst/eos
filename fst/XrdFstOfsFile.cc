@@ -134,6 +134,11 @@ int
 XrdFstOfsFile::dropall(eos::common::FileId::fileid_t fileid, std::string path,
                        std::string manager)
 {
+
+  if (!getenv("EOS_FST_AUTO_CLEANUP")) {
+    return 0;
+  }
+
   // If we committed the replica and an error happened remote, we have
   // to unlink it again
   const std::string hex_fid = eos::common::FileId::Fid2Hex(fileid);
@@ -1074,9 +1079,15 @@ XrdFstOfsFile::close()
         capOpaqueString += "&mgm.dropall=1";
       }
 
-      // Delete the replica in the MGM
-      int rc = gOFS.CallManager(&error, mCapOpaque->Get("mgm.path"),
+      int rc = 0;
+      if (!getenv("EOS_FST_AUTO_CLEANUP")) {
+	// don't cleanup anything
+	rc = EACCESS;
+      } else {
+	// Delete the replica in the MGM
+	rc = gOFS.CallManager(&error, mCapOpaque->Get("mgm.path"),
                                 mCapOpaque->Get("mgm.manager"), capOpaqueString);
+      }
 
       if (rc) {
         eos_warning("(unpersist): unable to drop file id %s fsid %u at manager %s",
@@ -1478,6 +1489,7 @@ XrdFstOfsFile::close()
         deleteOnClose = true;
       }
     }
+
     {
       // Check if the delete on close has been prohibited for this file id
       XrdSysMutexHelper scope_lock(gOFS.OpenFidMutex);
@@ -1487,6 +1499,13 @@ XrdFstOfsFile::close()
                    "sussessfull put but still an unacknowledged open\" path=%s",
                    mNsPath.c_str());
         deleteOnClose = false;
+      }
+    }
+
+    if (!getenv("EOS_FST_AUTO_CLEANUP")) {
+      if (deleteOnClose) {
+	eos_warning("deleteOnClose has been disabled by configuration - missing ENV EOS_FST_AUTO_CLEANUP");
+	deleteOnClose = false;
       }
     }
 
@@ -1524,8 +1543,15 @@ XrdFstOfsFile::close()
         XrdOucEnv Opaque(OpaqueString.c_str());
         capOpaqueString += OpaqueString;
         // Delete the replica in the MGM
-        int rcode = gOFS.CallManager(&error, mCapOpaque->Get("mgm.path"),
-                                     mCapOpaque->Get("mgm.manager"), capOpaqueString);
+
+	int rcode = 0;
+	if (!getenv("EOS_FST_AUTO_CLEANUP")) {
+	  // don't do anything
+	  rcode = EACCESS:
+	} else {
+	  rcode = gOFS.CallManager(&error, mCapOpaque->Get("mgm.path"),
+				   mCapOpaque->Get("mgm.manager"), capOpaqueString);
+	}
 
         if (rcode && (rcode != EIDRM)) {
           eos_warning("(unpersist): unable to drop file id %s fsid %u at manager %s",

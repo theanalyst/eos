@@ -147,6 +147,10 @@ EOS_NOTIFY="mail -s `date +%s`-`hostname`-eos-notify $EOS_MAIL_CC"
 # it is undefined = disabled
 # EOS_FST_TPC_READASYNC=1
 
+# If variable defined the FST can unlink replicas or files under certain error conditions
+# it is undefined = disabled
+# EOS_FST_AUTO_CLEANUP=1
+
 #-------------------------------------------------------------------------------
 # HTTPD Configuration
 #-------------------------------------------------------------------------------
