@@ -1082,7 +1082,7 @@ XrdFstOfsFile::close()
       int rc = 0;
       if (!getenv("EOS_FST_AUTO_CLEANUP")) {
 	// don't cleanup anything
-	rc = EACCESS;
+	rc = EACCES;
       } else {
 	// Delete the replica in the MGM
 	rc = gOFS.CallManager(&error, mCapOpaque->Get("mgm.path"),
@@ -1547,7 +1547,7 @@ XrdFstOfsFile::close()
 	int rcode = 0;
 	if (!getenv("EOS_FST_AUTO_CLEANUP")) {
 	  // don't do anything
-	  rcode = EACCESS:
+	  rcode = EACCES;
 	} else {
 	  rcode = gOFS.CallManager(&error, mCapOpaque->Get("mgm.path"),
 				   mCapOpaque->Get("mgm.manager"), capOpaqueString);

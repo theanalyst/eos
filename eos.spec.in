@@ -292,11 +292,24 @@ Requires: jsoncpp
 Requires: psmisc
 Requires: libcurl
 Requires: logrotate
+%if ! %{without stage_protobuf3_rh}
+%if 0%{distribution} == 6 || 0%{distribution} == 7
+# we don't require anything, it is staged into eos-client
+%else
 %if %{?fedora}%{!?fedora:0} >= 27
 Requires: protobuf >= 3.3
 %else
 Requires: protobuf3 >= 3.3
 %endif
+%endif
+%else
+%if %{?fedora}%{!?fedora:0} >= 27
+Requires: protobuf >= 3.3
+%else
+Requires: protobuf3 >= 3.3
+%endif
+%endif
+
 %if %{use_systemd}
 Requires: systemd
 %else
