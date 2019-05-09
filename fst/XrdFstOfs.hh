@@ -28,6 +28,7 @@
 #include "fst/Config.hh"
 #include "fst/Fmd.hh"
 #include "fst/utils/OpenFileTracker.hh"
+#include "common/AutoRepair.hh"
 #include "common/Logging.hh"
 #include "common/XrdConnPool.hh"
 #include "mq/XrdMqMessaging.hh"
@@ -80,6 +81,7 @@ class XrdFstOfs : public XrdOfs, public eos::common::LogId
   friend class XrdFstOfsFile;
   friend class ReplicaParLayout;
   friend class RaidMetaLayout;
+  class AutoRepair; 
 
 public:
   std::atomic<bool> sShutdown; ///< True if shutdown procedure is running
@@ -330,6 +332,19 @@ public:
   void SetSimulationError(const char* tag);
 
   //----------------------------------------------------------------------------
+  //! Allows to set the auto-repair behaviour of the FST
+  //!
+  //! @param tag autorepair setting
+  //----------------------------------------------------------------------------
+  void SetAutoRepair(const std::string& flags);
+
+  //----------------------------------------------------------------------------
+  //! Retrieve the auto-repair configuration object
+  //! @return the configuration object for auto-repair settings
+  //----------------------------------------------------------------------------
+  eos::common::AutoRepair& getAutoRepair() { return AutoRepairConfig; }
+
+  //----------------------------------------------------------------------------
   //! Request broadcasts from all the registered queues
   //----------------------------------------------------------------------------
   void RequestBroadcasts();
@@ -409,6 +424,8 @@ private:
     std::string lfn;
     time_t expires;
   };
+
+  eos::common::AutoRepair AutoRepairConfig;
 
   //! A vector map pointing from tpc key => tpc information for reads, [0]
   //! are readers [1] are writers

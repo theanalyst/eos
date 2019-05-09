@@ -62,6 +62,7 @@ set_target_properties(EosCrc32c-Static PROPERTIES
 # eosCommon-Objects
 #-------------------------------------------------------------------------------
 add_library(eosCommon-Objects OBJECT
+  AutoRepair.cc			      
   SymKeys.cc
   Mapping.cc
   RWMutex.cc

@@ -47,6 +47,7 @@ Storage::Communicator(ThreadAssistant& assistant)
   std::string watch_gateway_rate = "gw.rate";
   std::string watch_gateway_ntx = "gw.ntx";
   std::string watch_error_simulation = "error.simulation";
+  std::string watch_auto = "auto.repair";
   std::string watch_regex = ".*";
   bool ok = true;
   ok &= gOFS.ObjectNotifier.SubscribesToKey("communicator", watch_id,
@@ -70,6 +71,8 @@ Storage::Communicator(ThreadAssistant& assistant)
   ok &= gOFS.ObjectNotifier.SubscribesToKey("communicator", watch_gateway_rate,
         XrdMqSharedObjectChangeNotifier::kMqSubjectModification);
   ok &= gOFS.ObjectNotifier.SubscribesToKey("communicator", watch_gateway_ntx,
+        XrdMqSharedObjectChangeNotifier::kMqSubjectModification);
+  ok &= gOFS.ObjectNotifier.SubscribesToKey("communicator", watch_auto,
         XrdMqSharedObjectChangeNotifier::kMqSubjectModification);
   ok &= gOFS.ObjectNotifier.SubscribesToKey("communicator",
         watch_error_simulation,
@@ -326,6 +329,20 @@ Storage::Communicator(ThreadAssistant& assistant)
               std::string value = hash->Get("error.simulation");
               eos_static_info("cmd=set error.simulation=%s", value.c_str());
               gOFS.SetSimulationError(value.c_str());
+            }
+
+            gOFS.ObjectManager.HashMutex.UnLockRead();
+          }
+
+          if (key == "auto.repair") {
+	    // set auto-repair configuration
+            gOFS.ObjectManager.HashMutex.LockRead();
+            XrdMqSharedHash* hash = gOFS.ObjectManager.GetObject(queue.c_str(), "hash");
+
+            if (hash) {
+              std::string repair = hash->Get("auto.repair");
+              eos_static_info("cmd=set auto.repair=%s", repair.c_str());
+	      gOFS.SetAutoRepair(repair);
             }
 
             gOFS.ObjectManager.HashMutex.UnLockRead();

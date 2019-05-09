@@ -23,6 +23,7 @@
 
 /*----------------------------------------------------------------------------*/
 #include "console/ConsoleMain.hh"
+#include "common/AutoRepair.hh"
 #include "common/StringTokenizer.hh"
 #include "common/StringConversion.hh"
 #include "common/SymKeys.hh"
@@ -313,6 +314,19 @@ com_space(char* arg1)
         ok = true;
       }
     }
+
+    // check the key parameters for auto.repair
+    if (key.find("auto.repair") != STR_NPOS) {
+      eos::common::AutoRepair ar;
+      if (ar.Parse(val)) {
+	fprintf(stderr,"error: the parameters list for 'auto.repair' is invalid, should be '%s'\n",
+		ar.Usage());
+	global_retc = EINVAL;
+	return (0);
+      }
+
+    }
+
   }
 
   if (subcommand == "kinetic-json-store") {

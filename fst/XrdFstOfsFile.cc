@@ -134,8 +134,7 @@ int
 XrdFstOfsFile::dropall(eos::common::FileId::fileid_t fileid, std::string path,
                        std::string manager)
 {
-
-  if (!getenv("EOS_FST_AUTO_CLEANUP")) {
+  if (!gOFS.getAutoRepair().do_dropall()) {
     return 0;
   }
 
@@ -1076,11 +1075,14 @@ XrdFstOfsFile::close()
 
       if (layOut->IsEntryServer() && (!isReplication) && (!mIsInjection) &&
           (!mRainReconstruct)) {
-        capOpaqueString += "&mgm.dropall=1";
+	if (gOFS.getAutoRepair().do_dropall()) {
+	  capOpaqueString += "&mgm.dropall=1";
+	}
       }
 
       int rc = 0;
-      if (!getenv("EOS_FST_AUTO_CLEANUP")) {
+
+      if (!gOFS.getAutoRepair().do_drop()) {
 	// don't cleanup anything
 	rc = EACCES;
       } else {
@@ -1502,9 +1504,9 @@ XrdFstOfsFile::close()
       }
     }
 
-    if (!getenv("EOS_FST_AUTO_CLEANUP")) {
+    if (!gOFS.getAutoRepair().do_posc()) {
       if (deleteOnClose) {
-	eos_warning("deleteOnClose has been disabled by configuration - missing ENV EOS_FST_AUTO_CLEANUP");
+	eos_warning("deleteOnClose has been disabled by configuration - auto.repair=posc:0,...");
 	deleteOnClose = false;
       }
     }
@@ -1537,7 +1539,9 @@ XrdFstOfsFile::close()
         // If deleteOnClose at the gateway then we drop all replicas
         if (layOut->IsEntryServer() && (!isReplication) && (!mIsInjection) &&
             (!mRainReconstruct)) {
-          OpaqueString += "&mgm.dropall=1";
+	  if (gOFS.getAutoRepair().do_dropall()) {
+	    OpaqueString += "&mgm.dropall=1";
+	  }
         }
 
         XrdOucEnv Opaque(OpaqueString.c_str());
@@ -1545,7 +1549,8 @@ XrdFstOfsFile::close()
         // Delete the replica in the MGM
 
 	int rcode = 0;
-	if (!getenv("EOS_FST_AUTO_CLEANUP")) {
+
+	if (!gOFS.getAutoRepair().do_drop()) {
 	  // don't do anything
 	  rcode = EACCES;
 	} else {

@@ -34,6 +34,7 @@
 #include "mgm/config/ConfigParsing.hh"
 #include "mgm/TableFormatter/TableFormatterBase.hh"
 #include "mgm/TapeAwareGcConstants.hh"
+#include "common/AutoRepair.hh"
 #include "common/StringConversion.hh"
 
 using eos::common::RWMutexReadLock;
@@ -2518,6 +2519,12 @@ FsNode::SetNodeConfigDefault()
   // Set by default the MGM domain e.g. same geographical position as the MGM
   if (!(GetConfigMember("domain").length())) {
     SetConfigMember("domain", "MGM", true, mName.c_str(), true);
+  }
+
+  // Set the default auto.repair settings
+  if (!(GetConfigMember("auto.repair").length())) {    
+    eos::common::AutoRepair ar;
+    SetConfigMember("auto.repair", ar.Defaults());
   }
 }
 

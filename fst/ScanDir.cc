@@ -514,7 +514,7 @@ ScanDir::CheckFile(const char* filepath)
                   }
                 }
 
-                if (do_autorepair) {
+		if (gOFS.getAutoRepair().do_scan() && do_autorepair) {
                   gFmdDbMapHandler.CallAutoRepair(manager.c_str(), fid);
                 }
               }
