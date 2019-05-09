@@ -230,6 +230,7 @@ ProcCommand::File()
       XrdOucString commitsize = pOpaque->Get("mgm.file.commit.size");
       XrdOucString commitfmd = pOpaque->Get("mgm.file.commit.fmd");
       XrdOucString verifyrate = pOpaque->Get("mgm.file.verify.rate");
+      XrdOucString verifyresync = pOpaque->Get("mgm.file.resync")?pOpaque->Get("mgm.file.resync"):"0";
 
       if (computechecksum == "1") {
         option += "&mgm.verify.compute.checksum=1";
@@ -334,7 +335,7 @@ ProcCommand::File()
               acceptfound = true;
             }
 
-            if (isRAIN) {
+            if (isRAIN || (verifyresync=="1") ) {
               int lretc = gOFS->SendResync(fileid, (int) * it);
 
               if (!lretc) {

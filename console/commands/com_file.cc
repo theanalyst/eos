@@ -738,7 +738,7 @@ com_file(char* arg1)
     // TODO: all this is silly and should be properly re-written
     if (fsid1.length()) {
       if ((fsid1 != "-checksum") && (fsid1 != "-commitchecksum") &&
-          (fsid1 != "-commitsize") && (fsid1 != "-commitfmd") && (fsid1 != "-rate")) {
+          (fsid1 != "-commitsize") && (fsid1 != "-commitfmd") && (fsid1 != "-rate") && (fsid1 != "-resync")) {
         if (fsid1.beginswith("-")) {
           goto com_file_usage;
         }
@@ -788,7 +788,10 @@ com_file(char* arg1)
           in += "&mgm.file.commit.fmd=1";
         } else if (elem == "-rate") {
           in += "&mgm.file.verify.rate=";
-        } else {
+        } else if (elem == "-resync") {
+	  in += "&mgm.file.resync=1";
+	}
+	else {
           goto com_file_usage;
         }
       }
@@ -1170,7 +1173,7 @@ com_file_usage:
   fprintf(stdout,
           "                                                  create a 0-size/0-replica file if <path> does not exist or update modification time of an existing file to the present time\n");
   fprintf(stdout,
-          "file verify <path>|fid:<fid-dec>|fxid:<fid-hex> [<fsid>] [-checksum] [-commitchecksum] [-commitsize] [-rate <rate>] : \n");
+          "file verify <path>|fid:<fid-dec>|fxid:<fid-hex> [<fsid>] [-checksum] [-commitchecksum] [-commitsize] [-rate <rate>] [-resync] : \n");
   fprintf(stdout,
           "                                                  verify a file against the disk images\n");
   fprintf(stdout,
@@ -1182,6 +1185,8 @@ com_file_usage:
   fprintf(stdout, "       -commitsize     : commit the file size to the MGM\n");
   fprintf(stdout,
           "       -rate <rate>    : restrict the verification speed to <rate> per node\n");
+  fprintf(stdout,
+	  "       -resync         : let all FSTs resync the meta-data from the MGM\n");
   fprintf(stdout, "file version <path> [purge-version] :\n");
   fprintf(stdout,
           "                                                  create a new version of a file by cloning\n");
