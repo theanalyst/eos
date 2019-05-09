@@ -1054,6 +1054,13 @@ XrdFstOfsFile::close()
     capOpaqueString += OpaqueString;
     eos_info("viaDelete=%d", viaDelete);
 
+    // posc disables unpersist
+    if (!gOFS.getAutoRepair().do_posc()) {
+      viaDelete = false;
+      writeDelete = false;
+      eos_info("viaDelete=%d", viaDelete);
+    }
+
     if ((viaDelete || writeDelete) && ((isCreation || (isReplication && isRW) ||
                                         mIsInjection || mRainReconstruct ||
                                         IsChunkedUpload()) && (!mFusex))) {
@@ -1161,22 +1168,28 @@ XrdFstOfsFile::close()
         // We have a checksum error if the checksum was preset and does not match!
         // We have a target size error, if the target size was preset and does not match!
         // Set the file to be deleted
-        deleteOnClose = true;
-        layOut->Remove();
+	
+	if (gOFS.getAutoRepair().do_posc()) {
+	  deleteOnClose = true;
 
-        if (layOut->IsEntryServer() && (!isReplication) && (!mIsInjection) &&
-            (!mRainReconstruct)) {
-          capOpaqueString += "&mgm.dropall=1";
-        }
-
-        // Delete the replica in the MGM
-        int rc = gOFS.CallManager(&error, mCapOpaque->Get("mgm.path"),
-                                  mCapOpaque->Get("mgm.manager"), capOpaqueString);
-
-        if (rc) {
-          eos_warning("(unpersist): unable to drop file id %s fsid %u at manager %s",
-                      hex_fid.c_str(), fMd->mProtoFmd.fid(), mCapOpaque->Get("mgm.manager"));
-        }
+	  layOut->Remove();
+	  
+	  if (layOut->IsEntryServer() && (!isReplication) && (!mIsInjection) &&
+	      (!mRainReconstruct)) {
+	    if (gOFS.getAutoRepair().do_dropall()) {
+	      capOpaqueString += "&mgm.dropall=1";
+	    }
+	  }
+	  
+	  // Delete the replica in the MGM
+	  int rc = gOFS.CallManager(&error, mCapOpaque->Get("mgm.path"),
+				    mCapOpaque->Get("mgm.manager"), capOpaqueString);
+	  
+	  if (rc) {
+	    eos_warning("(unpersist): unable to drop file id %s fsid %u at manager %s",
+			hex_fid.c_str(), fMd->mProtoFmd.fid(), mCapOpaque->Get("mgm.manager"));
+	  } 
+	}
       }
 
       // Store the entry server information before closing the layout
