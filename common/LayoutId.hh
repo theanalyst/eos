@@ -566,7 +566,7 @@ public:
       return 1;
     }
 
-    return (GetStripeNumber(layout) - GetRedundancyStripeNumber(layout));
+    return ( GetOnlineStripeNumber(layout) - GetRedundancyStripeNumber(layout));
   }
 
   //--------------------------------------------------------------------------
