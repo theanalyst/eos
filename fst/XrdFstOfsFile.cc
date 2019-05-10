@@ -1087,7 +1087,7 @@ XrdFstOfsFile::close()
       if (isCreation) {
         // If we had space allocation we have to truncate the allocated space to
         // the real size of the file
-	if (!eos::common::LayoutId::IsRainLayout(layOut->GetLayoutId())) {
+	if (eos::common::LayoutId::IsRainLayout(layOut->GetLayoutId())) {
           // the entry server has to truncate only if this is not a recovery action
           if (layOut->IsEntryServer() && !mRainReconstruct) {
             eos_info("msg=\"truncate RAIN layout\" truncate-offset=%llu",
