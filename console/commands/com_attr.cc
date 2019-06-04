@@ -449,7 +449,7 @@ com_attr_usage:
           "         sys.forced.group=<group>              : enforces to use <group>, where <group> is the numerical index of <space>.<n>    [configuration dependend]\n");
   //  fprintf(stdout,"         sys.forced.layout=<layout>            : enforces to use <layout>   [<layout>=(plain,replica,raiddp,reeds)]\n");
   fprintf(stdout,
-          "         sys.forced.layout=<layout>            : enforces to use <layout>   [<layout>=(plain,replica)]\n");
+          "         sys.forced.layout=<layout>            : enforces to use <layout>   [<layout>=(plain,replica,raid5,raid6,archive,qrain)]\n");
   fprintf(stdout,
           "         sys.forced.checksum=<checksum>        : enforces to use file-level checksum <checksum>\n");
   fprintf(stdout,
@@ -629,6 +629,10 @@ com_attr_usage:
           "--------------------------------------------------------------------------------\n");
   fprintf(stdout, "- set ARCHIVE 5+3 as standard layout ...\n");
   fprintf(stdout, "     |eos> attr set default=archive /eos/instance/archive\n");
+  fprintf(stdout,
+          "--------------------------------------------------------------------------------\n");
+  fprintf(stdout, "- set QRAIN 8+4 as standard layout ...\n");
+  fprintf(stdout, "     |eos> attr set default=qrain /eos/instance/qrain\n");
   fprintf(stdout,
           "--------------------------------------------------------------------------------\n");
   fprintf(stdout,
