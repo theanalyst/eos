@@ -934,6 +934,10 @@ public:
       if (typ == "archive") {
         return kArchive;
       }
+
+      if (typ == "qrain") {
+	return kQrain;
+      }
     }
 
     return kPlain;
