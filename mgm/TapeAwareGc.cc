@@ -177,6 +177,25 @@ TapeAwareGc::fileReplicaCommitted(const std::string &path, const IFileMD &fmd) n
 }
 
 //------------------------------------------------------------------------------
+// Notify GC a file has been deleted from the EOS namespace
+//------------------------------------------------------------------------------
+void
+TapeAwareGc::fileDeleted(const std::string &path, const IFileMD &fmd) noexcept
+{
+  try {
+    const auto fid = fmd.getId();
+    const std::string preamble = createLogPreamble(path, fid);
+    eos_static_debug(preamble.c_str());
+
+    eos_static_info(preamble.c_str());
+  } catch(std::exception &ex) {
+    eos_static_err("msg=\"%s\"", ex.what());
+  } catch(...) {
+    eos_static_err("msg=\"Caught an unknown exception\"");
+  }
+}
+
+//------------------------------------------------------------------------------
 // Return the minimum number of free bytes the specified space should have
 // as set in the configuration variables of the space.  If the minimum
 // number of free bytes cannot be determined for whatever reason then 0 is

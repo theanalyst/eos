@@ -103,6 +103,16 @@ public:
     noexcept;
 
   //----------------------------------------------------------------------------
+  //! Notify GC a file has been deleted from the EOS namespace
+  //! @note This method does nothing and returns immediately if the GC has not
+  //! been enabled
+  //!
+  //! @param path file path
+  //! @param fmd file metadata
+  //----------------------------------------------------------------------------
+  void fileDeleted(const std::string &path, const IFileMD &fmd) noexcept;
+
+  //----------------------------------------------------------------------------
   //! @return the number of files successfully stagerrm'ed since boot
   //----------------------------------------------------------------------------
   uint64_t getNbStagerrms() const;
