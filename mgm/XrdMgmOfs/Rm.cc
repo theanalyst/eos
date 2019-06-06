@@ -298,8 +298,6 @@ XrdMgmOfs::_rem(const char* path,
           eos_info("msg=\"workflow trigger returned\" retc=%d errno=%d", ret_wfe, errno);
         }
 
-        gOfs->mTapeAwareGc.fileDeleted(path, fid);
-
         gOFS->eosViewRWMutex.LockWrite();
 
         if (ret_wfe && errno != ENOKEY) {
