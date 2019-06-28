@@ -937,7 +937,7 @@ public:
 
   void PrintSpaces(std::string& out, const std::string& headerformat,
                    const std::string& listformat, unsigned int geodepth = 0,
-                   const char* selection = 0, const std::string&  filter = "");
+                   const char* selection = 0, const std::string&  filter = "", bool dont_color = true); // @note (faluchet)
 
   //----------------------------------------------------------------------------
   //! Clear all mappings and filesystem objects obtaining locks

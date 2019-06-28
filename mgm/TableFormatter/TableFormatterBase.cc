@@ -29,7 +29,13 @@ EOSMGMNAMESPACE_BEGIN
 // Constructor
 //------------------------------------------------------------------------------
 TableFormatterBase::TableFormatterBase()
-  : mSink("")
+  : mSink(""), mDontColor(false)
+{
+}
+
+// @note (faluchet)
+TableFormatterBase::TableFormatterBase(bool DontColor)
+  : mSink(""), mDontColor(DontColor)
 {
 }
 
@@ -405,6 +411,9 @@ void TableFormatterBase::AddString(std::string string)
 TableFormatterColor TableFormatterBase::ChangeColor(std::string header,
     std::string value)
 {
+  if (mDontColor) { // @note (faluchet)
+    return DEFAULT;
+  }
   // Colors for "fs ls", "node ls", "fileinfo" and "health" commands
   if (header == "status" || header == "active") {
     if (value == "online") {

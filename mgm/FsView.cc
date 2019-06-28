@@ -2785,7 +2785,7 @@ FsView::RemoveMapping(eos::common::FileSystem::fsid_t fsid, std::string fsuuid)
 void
 FsView::PrintSpaces(std::string& out, const std::string& table_format,
                     const std::string& table_mq_format, unsigned int outdepth,
-                    const char* selection, const string& filter)
+                    const char* selection, const string& filter, bool dont_color) // @note (faluchet)
 {
   std::vector<std::string> selections;
   std::string selected = selection ? selection : "";
@@ -2794,7 +2794,7 @@ FsView::PrintSpaces(std::string& out, const std::string& table_format,
     eos::common::StringConversion::Tokenize(selected, selections, ",");
   }
 
-  TableFormatterBase table;
+  TableFormatterBase table(dont_color); // @note
 
   for (auto it = mSpaceView.begin(); it != mSpaceView.end(); ++it) {
     it->second->Print(table, table_format, table_mq_format, outdepth, filter);

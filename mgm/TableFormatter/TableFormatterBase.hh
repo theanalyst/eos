@@ -36,6 +36,7 @@ public:
   //! Constructor
   //----------------------------------------------------------------------------
   TableFormatterBase();
+  TableFormatterBase(bool DoColor); // @note (faluchet)
 
   //----------------------------------------------------------------------------
   //! Set table header
@@ -76,6 +77,9 @@ protected:
   TableHeader mHeader;
   TableData mData;
   TableString mString;
+
+public: // @note (faluchet)
+    bool mDontColor;
 
   //----------------------------------------------------------------------------
   //! Set cell color

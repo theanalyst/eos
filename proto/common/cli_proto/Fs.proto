@@ -87,6 +87,9 @@ message FsProto {
    DisplayMode display = 1;
    bool Brief = 2;
    string Matchlist = 3;
+
+   bool DontColor = 4; // @note (faluchet)
+
   }
 
   message RmProto {

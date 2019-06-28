@@ -401,6 +401,12 @@ FsHelper::ParseCommand(const char* arg)
     using eos::console::FsProto_LsProto;
     FsProto_LsProto* ls = fs->mutable_ls();
 
+
+    if (system("test -t 0 && test -t 1")) { // @note (faluchet) if isatty
+      ls->set_dontcolor(true);
+    }
+
+
     if ((option = tokenizer.GetToken())) {
       int exclusive_opt = 0;
 
