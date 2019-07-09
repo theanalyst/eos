@@ -1666,6 +1666,11 @@ public:
   //! Tracker for requests which are currently executing MGM code
   eos::mgm::InFlightTracker mTracker;
 
+  //----------------------------------------------------------------------------
+  //! Return string representation of prepare options
+  //----------------------------------------------------------------------------
+  static std::string prepareOptsToString(const int opts);
+
 private:
   //! Tracker for balanced fids
   eos::mgm::IdTrackerWithValidity<eos::IFileMD::id_t> mBalancingTracker;
