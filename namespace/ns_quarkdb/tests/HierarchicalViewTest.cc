@@ -763,3 +763,27 @@ TEST_F(HierarchicalViewF, QuotaRecomputation)
   ASSERT_EQ(qnc.getPhysicalSpaceByGroup(200), 0);
   ASSERT_EQ(qnc.getNumFilesByGroup(200), 0);
 }
+
+TEST_F(HierarchicalViewF, CustomContainerId)
+{
+  eos::IContainerMDPtr c32 = view()->createContainer("/c32", false, 32);
+  ASSERT_EQ(c32->getId(), 32);
+
+  eos::IContainerMDPtr root = view()->getContainer("/");
+  ASSERT_EQ(root->getId(), 1);
+
+  eos::IContainerMDPtr child = root->findContainer("c32");
+  ASSERT_EQ(child.get(), c32.get());
+
+  eos::IContainerMDPtr c33 = view()->createContainer("/c33", true);
+  ASSERT_EQ(c33->getId(), 33);
+}
+
+TEST_F(HierarchicalViewF, CustomFileId)
+{
+  eos::IFileMDPtr f999 = view()->createFile("/f999", 5, 5, 999);
+  ASSERT_EQ(f999->getId(), 999);
+
+  eos::IFileMDPtr f1000 = view()->createFile("/f1000", 0, 0, 0);
+  ASSERT_EQ(f1000->getId(), 1000);
+}
