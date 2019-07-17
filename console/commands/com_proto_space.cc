@@ -222,11 +222,12 @@ bool SpaceHelper::ParseCommand(const char* arg)
     eos::console::SpaceProto_StatusProto *status = space->mutable_status();
     status->set_mgmspace(token);
 
-    tokenizer.NextToken(token);
-    if (token == "m") {
-      status->set_outformat_m(true);
-    } else {
-      return false;
+    if (tokenizer.NextToken(token)) {
+      if (token == "m") {
+        status->set_outformat_m(true);
+      } else {
+        return false;
+      }
     }
 
     std::string contents = eos::common::StringConversion::StringFromShellCmd("cat /var/eos/md/stacktrace 2> /dev/null");
@@ -271,7 +272,7 @@ bool SpaceHelper::ParseCommand(const char* arg)
     }
 
   }
-  else if (token == "node-get") { // @todo
+  else if (token == "node-get") {
     if (!tokenizer.NextToken(token)) return false;
 
     eos::console::SpaceProto_NodeGetProto *nodeget = space->mutable_nodeget();
