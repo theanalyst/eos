@@ -35,6 +35,7 @@
 #include "mgm/proc/admin/NodeCmd.hh"
 #include "mgm/proc/admin/QuotaCmd.hh"
 #include "mgm/proc/admin/SpaceCmd.hh"
+#include "mgm/proc/admin/ConfigCmd.hh"
 #include <google/protobuf/util/json_util.h>
 
 EOSMGMNAMESPACE_BEGIN
@@ -238,6 +239,10 @@ ProcInterface::HandleProtobufRequest(const char* path, const char* opaque,
     cmd.reset(new SpaceCmd(std::move(req), vid));
     break;
 
+  case RequestProto::kConfig:
+    cmd.reset(new ConfigCmd(std::move(req), vid));
+    break;
+
     default:
     eos_static_err("error: unknown request type");
     break;
@@ -313,11 +318,12 @@ ProcInterface::ProtoIsWriteAccess(const char* path, const char* opaque)
     break;
 
   case RequestProto::kIo:
-    return false;
+    return false; // @note (faluchet) to check
     break;
 
   case RequestProto::kGroup:
-    return false;
+    return false; // @note (faluchet) to check
+    break;
 
   case RequestProto::kDebug:
     return true; // @note (faluchet) to check
@@ -332,6 +338,10 @@ ProcInterface::ProtoIsWriteAccess(const char* path, const char* opaque)
     break;
 
   case RequestProto::kSpace:
+    return true; // @note (faluchet) to check
+    break;
+
+  case RequestProto::kConfig:
     return true; // @note (faluchet) to check
     break;
 
