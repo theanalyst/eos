@@ -88,8 +88,19 @@ void ConfigCmd::LsSubcmd(const eos::console::ConfigProto_LsProto& ls, eos::conso
 //----------------------------------------------------------------------------
 // Execute dump subcommand
 //----------------------------------------------------------------------------
-void ConfigCmd::DumpSubcmd(const eos::console::ConfigProto_DumpProto& dump,
-                eos::console::ReplyProto& reply) {}
+void ConfigCmd::DumpSubcmd(const eos::console::ConfigProto_DumpProto& dump, eos::console::ReplyProto& reply) {
+
+  eos_notice("config dump");
+  XrdOucString sdump = "";
+
+  if (!gOFS->ConfEngine->DumpConfig(sdump, dump.file())) {
+    reply.set_std_err("error: listing of existing configs failed!");
+    reply.set_retc(errno);
+  } else {
+    reply.set_std_out(sdump.c_str());
+  }
+
+}
 
 //----------------------------------------------------------------------------
 // Execute reset subcommand
@@ -113,20 +124,80 @@ void ConfigCmd::ResetSubcmd(const eos::console::ConfigProto_ResetProto& reset, e
 //----------------------------------------------------------------------------
 // Execute export subcommand
 //----------------------------------------------------------------------------
-void ConfigCmd::ExportSubcmd(const eos::console::ConfigProto_ExportProto& exp,
-                  eos::console::ReplyProto& reply) {}
+void ConfigCmd::ExportSubcmd(const eos::console::ConfigProto_ExportProto& exp, eos::console::ReplyProto& reply) {
+
+  if (gOFS->MgmOfsConfigEngineType == "file") {
+    reply.set_std_err("error: this command is available only with ConfigEngine type 'quarkdb'");
+    reply.set_retc(EINVAL);
+    return;
+  }
+  if ((mVid.uid != 0)) {
+    reply.set_std_err("error: you have to take role 'root' to execute this command");
+    reply.set_retc(EPERM);
+    return;
+  }
+
+  eos_notice("config export: %s", exp.ShortDebugString().c_str());
+  eos::mgm::ConfigResetMonitor fsview_cfg_reset_monitor;
+
+  XrdOucString std_err;
+  if (!gOFS->ConfEngine->PushToQuarkDB(exp.file(), exp.force(), std_err)) {
+    reply.set_std_err(std_err.c_str());
+    reply.set_retc(errno);
+  } else {
+    reply.set_std_out("success: configuration successfully exported!");
+  }
+
+}
 
 //----------------------------------------------------------------------------
 // Execute save subcommand
 //----------------------------------------------------------------------------
-void ConfigCmd::SaveSubcmd(const eos::console::ConfigProto_SaveProto& save,
-                eos::console::ReplyProto& reply) {}
+void ConfigCmd::SaveSubcmd(const eos::console::ConfigProto_SaveProto& save, eos::console::ReplyProto& reply) {
+
+
+  if ((mVid.uid != 0)) {
+    reply.set_std_err("error: you have to take role 'root' to execute this command");
+    reply.set_retc(EPERM);
+    return;
+  }
+
+  eos_notice("config save: %s", save.ShortDebugString().c_str());
+
+  XrdOucString std_err;
+  if (!gOFS->ConfEngine->SaveConfig(save.file(), save.force(), false, mReqProto.comment(), std_err)) {
+    reply.set_std_err(std_err.c_str());
+    reply.set_retc(errno);
+    } else {
+    reply.set_std_out("success: configuration successfully saved!");
+    }
+
+}
 
 //----------------------------------------------------------------------------
 // Execute load subcommand
 //----------------------------------------------------------------------------
-void ConfigCmd::LoadSubcmd(const eos::console::ConfigProto_LoadProto& load,
-                eos::console::ReplyProto& reply) {}
+void ConfigCmd::LoadSubcmd(const eos::console::ConfigProto_LoadProto& load, eos::console::ReplyProto& reply) {
+
+  if ((mVid.uid != 0)) {
+    reply.set_std_err("error: you have to take role 'root' to execute this command");
+    reply.set_retc(EPERM);
+    return;
+  }
+
+  eos_notice("config load: %s", load.ShortDebugString().c_str());
+  eos::mgm::ConfigResetMonitor fsview_cfg_reset_monitor;
+
+  XrdOucString std_err;
+  if (!gOFS->ConfEngine->LoadConfig(load.file(), std_err)) {
+    reply.set_std_err(std_err.c_str());
+    reply.set_retc(errno);
+  } else {
+    reply.set_std_out("success: configuration successfully loaded!");
+  }
+
+
+}
 
 //----------------------------------------------------------------------------
 // Execute changelog subcommand
@@ -135,7 +206,7 @@ void ConfigCmd::ChangelogSubcmd(const eos::console::ConfigProto_ChangelogProto& 
 
   XrdOucString std_out;
 
-  gOFS->ConfEngine->Tail( ( (changelog.lines() > 0 ) ? changelog.lines() : 5) , std_out);
+  gOFS->ConfEngine->Tail(changelog.lines(), std_out);
   eos_notice("config changelog");
 
 }
