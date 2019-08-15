@@ -1037,6 +1037,12 @@ Server::prefetchMD(const eos::fusex::md& md)
     Prefetcher::prefetchInodeAndWait(gOFS->eosView, md.md_ino());
   } else if (md.operation() == md.LS) {
     Prefetcher::prefetchInodeWithChildrenAndWait(gOFS->eosView, md.md_ino());
+  } else if (md.operation() == md.DELETE) {
+    Prefetcher::prefetchInodeWithChildrenAndWait(gOFS->eosView, md.md_pino());
+
+    if(S_ISDIR(md.mode())) {
+      Prefetcher::prefetchInodeWithChildrenAndWait(gOFS->eosView, md.md_ino());
+    }
   }
 }
 
