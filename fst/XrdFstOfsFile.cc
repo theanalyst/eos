@@ -63,7 +63,8 @@ XrdFstOfsFile::XrdFstOfsFile(const char* user, int MonID) :
   mSyncEventOnClose(false), mFmd(nullptr), mCheckSum(nullptr),
   mLayout(nullptr), mCloseCb(nullptr), mMaxOffsetWritten(0ull), openSize(0),
   closeSize(0), mTpcThreadStatus(EINVAL), mTpcState(kTpcIdle),
-  mTpcFlag(kTpcNone), mTpcKey(""), mIsTpcDst(false), mTpcRetc(0), mTpcCancel(false)
+  mTpcFlag(kTpcNone), mTpcKey(""), mIsTpcDst(false), mTpcRetc(0),
+  mTpcCancel(false)
 {
   rBytes = wBytes = sFwdBytes = sBwdBytes = sXlFwdBytes
                                 = sXlBwdBytes = rOffset = wOffset = 0;
@@ -1697,7 +1698,6 @@ XrdFstOfsFile::_close()
                                                          mCapOpaque->Get("mgm.manager"),
                                                          attributes,
                                                          errMsgBackFromWfEndpoint);
-
         if (0 == notifyRc) {
           this->error.setErrCode(0);
           eos_info("Return code rc=%i errc=%d", SFS_OK, error.getErrInfo());

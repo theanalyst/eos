@@ -37,6 +37,7 @@
 #include "XrdOfs/XrdOfsTrace.hh"
 #include "XrdOuc/XrdOucString.hh"
 #include "namespace/ns_quarkdb/QdbContactDetails.hh"
+#include "qclient/shared/SharedManager.hh"
 #include <google/sparse_hash_map>
 #include <sys/mman.h>
 #include <queue>
