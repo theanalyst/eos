@@ -24,8 +24,9 @@
 #include "authz/XrdCapability.hh"
 #include "fst/XrdFstOfs.hh"
 #include "fst/XrdFstOss.hh"
-#include "fst/checksum/ChecksumPlugins.hh"
 #include "fst/FmdDbMap.hh"
+#include "fst/checksum/ChecksumPlugins.hh"
+#include "fst/http/HttpServer.hh"
 #include "fst/storage/FileSystem.hh"
 #include "fst/storage/Storage.hh"
 #include "fst/Messaging.hh"
@@ -305,7 +306,7 @@ XrdFstOfs::xrdfstofs_graceful_shutdown(int sig)
 //------------------------------------------------------------------------------
 XrdFstOfs::XrdFstOfs() :
   eos::common::LogId(), mHostName(NULL), mMqOnQdb(false), mHttpd(nullptr),
-  mCloseThreadPool(8, 64, 5, 6, 5, "async_close"), mMgmXrdPool(nullptr), 
+  mCloseThreadPool(8, 64, 5, 6, 5, "async_close"), mMgmXrdPool(nullptr),
   mSimIoReadErr(false), mSimIoWriteErr(false), mSimXsReadErr(false),
   mSimXsWriteErr(false), mSimFmdOpenErr(false), mSimErrIoReadOff(0ull),
   mSimErrIoWriteOff(0ull)
