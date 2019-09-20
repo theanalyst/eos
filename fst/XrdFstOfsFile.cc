@@ -352,7 +352,6 @@ XrdFstOfsFile::open(const char* path, XrdSfsFileOpenMode open_mode,
                      "simulated error");
   }
 
-  eos_info("fstpath=%s", mFstPath.c_str());
   mFmd = gFmdDbMapHandler.LocalGetFmd(mFileId, mFsId, vid.uid, vid.gid,
                                       mLid, mIsRW, isRepairRead);
 
@@ -833,11 +832,11 @@ XrdFstOfsFile::stat(struct stat* buf)
   // overwrite st_dev
   buf->st_dev = nsec;
 #ifdef __APPLE__
-  eos_info("path=%s inode=%lu size=%lu mtime=%lu.%lu", mNsPath.c_str(), mFileId,
+  eos_info("path=%s fxid=%08llx size=%lu mtime=%lu.%lu", mNsPath.c_str(), mFileId,
            (unsigned long) buf->st_size, buf->st_mtimespec.tv_sec,
            buf->st_dev & 0x7ffffff);
 #else
-  eos_info("path=%s inode=%lu size=%lu mtime=%lu.%lu", mNsPath.c_str(), mFileId,
+  eos_info("path=%s fxid=%08llx size=%lu mtime=%lu.%lu", mNsPath.c_str(), mFileId,
            (unsigned long) buf->st_size, buf->st_mtim.tv_sec, buf->st_dev & 0x7ffffff);
 #endif
   return rc;
@@ -951,15 +950,16 @@ XrdFstOfsFile::close()
 {
   // Close happening the in the same XRootD thread
   if (viaDelete || mWrDelete || mIsDevNull || (mIsRW == false) ||
-      (mIsRW && mMaxOffsetWritten <= msMinSizeAsyncClose)) {
+      (mIsRW && (mMaxOffsetWritten > msMinSizeAsyncClose))) {
     return _close();
   }
 
   // Delegate close to a different thread while the client is waiting for the
   // callback (SFS_STARTED). This only happens for written files with size
   // bigger than msMinSizeAsyncClose (2GB).
-  eos_info("msg=\"close delegated to async thread \" fid=%llu ns_path=\"%s\" "
-           "fs_path=\"%s\"", mFileId, mNsPath.c_str(), mFstPath.c_str());
+  eos_info("msg=\"close delegated to async thread \" fxid=%08llx "
+           "ns_path=\"%s\" fs_path=\"%s\"", mFileId, mNsPath.c_str(),
+           mFstPath.c_str());
   // Create a close callback and put the client in waiting mode
   mCloseCb.reset(new XrdOucCallBack());
   mCloseCb->Init(&error);
