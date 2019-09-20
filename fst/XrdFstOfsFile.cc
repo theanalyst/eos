@@ -956,7 +956,7 @@ XrdFstOfsFile::close()
 
   // Close happening the in the same XRootD thread
   if (viaDelete || mWrDelete || mIsDevNull || (mIsRW == false) ||
-      (mIsRW && (mMaxOffsetWritten > msMinSizeAsyncClose))) {
+      (mIsRW && (mMaxOffsetWritten <= msMinSizeAsyncClose))) {
     return _close();
   }
 
@@ -971,7 +971,7 @@ XrdFstOfsFile::close()
   mCloseCb->Init(&error);
   error.setErrInfo(1800, "delay client up to 30 minutes");
   gOFS.mCloseThreadPool.PushTask<void>([&]() -> void {
-    eos_info("msg=\"doing close in the async thread\" fid=%llu", mFileId);
+    eos_info("msg=\"doing close in the async thread\" fxid=%08llx", mFileId);
     int rc = _close();
     int reply_rc = mCloseCb->Reply(rc, (rc ? error.getErrInfo() : 0),
     (rc ? error.getErrText() : ""));
