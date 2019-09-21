@@ -352,14 +352,14 @@ XrdFstOfsFile::open(const char* path, XrdSfsFileOpenMode open_mode,
                      "simulated error");
   }
 
-  mFmd = gFmdDbMapHandler.LocalGetFmd(mFileId, mFsId, vid.uid, vid.gid,
-                                      mLid, mIsRW, isRepairRead);
+  mFmd = gFmdDbMapHandler.LocalGetFmd(mFileId, mFsId, isRepairRead, mIsRW,
+                                      vid.uid, vid.gid, mLid);
 
   if (mFmd == nullptr) {
     if (gFmdDbMapHandler.ResyncMgm(mFsId, mFileId, mRedirectManager.c_str())) {
       eos_info("msg=\"resync ok\" fsid=%lu fxid=%llx", mFsId, mFileId);
-      mFmd = gFmdDbMapHandler.LocalGetFmd(mFileId, mFsId, vid.uid,
-                                          vid.gid, mLid, mIsRW);
+      mFmd = gFmdDbMapHandler.LocalGetFmd(mFileId, mFsId, isRepairRead, mIsRW,
+                                          vid.uid, vid.gid, mLid);
     } else {
       eos_err("msg=\"resync failed\" fsid=%lu fxid=%08llx", mFsId, mFileId);
     }
