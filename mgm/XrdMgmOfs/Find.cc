@@ -77,16 +77,17 @@ _clone_escape(std::string s) {
 
 static void
 _cloneResp(std::string p, XrdOucErrInfo& out_error, XrdOucString& stdErr, eos::common::VirtualIdentity& vid,
-            std::list<_cloneFoundItem>& _found, std::map<std::string, std::set<std::string> >& found) {
+            std::list<_cloneFoundItem>& _found, std::map<std::string, std::set<std::string> >& found, bool json_output, FILE *fstdout) {
   std::stack<std::string> pp;
   std::shared_ptr<eos::IContainerMD> cmd;
   int depth = 0;
-  char sbuff[4096];
   eos::IContainerMD::tmtime_t stime;
 
   pp.push(p.substr(0,p.rfind('/', p.length()-2)+1));  /* "parent" path: /eos/a1/a2/ -> /eos/a1/ */
   pp.push(std::string("/eos/a1/dummy/"));           /* expect 1st element container @ depth 0, here's a dummy */
 
+  Json::Value j;
+  Json::FastWriter jfw;
   for (auto i: _found) {
     if (i.isContainer) {
       try {
@@ -109,9 +110,14 @@ _cloneResp(std::string p, XrdOucErrInfo& out_error, XrdOucString& stdErr, eos::c
 
 
       cmd->getTMTime(stime);
-      snprintf(sbuff, sizeof(sbuff), " %ld:%ld:%s", stime.tv_sec, cmd->getCloneId(), cmd->getCloneFST().c_str());
-
-      found[pp.top()].insert(sbuff);
+      if (json_output) {
+        j["n"] = pp.top();
+        j["t"] = (Json::Value::UInt64) stime.tv_sec;
+        j["c"] = (Json::Value::UInt64) cmd->getCloneId();
+        j["T"] = cmd->getCloneFST();
+        fprintf(fstdout, "%s", jfw.write(j).c_str());
+      } else
+        fprintf(fstdout, "%s %ld:%ld:%s\n", pp.top().c_str(), stime.tv_sec, cmd->getCloneId(), cmd->getCloneFST().c_str());
     } else {
       std::shared_ptr<eos::IFileMD> fmd;
 
@@ -124,10 +130,19 @@ _cloneResp(std::string p, XrdOucErrInfo& out_error, XrdOucString& stdErr, eos::c
 
       gOFS->FuseXCastFile(fmd->getIdentifier());
       fmd->getSyncTime(stime);
-      snprintf(sbuff, sizeof(sbuff)-1, " %ld:%ld/%lx/%lx:%s",
+      if (json_output) {
+        char sbuff[256];
+        j.clear();
+        sprintf(sbuff, "%lx/%lx", cmd->getId(), fmd->getId());
+        j["n"] = pp.top()+fmd->getName();                   // Name
+        j["t"] = (Json::Value::UInt64) stime.tv_sec;        // time stamp
+        j["c"] = (Json::Value::UInt64) fmd->getCloneId();   // cloneId
+        j["T"] = fmd->getCloneFST();                        // tag
+        j["p"] = sbuff;                                     // clone path
+        fprintf(fstdout, "%s", jfw.write(j).c_str());
+      } else
+        fprintf(fstdout, "%s%s %ld:%ld/%lx/%lx:%s\n", pp.top().c_str(), _clone_escape(fmd->getName()).c_str(),
                stime.tv_sec, fmd->getCloneId(), cmd->getId(), fmd->getId(), fmd->getCloneFST().c_str());
-
-      found[pp.top() + _clone_escape(fmd->getName())].insert(sbuff);
     }
   }
 };
@@ -159,10 +174,13 @@ _cloneMD(std::shared_ptr<eos::IContainerMD>& cloneMd, char cFlag, uint64_t clone
         std::shared_ptr<eos::IContainerMD> pCloneMd = gOFS->eosDirectoryService->getContainerMD(cloneMd->getParentId());
         gOFS->eosDirectoryService->updateStore(cloneMd.get());
         gOFS->eosDirectoryService->updateStore(pCloneMd.get());
+        eos::ContainerIdentifier c_id = cloneMd->getIdentifier();       /* copied from "mkdir" */
+        eos::ContainerIdentifier d_id = pCloneMd->getIdentifier();
+        eos::ContainerIdentifier d_pid = pCloneMd->getParentIdentifier();
         lock.Release();
-        gOFS->FuseXCastContainer(cloneMd->getIdentifier());
-        gOFS->FuseXCastContainer(pCloneMd->getIdentifier());
-        gOFS->FuseXCastRefresh(pCloneMd->getIdentifier(), pCloneMd->getParentIdentifier());
+        gOFS->FuseXCastContainer(c_id);
+        gOFS->FuseXCastContainer(d_id);
+        gOFS->FuseXCastRefresh(d_id, d_pid);
       } catch (eos::MDException& e) {
         eos_static_err("cannot create the %s directory mode 755", clonePath.c_str());
         return false;
@@ -424,7 +442,7 @@ XrdMgmOfs::_find(const char* path, XrdOucErrInfo& out_error,
                  std::map<std::string, std::set<std::string> >& found,
                  const char* key, const char* val, bool no_files,
                  time_t millisleep, bool nscounter, int maxdepth,
-                 const char* filematch, bool take_lock)
+                 const char* filematch, bool take_lock, bool json_output, FILE *fstdout)
 {
   std::vector< std::vector<std::string> > found_dirs;
   std::shared_ptr<eos::IContainerMD> cmd;
@@ -488,7 +506,7 @@ XrdMgmOfs::_find(const char* path, XrdOucErrInfo& out_error,
 
     int rc = _clone(cmd, out_error, stdErr, vid, _found, cFlag, clone_id, newId, NULL, 0);  /* clone releases and re-acquires the eosViewRWMutex! */
     if (rc == 0) 
-      _cloneResp(Path, out_error, stdErr, vid, _found, found);
+      _cloneResp(Path, out_error, stdErr, vid, _found, found, json_output, fstdout);
 
     return rc;
   }
