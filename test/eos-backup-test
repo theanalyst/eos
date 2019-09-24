@@ -42,70 +42,80 @@
 
 from __future__ import print_function
 
-import getopt, os, sys, tempfile
+import getopt, json, os, sys, tempfile
 import pdb
 
-backupDirPrefix = "/tmp/backupDir"
-try:
-    eos_mgm_url = os.environ['EOS_MGM_URL']
-    if eos_mgm_url == '': raise KeyError
-except KeyError:
-    print("need to define EOS_MGM_URL in the environment")
-    sys.exit(1)
+use_json='-j'       # -f text, -j json backup files
+
+# options
+subcmd = sys.argv[1]
+opts, args = getopt.getopt(sys.argv[2:], "B:F:P:U:")
+
+# default backupDirPrefix and parentId
+dflt = [('-B', "/tmp/backupDir"),('-P', 10)]
+
+# resulting options
+opt = dict(dflt+opts)
+
+if '-P' in opt:
+    try:
+        parentId = int(opt['-P'])
+    except ValueError:
+            print("invalid parent Id")
+            sys.exit(22)
+
+if '-U' not in opt:
+    try:
+        opt['-U'] = os.environ['EOS_MGM_URL']
+        if opt['-U'] == '': raise KeyError
+    except KeyError:
+        print("need to specify 'U' or define EOS_MGM_URL in the environment")
+        sys.exit(1)
 
 eos_instance = os.popen("eos version").readlines()[0].split('=')[1].rstrip()
 
 # create the clone, results in a catalogFile
-def do_clone(args):
-    global backupDirPrefix
-    parentId = 10
-    opts, args = getopt.getopt(args, "B:P:")
-    for opt in opts:
-      if opt[0] == '-B':
-        backupDirPrefix = opt[1]
-      elif opt[0] == '-P':
-        try:
-            parentId = int(opt[1])
-        except ValueError:
-            print("invalid parent Id")
-            sys.exit(22)
-
-    catalogFile = tempfile.mkstemp(prefix=backupDirPrefix)
+def do_clone():
+    catalogFile = tempfile.mkstemp(prefix=opt['-B'])
     
     try:
         f = os.fdopen(catalogFile[0], "w")
     except IOError as e:
         print("cannot open %s: %s" % (catalogFile[1], e.message))
         sys.exit(5)
-
-    cmd = "eos find -f -x sys.clone=+%d %s" % (parentId, args[0])
-    findOut = os.popen(cmd).readlines()
-
-    (rootPath, ttt) = findOut[0].split(' ')	# the rootPath includes the trailing '/'
-    cloneInfo = ttt.split(':')
-    cloneId = cloneInfo[1]
-
-    # write the output to newCatFile and rename
-    for l in findOut: f.write(l)
     f.close()
-    newCatFile = "%s.%s.catalog" % (backupDirPrefix, cloneId)
+
+    try:
+      cmd = "eos find %s -x sys.clone=+%d %s > %s" % (use_json, int(opt['-P']), args[0], catalogFile[1])
+      os.system(cmd);
+    except:
+        print("Unexpected error:", sys.exc_info()[0])
+        print("cmd:", cmd)
+        raise
+
+    line1 = open(catalogFile[1]).readline()
+
+    if use_json == '-j':
+        xx = json.loads(line1)
+        cloneId = xx['c']
+    else:
+        (rootPath, ttt) = line1.split(' ')	# the rootPath includes the trailing '/'
+        cloneInfo = ttt.split(':')
+        cloneId = cloneInfo[1]
+
+    newCatFile = "%s.%s.catalog" % (opt['-B'], cloneId)
     os.rename(catalogFile[1], newCatFile)
     print("cloneId %s catalog %s" % (cloneId, newCatFile))
 
     return cloneId
 
 # perform a clone unless a catalogFile has been given, then back up files
-def do_backup(args):
-    global backupDirPrefix
-    opts, args = getopt.getopt(args, "F:B:")
-    catalogFile = None
-    for opt in opts:
-        if   opt[0] == '-B': backupDirPrefix = opt[1]
-        elif opt[0] == '-F': catalogFile = opt[1]
-
-    if catalogFile is None:
-        cloneId = do_clone(args)
-        catalogFile = "%s.%s.catalog" % (backupDirPrefix, cloneId)
+def do_backup():
+    if '-F' in opt:
+        catalogFile = opt['-F']
+    else:
+        cloneId = do_clone()
+        catalogFile = "%s.%s.catalog" % (opt['-B'], cloneId)
     
     try:
         f = open(catalogFile, "r")
@@ -113,48 +123,72 @@ def do_backup(args):
         print("cannot open %s: %s" % (catalogFile, e.message))
         sys.exit(5)
 
-    findOut = f.readlines()
+    #findOut = f.readlines()
+    line1 = f.readline()
 
-    (rootPath, ttt) = findOut[0].split(' ')	# the rootPath includes the trailing '/'
-    cloneInfo = ttt.split(':')
-    cloneId = cloneInfo[1]
+    if use_json == '-j':
+        xx = json.loads(line1)
+        cloneId = xx['c']
+        rootPath = xx['n']
+    else:
+        (rootPath, ttt) = line1.split(' ')	# the rootPath includes the trailing '/'
+        cloneInfo = ttt.split(':')
+        cloneId = cloneInfo[1]
 
-    backupDir = "%s.%s/" % (backupDirPrefix, cloneId)
-    cloneDir = "/eos/%s/proc/clone/" % (eos_instance)
+    backupDir = "%s.%s/" % (opt['-B'], cloneId)
+    cloneDir = "/eos/%s/proc/clone/" % (eos_instance[3:] if eos_instance.startswith("eos") else eos_instance)
 
     print("cloneId %s backup media %s" % (cloneId, backupDir))
 
-    for l in findOut:
-        path, cloneInfo = l.split()
+    #for l in findOut:    .... what about first line?
+    while True:
+        l = f.readline()
+        if len(l) == 0: break
+
+        if use_json == '-j':
+            xx = json.loads(l)
+            fCloneId = xx['c']              # id of clone the file belongs to, might be an earier dump than this one
+            path = xx['n']
+            if not path.endswith('/'): 		# this is a file
+                clonePath = "%s/%s" % (fCloneId, xx['p'])
+            stime = xx['t']
+        else:
+            path, cloneInfo = l.split()
+            if not path.endswith('/'):  # a file
+                stime, clonePath = cloneInfo.split(':')[0:2]
+                fCloneId = clonePath.split('/')[0]
+
         rpath = path[len(rootPath):]	# skip the "root" part
+
         if path.endswith('/'): 		    # this is a directory
             os.makedirs(backupDir + rpath)
         else:				            # this is a file
-            stime, clonePath = cloneInfo.split(':')[0:2]
-            fCloneId = clonePath.split('/')[0]
             if fCloneId != cloneId: continue		# file has not been modified in incremental dump
             cpath = cloneDir + clonePath
 
             # try copy the clone first
-            cmd1 = "xrdcp %s/%s %s/%s 2>&1" % (eos_mgm_url, cpath, backupDir, rpath)
+            cmd1 = "xrdcp %s/%s %s%s 2>&1" % (opt['-U'], cpath, backupDir, rpath)
             p1 = os.popen(cmd1)
             x1 = p1.readlines()
             rc = p1.close()
-            if rc > 256: rc = rc >> 8		# recover xrdcp return code
+            if rc is None: rc = 0
+            elif rc > 256: rc = rc >> 8		# recover xrdcp return code
 
             if rc > 0:
                 # copy the live file
-                cmd2 = "xrdcp %s/%s %s/%s 2>&1" % (eos_mgm_url, path, backupDir, rpath)
+                cmd2 = "xrdcp %s/%s %s%s 2>&1" % (opt['-U'], path, backupDir, rpath)
                 p2 = os.popen(cmd2)
                 x2 = p2.readlines()
                 rc = p2.close()
-                if rc > 256: rc = rc >> 8	# recover xrdcp return code
+                if rc is None: rc = 0
+                elif rc > 256: rc = rc >> 8	# recover xrdcp return code
 
             # retry then clone if created in the meantime
             p1 = os.popen(cmd1)
             x1 = p1.readlines()
             rc = p1.close()
-            if rc > 256: rc = rc >> 8		# recover xrdcp return code
+            if rc is None: rc = 0
+            elif rc > 256: rc = rc >> 8		# recover xrdcp return code
 	    
 	    
     f.close()
@@ -163,14 +197,10 @@ def do_backup(args):
     os.system(cmd)
 
 # perform a restore based on multiple catalogFiles
-def do_restore(args):
+def do_restore():
     #pdb.set_trace()
-    global backupDirPrefix
-    opts, args = getopt.getopt(args, "B:F:P:")
     trg = args[0] + "/"
-    for opt in opts:
-        if opt[0] == '-F': catalogFiles = opt[1].split(',')
-        elif opt[0] == '-B': backupDirPrefix = opt[1]
+    catalogFiles = opt['-F'].split(',')
 
     cat = dict()
 
@@ -180,21 +210,44 @@ def do_restore(args):
     for fn in catalogFiles:
         lastCatFile = fn == catalogFiles[-1]
 
-        ff = open(fn, "r").readlines()
-        (rootPath, ttt) = ff[0].split(' ')	# the rootPath includes the trailing '/'
-        cloneInfo = ttt.split(':')
-        cloneId = cloneInfo[1]
+        ff = open(fn, "r")
+        line1 = ff.readline()
+        if use_json == '-j':
+            xx = json.loads(line1)
+            cloneId = xx['c']
+            rootPath = xx['n']
+        else:
+            (rootPath, ttt) = line1.split(' ')	# the rootPath includes the trailing '/'
+            cloneInfo = ttt.split(':')
+            cloneId = cloneInfo[1]
 
-        for l in ff:
-            path, ttt = l.split(' ')
+        ff.seek(0,0)                            # rewind
+
+        while True:
+            l = ff.readline()
+            if l is '': break
+
+            if use_json == '-j':
+                try:
+                    xx = json.loads(l)
+                except json.decoder.JSONDecodeError as e:
+                    print("json error %r l='%s'" % (e, l), file=sys.stderr)
+                    sys.exit(1)
+
+                path = xx['n']
+                stime = xx['t']
+                if not path.endswith('/'): clonePath = "%s/%s" % (xx['c'], xx['p'])
+            else:
+                path, ttt = l.split(' ')
+                stime, clonePath = ttt.split(":")[0:2]
+
             rpath = path[len(rootPath):]	# skip the "root" part
-            stime, clonePath = ttt.split(":")[0:2]
-
-            if rpath in cat:
+            if rpath in cat and not path.endswith('/'):
                 if stime < cat[rpath]['stime'] or clonePath.startswith('0'):    # file exists but not part of this backup
                     if lastCatFile: cat[rpath]['keep'] = True
                     continue		# restore latest version
             else: cat[rpath] = dict()
+
             cat[rpath]['stime'] = stime
             cat[rpath]['cloneId'] = cloneId
             if lastCatFile: cat[rpath]['keep'] = True
@@ -213,15 +266,15 @@ def do_restore(args):
 # main
 try:
   #pdb.set_trace()
-  if sys.argv[1] == 'clone':
-    do_clone(sys.argv[2:])
-  elif sys.argv[1] == 'backup':
-    do_backup(sys.argv[2:])
-  elif sys.argv[1] == 'restore':
-    do_restore(sys.argv[2:])
+  if subcmd == 'clone':
+    do_clone()
+  elif subcmd == 'backup':
+    do_backup()
+  elif subcmd == 'restore':
+    do_restore()
   else:
     raise NameError
   sys.exit(0)
 except (IndexError, NameError) as e:
-  print("incorrect argument", "" if type(e) == type(IndexError()) else sys.argv[1])
+  print("incorrect argument", "" if type(e) == type(IndexError()) else subcmd)
   sys.exit(1)
