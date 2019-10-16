@@ -56,9 +56,10 @@ eos::mgm::TokenCmd::ProcessRequest() noexcept
   // a sudoer or root can ask for any token
   // ----------------------------------------------------------------------------------------------
 
-  fprintf(stderr, "root=%d sudoer=%d uid=%u gid=%u\n", mVid.hasUid(0), mVid.sudoer, mVid.uid, mVid.gid);
+  eos_static_info("root=%d sudoer=%d uid=%u gid=%u", mVid.hasUid(0), mVid.sudoer, mVid.uid, mVid.gid);
 
   if (token.vtoken().empty()) {
+    eos_static_info("%s\n", token.vtoken().c_str());
     // check who asks for a token
     if ( (mVid.hasUid(0) ) ) {
       // we issue all the token in the world for them
@@ -137,7 +138,7 @@ eos::mgm::TokenCmd::ProcessRequest() noexcept
     
     outStream << eostoken.Write(key) ;
   } else {
-    if (!eostoken.Read(token.vtoken(),key, 0)) {
+    if (!(ret_c = eostoken.Read(token.vtoken(),key, 0))) {
       std::string dump;
       eostoken.Dump(dump);
       outStream << dump;

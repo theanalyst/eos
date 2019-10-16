@@ -30,7 +30,7 @@ The JSON format of an EOS token looks like shown here:
 Essentially this token gives the bearer the permission to ``rwx`` under the tree /eos/dev/token/. The token does not bear an
 owner and group information, which means, that the creations will be accounted on the mapped authenticated user using this token or an enforced ``sys.owner.auth`` entry. If the token should map the authenticated user, one can add ``owner`` and ``group`` fields. In practical terms the token removes existing user and system ACL entries and places the token user/group/permission entries as a system ACL.
 
-Tokens are encrypted, zlib compressed, base64 encoded with a replacement of all '/' characters with '!' to avoid confusion with directory and file names.
+Tokens are encrypted, zlib compressed, base64url encoded with a replacement of the '+' and '/' characters with '-' and '_'  to avoid confusion with directory and file names.
    
 Token creation
 --------------
@@ -43,7 +43,7 @@ The CLI interface to create a token is shown here:
    EXPIRE=`date +%s; let LATER=$EXPIRE+300
 
    eos token --path /eos/myfile --expires $LATER
-   zteos64:MDAwMDAwNzR4nONS4WIuKq8Q+Dlz+ltWI3H91Pxi~cSsAv2S~OzUPP2SeAgtpMAY7f1e31Ts+od+rgcLZ~a2~bhwcZO9cracyhm1b3c6jpRIEWWOws71Ox6xAABeTC8I
+   zteos64:MDAwMDAwNzR4nONS4WIuKq8Q-Dlz-ltWI3H91Pxi~cSsAv2S~OzUPP2SeAgtpMAY7f1e31Ts-od-rgcLZ~a2~bhwcZO9cracyhm1b3c6jpRIEWWOws71Ox6xAABeTC8I
 
    # create a generic read-only token for a directory - mydir has to end with a '/' - valid 5 minutes
    eos token --path /eos/mydir/ --expires $LATER
@@ -61,9 +61,9 @@ The CLI interface to show the contents of a token is shown here:
 
 .. code-block:: bash
 
-   eos token --token zteos64:MDAwMDAwNzR4nONS4WIuKq8Q+Dlz+ltWI3H91Pxi~cSsAv2S~OzUPP2SeAgtpMAY7f1e31Ts+od+rgcLZ~a2~bhwcZO9cracyhm1b3c6jpRIEWWOws7
+   eos token --token zteos64:MDAwMDAwNzR4nONS4WIuKq8Q-Dlz-ltWI3H91Pxi_cSsAv2S_OzUPP2SeAgtpMAY7f1e31Ts-od-rgcLZ_a2_bhwcZO9cracyhm1b3c6jpRIEWWOws7
 
-   TOKEN="zteos64:MDAwMDAwNzR4nONS4WIuKq8Q+Dlz+ltWI3H91Pxi~cSsAv2S~OzUPP2SeAgtpMAY7f1e31Ts+od+rgcLZ~a2~bhwcZO9cracy"
+   TOKEN="zteos64:MDAwMDAwNzR4nONS4WIuKq8Q-Dlz-ltWI3H91Pxi_cSsAv2S_OzUPP2SeAgtpMAY7f1e31Ts-od-rgcLZ_a2_bhwcZO9cracy"
    
    env EOSAUTHZ=$TOKEN eos whoami
    Virtual Identity: uid=0 (99,3,0) gid=0 (99,4,0) [authz:unix] sudo* host=localhost domain=localdomain geo-location=ajp
@@ -91,10 +91,10 @@ A file token can be used in two ways:
 .. code-block:: bash
 
    # as a filename
-   xrdcp root://myeos//zteos64:MDAwMDAwNzR4nONS4WIuKq8Q+Dlz+ltWI3H91Pxi~cSsAv2S~OzUPP2SeAgtpMAY7f1e31Ts+od+rgcLZ~a2~bhwcZO9cracy /tmp/
+   xrdcp root://myeos//zteos64:MDAwMDAwNzR4nONS4WIuKq8Q-Dlz-ltWI3H91Pxi_cSsAv2S_OzUPP2SeAgtpMAY7f1e31Ts-od-rgcLZ_a2_bhwcZO9cracy /tmp/
 
    # via CGI
-   xrdcp "root://myeos//eos/myfile?authz=zteos64:MDAwMDAwNzR4nONS4WIuKq8Q+Dlz+ltWI3H91Pxi~cSsAv2S~OzUPP2SeAgtpMAY7f1e31Ts+od+rgcLZ~a2~bhwcZO9cracy" /tmp/
+   xrdcp "root://myeos//eos/myfile?authz=zteos64:MDAwMDAwNzR4nONS4WIuKq8Q-Dlz-ltWI3H91Pxi_cSsAv2S_OzUPP2SeAgtpMAY7f1e31Ts-od+rgcLZ_a2_bhwcZO9cracy" /tmp/
 
 If a token contains a subtree permission, the only way to use it for a file access is to use the CGI form. The filename form is practical to hide the filename for up-/downloads.
 
@@ -131,5 +131,89 @@ The client location from where a token can be used can be restricted by using th
 The default origin regexp is ``*:*:*`` accepting all origins.
 
 
+Token via GRPC
+--------------
 
+Tokens can be requested and verified using GRPC TokenRequest as shown here with the GRPC CLI. To request a token atleast ``path``, ``expires`` and ``permission`` should be defined.
+
+
+.. code-block:: bash
+
+   [root@ajp mgm]# eos-grpc-ns --acl rwx -p /eos/ajp/xrootd tokenrequest: 
+   {
+    "authkey": "",
+    "token": {
+     "token": {
+      "token": {
+       "permission": "rwx",
+       "expires": "1571226882",
+       "owner": "",
+       "group": "",
+       "generation": "0",
+       "path": "/eos/ajp/xrootd",
+       "allowtree": false,
+       "vtoken": "",
+       "origins": []
+      },
+      "signature": "",
+      "serialized": "",
+      "seed": 0
+     }
+    }
+   }
+   
+   reply: 
+   {
+    "error": {
+     "code": "0",
+     "msg": "zteos64:MDAwMDAwODR4nOPS4WIuKq8QaOqa85ZVii0vPyk_pVIJShvx66fmF-snZhXoVxTl55ekCCk8KMu4qK4Z7_jNTmF5u0_z5hP1J97v3K3G29cid0O4gv-5FEnmKUyavGstGwCiYjHe"
+    }
+   }
+
+   request took 6226 micro seconds
+
+
+To verify a token, the ``vtoken`` field should hold the token to decode.
+
+.. code-block:: bash
+
+   [root@ajp mgm]# eos-grpc-ns --ztoken zteos64:MDAwMDAwODR4nOPS4WIuKq8QaOqa85ZVii0vPyk_pVIJShvx66fmF-snZhXoVxTl55ekCCk8KMu4qK4Z7_jNTmF5u0_z5hP1J97v3K3G29cid0O4gv-5FEnmKUyavGstGwCiYjHe token
+   request: 
+   {
+    "authkey": "",
+    "token": {
+     "token": {
+      "token": {
+      "permission": "rx",
+       "expires": "1571226893",
+       "owner": "",
+       "group": "",
+       "generation": "0",
+       "path": "",
+       "allowtree": false,
+       "vtoken": "zteos64:MDAwMDAwODR4nOPS4WIuKq8QaOqa85ZVii0vPyk_pVIJShvx66fmF-snZhXoVxTl55ekCCk8KMu4qK4Z7_jNTmF5u0_z5hP1J97v3K3G29cid0O4gv-5FEnmKUyavGstGwCiYjHe",
+       "origins": []
+      },
+      "signature": "",
+      "serialized": "",
+     "seed": 0
+     }
+    }
+  }
+
+   reply: 
+   {
+    "error": {
+     "code": "0",
+     "msg": "{\n \"token\": {\n  \"permission\": \"rwx\",\n  \"expires\": \"1571226882\",\n  \"owner\": \"nobody\",\n  \"group\": \"nobody\",\n  \"generation\": \"0\",\n  \"path\": \"/eos/ajp/xrootd\",\n  \"allowtree\": false,\n  \"vtoken\": \"\",\n  \"origins\": []\n },\n \"signature\": \"4HZo0ScpX0H2PiCnh0yDs8h/yO+5uyYNjoQe2BN4D+c=\",\n \"serialized\": \"CgNyd3gQgoqc7QUaBm5vYm9keSIGbm9ib2R5Mg8vZW9zL2FqcC94cm9vdGQ=\",\n \"seed\": 1705937298\n}\n"
+    }
+   }
+
+The possible return codes are:
+
+* -EINVAL      : the token cannot be decompressed
+* -EINVAL      : the token cannot be parsed
+* -EACCES      : the generation number inside the token is not valid anymore
+* -EKEYEXPIRED : the token validity has expired
+* -EPERM       : the token signature is not correct
 

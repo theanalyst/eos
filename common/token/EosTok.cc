@@ -74,7 +74,24 @@ EosTok::Write(const std::string& key)
   eos::common::SymKey::ZBase64(os, zb64os);
 
   zb64os.replace(0,5,"zteos");
-  eos::common::StringConversion::Replace(zb64os, '/', '~');
+  eos::common::StringConversion::Replace(zb64os, '/', '_');
+  eos::common::StringConversion::Replace(zb64os, '+', '-');
+
+  // encode the padding
+  ssize_t pad=0;
+
+  if (zb64os.back() == '=') {
+    zb64os.pop_back();
+    pad++;
+  }
+  if (zb64os.back() == '=') {
+    zb64os.pop_back();
+    pad++;
+  }
+  for (auto i = 0; i< pad; i++) {
+    zb64os+="%%3d";
+  }
+  
   return zb64os;
 }
 
@@ -90,8 +107,31 @@ EosTok::Read(const std::string& zb64is, const std::string& key, uint64_t generat
 
   nzb64is.replace(0,5,"zbase");
 
-  eos::common::StringConversion::Replace(nzb64is, '~', '/');
+  eos::common::StringConversion::Replace(nzb64is, '_', '/');
+  eos::common::StringConversion::Replace(nzb64is, '-', '+');
 
+  // deocde the padding
+  size_t l = nzb64is.length();
+  size_t l1 = l - 4;
+  size_t l2 = l - 2;
+  ssize_t pad = 0;
+
+  if (l1 >= 0)  {
+    if (nzb64is.substr(l1,2) == "%%3d") {
+      pad++;
+    }
+  }
+
+  if (l2 >= 0) {
+    if (nzb64is.substr(l2,2) == "%%3d") {
+      pad++;
+    }
+  }
+  nzb64is.erase(l - (pad*2));
+  for (auto i = 0; i < pad; ++i) {
+    nzb64is += "=";
+  }
+  
   if (!eos::common::SymKey::ZDeBase64(nzb64is,is)) {
     return -EINVAL;
   }

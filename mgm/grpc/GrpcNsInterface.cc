@@ -2079,7 +2079,7 @@ GrpcNsInterface::Token(eos::common::VirtualIdentity& vid,
   req.mutable_token()->set_expires(request->token().token().expires());
   req.mutable_token()->set_generation(request->token().token().generation());
   req.mutable_token()->set_allowtree(request->token().token().allowtree());
-  
+  req.mutable_token()->set_vtoken(request->token().token().vtoken());
   for ( int i = 0; i < request->token().token().origins_size(); ++i ) {
     const eos::rpc::ShareAuth& auth = request->token().token().origins(i);
     eos::console::TokenAuth* newauth = req.mutable_token()->add_origins();
