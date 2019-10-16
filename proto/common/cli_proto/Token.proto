@@ -1,0 +1,22 @@
+syntax="proto3";
+package eos.console;
+
+
+message TokenAuth {
+ string prot = 1;
+ string name = 2;
+ string host = 3;
+}
+
+message TokenProto {
+  string permission = 1;
+  uint64 expires    = 2;
+  string owner      = 3;
+  string group      = 4;
+  uint64 generation = 5;
+  string path    = 6;
+  bool allowtree = 7;
+  string vtoken = 8;
+  repeated TokenAuth origins = 9;
+}
+
