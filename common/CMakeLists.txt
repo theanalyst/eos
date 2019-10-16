@@ -102,7 +102,7 @@ set_target_properties(eosCommon-Objects PROPERTIES
 # Add dependency to protobuf objects so we guarantee that the protocol
 # buffer files are generated when we try to build XrdEosFst
 #-------------------------------------------------------------------------------
-add_dependencies(eosCommon-Objects EosFstProto-Objects EosGrpcProto-Objects)
+add_dependencies(eosCommon-Objects EosFstProto-Objects)
 
 target_compile_definitions(eosCommon-Objects PUBLIC
   -DDAEMONUID=${DAEMONUID} -DDAEMONGID=${DAEMONGID})
