@@ -24,7 +24,7 @@ int usage(const char* prog)
 	  " --owner-uid <uid> --owner-gid <gid> -p <path> chown \n"
 	  "                       --mode <mode> -p <path> chmod \n"
 	  "       [--sysacl] [-r] [--acl <acl>] -p <path> acl \n"
-	  "             --ztoken | [--acl] [-r] -p <path> token\n"
+	  "     --ztoken <token> | [--acl] [-r] -p <path> token\n"
 	  "                [--max-version <max> -p <path> create-version \n"
 	  "                                     -p <path> list-version \n"
 	  "                [--max-version <max> -p <path> purge-version \n");
@@ -249,7 +249,7 @@ int main(int argc, const char* argv[])
     }
   }
 
-  if (cmd.empty() || path.empty()) {
+  if (cmd.empty() || (path.empty() && eostoken.empty())) {
     return usage(argv[0]);
   }
 
