@@ -29,6 +29,12 @@
  */
 
 
+#ifdef __APPLE__
+#define EKEYEXPIRED 127
+#endif
+
+
+
 #include "EosTok.hh"
 #include "proto/ConsoleRequest.pb.h"
 #include <google/protobuf/util/json_util.h>
