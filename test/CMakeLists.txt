@@ -90,7 +90,7 @@ target_link_libraries(eos-udp-dumper)
 
 target_link_libraries(
   eos-io-tool
-  EosFstIo-Static
+  EosFstIo
   ${XROOTD_CL_LIBRARY}
   ${XROOTD_SERVER_LIBRARY}
   ${PROTOBUF_LIBRARY}
@@ -107,7 +107,7 @@ target_link_libraries(
 target_link_libraries(
   eoschecksumbench
   eosCommon
-  EosFstIo-Static
+  EosFstIo
   ${XROOTD_POSIX_LIBRARY}
   ${XROOTD_UTILS_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT})

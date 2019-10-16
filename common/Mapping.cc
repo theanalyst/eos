@@ -835,6 +835,37 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
   XrdOucString ruid = Env.Get("eos.ruid");
   XrdOucString rgid = Env.Get("eos.rgid");
   XrdOucString rapp = Env.Get("eos.app");
+
+
+  const char* authz = Env.Get("authz");
+
+  if (authz) {
+    std::string sauthz = authz;
+    if (sauthz.substr(0,8) == "zteos64:") {
+      // this is an eos token
+      eos::common::SymKey* symkey = eos::common::gSymKeyStore.GetCurrentKey();
+      std::string key = symkey?symkey->GetKey64():"0123457890defaultkey";
+      int rc = 0;
+      if ( (rc = vid.token.Read(sauthz,key,0))) {
+	vid.token.Reset();
+	eos_static_err("failed to decode token tident='%s' token='%s' errno=%d", tident, sauthz.c_str(), -rc);
+      } else {
+	// if owner or group is specified, adjust this
+	if (!vid.token.Owner().empty()) {
+	  ruid = vid.token.Owner().c_str();
+	}
+	if (!vid.token.Group().empty()) {
+	  rgid = vid.token.Group().c_str();
+	}
+	if (EOS_LOGS_INFO) {
+	  std::string dump;
+	  vid.token.Dump(dump, true, true);
+	  eos_static_info("%s",dump.c_str());
+	}
+      }
+    }
+  }
+
   uid_t sel_uid = vid.uid;
   uid_t sel_gid = vid.gid;
 
@@ -933,6 +964,21 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
     vid.uid_string = UidToUserName(vid.uid, errc);
     vid.gid_string = GidToGroupName(vid.gid, errc);
   }
+
+  // verify origin 
+  if (vid.token.Valid()) {
+    if (vid.token.VerifyOrigin(vid.host, vid.uid_string, std::string(vid.prot.c_str()))) {
+      // invalidate this token
+      if (EOS_LOGS_DEBUG) {
+	eos_static_debug("invalidating token - origin mismatch %s:%s:%s", 
+			 vid.host.c_str(), 
+			 vid.uid_string.c_str(), 
+			 vid.prot.c_str());
+      }
+      vid.token.Reset();
+    }
+  }
+
 
   if (rapp.length()) {
     vid.app = rapp.c_str();

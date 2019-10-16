@@ -69,7 +69,7 @@ if(MacOSX)
 else()
   target_link_libraries(
     eosd PRIVATE
-    FuseCache-Static
+    FuseCache
     ${FUSE_LIBRARY}
     ${UUID_LIBRARIES}
     ${XROOTD_CL_LIBRARY}

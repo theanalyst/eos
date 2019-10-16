@@ -1,11 +1,11 @@
 // ----------------------------------------------------------------------
-// File: com_whoami.cc
+// File: Token.hh
 // Author: Andreas-Joachim Peters - CERN
 // ----------------------------------------------------------------------
 
 /************************************************************************
  * EOS - the CERN Disk Storage System                                   *
- * Copyright (C) 2011 CERN/Switzerland                                  *
+ * Copyright (C) 2019 CERN/ASwitzerland                                  *
  *                                                                      *
  * This program is free software: you can redistribute it and/or modify *
  * it under the terms of the GNU General Public License as published by *
@@ -21,27 +21,38 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-/*----------------------------------------------------------------------------*/
-#include "console/ConsoleMain.hh"
-#include "common/StringTokenizer.hh"
-/*----------------------------------------------------------------------------*/
-
-/* Determine the mapping on server side */
-int
-com_whoami(char* arg)
-{
-  XrdOucString in = "mgm.cmd=whoami";
-
-  eos::common::StringTokenizer subtokenizer(arg);
-  subtokenizer.GetLine();
-  XrdOucString token = subtokenizer.GetToken();
+/**
+ * @file   Token.hh
+ *
+ * @brief  Base class for token support
+ *
+ */
 
 
-  if (token.length()) {
-    in += "&authz=";
-    in += token;
-  }
+#include <string>
 
-  global_retc = output_result(client_command(in));
-  return (0);
-}
+class Token {
+public:
+  Token() {};
+  virtual ~Token() {};
+
+  virtual std::string Write(const std::string& key) = 0;
+  virtual int Read(const std::string& input, const std::string& key, uint64_t generation) = 0;
+
+
+  virtual int Reset() = 0;
+  virtual int Serialize() = 0;
+  virtual int Deserialize() = 0;
+  virtual int Sign(const std::string& key) = 0;
+  virtual int Verify(const std::string&key) = 0;
+  virtual int Dump(std::string& dump, bool filtersec, bool oneline) = 0;
+  virtual int SetPath(const std::string& path, bool subtree) = 0;
+  virtual int SetPermission(const std::string& perm) = 0;
+  virtual int SetOwner(const std::string& owner) = 0;
+  virtual int SetGroup(const std::string& group) = 0;
+  virtual int SetExpires(time_t expires) = 0;
+  virtual int SetGeneration(uint64_t generation) = 0;
+  virtual int AddOrigin(const std::string& host, const std::string& name, const std::string& prot) = 0;
+  virtual int VerifyOrigin(const std::string& host, const std::string& name, const std::string& prot) = 0;
+
+};

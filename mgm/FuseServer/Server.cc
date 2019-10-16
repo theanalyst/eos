@@ -657,8 +657,7 @@ Server::FillContainerCAP(uint64_t id,
     if (sysacl.length() || useracl.length()) {
       bool evaluseracl = (!S_ISDIR(dir.mode())) ||
                          dir.attr().count("sys.eval.useracl") > 0;
-      Acl acl;
-      acl.Set(sysacl,
+      Acl acl(sysacl,
               useracl,
               vid,
               evaluseracl);

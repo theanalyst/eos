@@ -25,6 +25,7 @@
 #include <vector>
 #include <string>
 #include <XrdOuc/XrdOucString.hh>
+#include "common/token/EosTok.hh"
 
 EOSCOMMONNAMESPACE_BEGIN
 
@@ -54,7 +55,9 @@ struct VirtualIdentity {
   std::string email;
   std::string fullname;
   std::string federation;
+  std::string scope;
   bool sudoer;
+  EosTok token;
 
   //----------------------------------------------------------------------------
   //! Constructor - assign to "nobody" by default
@@ -95,7 +98,6 @@ struct VirtualIdentity {
   //! Return group@domain string
   //----------------------------------------------------------------------------
   std::string getGroupAtDomain() const;
-
 };
 
 EOSCOMMONNAMESPACE_END

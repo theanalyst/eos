@@ -92,7 +92,8 @@ add_library(eosCommon-Objects OBJECT
   plugin_manager/PluginManager.cc
   plugin_manager/DynamicLibrary.cc
   table_formatter/TableCell.cc
-  table_formatter/TableFormatterBase.cc)
+  table_formatter/TableFormatterBase.cc
+  token/EosTok.cc)
 
 set_target_properties(eosCommon-Objects PROPERTIES
   POSITION_INDEPENDENT_CODE TRUE)
@@ -101,7 +102,7 @@ set_target_properties(eosCommon-Objects PROPERTIES
 # Add dependency to protobuf objects so we guarantee that the protocol
 # buffer files are generated when we try to build XrdEosFst
 #-------------------------------------------------------------------------------
-add_dependencies(eosCommon-Objects EosFstProto-Objects)
+add_dependencies(eosCommon-Objects EosFstProto-Objects EosGrpcProto-Objects)
 
 target_compile_definitions(eosCommon-Objects PUBLIC
   -DDAEMONUID=${DAEMONUID} -DDAEMONGID=${DAEMONGID})
@@ -129,7 +130,8 @@ set(EOSCOMMON_LIBS
 add_library(eosCommon SHARED $<TARGET_OBJECTS:eosCommon-Objects>)
 
 target_link_libraries(eosCommon PUBLIC
-  ${EOSCOMMON_LIBS})
+  ${EOSCOMMON_LIBS}
+  EosProtobuf)
 
 set_target_properties(eosCommon PROPERTIES
   VERSION ${VERSION}
@@ -263,6 +265,7 @@ if(NOT CLIENT AND Linux)
 
   target_link_libraries(mutextest PRIVATE
     eosCommon-Static
+    EosProtobuf-Static
     ${CMAKE_THREAD_LIBS_INIT})
 
   target_link_libraries(dbmaptestfunc PRIVATE

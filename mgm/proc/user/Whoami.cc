@@ -138,6 +138,13 @@ ProcCommand::Whoami()
       stdOut += pVid->email.c_str();
       stdOut += "'";
     }
+
+    std::string tokenDump;
+    pVid->token.Dump(tokenDump, true);
+    if (tokenDump.length()> 4) {
+      stdOut += "\n";
+      stdOut += tokenDump.c_str();
+    }
   }
 
   return SFS_OK;

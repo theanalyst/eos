@@ -29,7 +29,10 @@ include_directories(
   ${FOLLY_INCLUDE_DIRS}
   ${SPARSEHASH_INCLUDE_DIRS}
   ${CMAKE_SOURCE_DIR}/namespace/ns_quarkdb/qclient/include
-  ${CMAKE_SOURCE_DIR}/namespace/ns_quarkdb/qclient/src)
+  ${CMAKE_SOURCE_DIR}/namespace/ns_quarkdb/qclient/src
+  ${CMAKE_BINARY_DIR}
+  ${PROTOBUF_INCLUDE_DIRS}
+  )
 
 #-------------------------------------------------------------------------------
 # XrdMqClient-Objects
@@ -122,7 +125,8 @@ add_executable(xrdmqsharedobjectbroadcastclient tests/XrdMqSharedObjectBroadCast
 # Libraries that all the above executables are linked against
 #-------------------------------------------------------------------------------
 set(XRDMQ_OTHER_LINK_LIBRARIES
-  XrdMqClient-Static
+  XrdMqClient
+  EosProtobuf
   ${CMAKE_THREAD_LIBS_INIT})
 
 target_link_libraries(xrdmqclienttest PRIVATE ${XRDMQ_OTHER_LINK_LIBRARIES})
