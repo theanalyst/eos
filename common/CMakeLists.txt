@@ -93,7 +93,7 @@ add_library(eosCommon-Objects OBJECT
   plugin_manager/DynamicLibrary.cc
   table_formatter/TableCell.cc
   table_formatter/TableFormatterBase.cc
-  token/EosTok.cc)
+)
 
 set_target_properties(eosCommon-Objects PROPERTIES
   POSITION_INDEPENDENT_CODE TRUE)
@@ -182,7 +182,9 @@ if (Linux)
     http/HttpRequest.cc
     http/HttpResponse.cc
     http/s3/S3Handler.cc
-    stringencoders/modp_numtoa.c)
+    stringencoders/modp_numtoa.c
+    token/EosTok.cc
+   )
 
   set_target_properties(eosCommonServer-Objects PROPERTIES
     POSITION_INDEPENDENT_CODE TRUE)
