@@ -48,8 +48,7 @@ target_link_libraries(
   gtest
   qclient
   gmock_main
-  EosFstIo
-  EosProtobuf
+  EosFstIo-Static
   XrdMqClient  
   ${XROOTD_SERVER_LIBRARY})
 

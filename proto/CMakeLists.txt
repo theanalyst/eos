@@ -59,37 +59,6 @@ set_target_properties(EosFstProto-Objects PROPERTIES
   POSITION_INDEPENDENT_CODE TRUE)
 
 #-------------------------------------------------------------------------------
-# Generate protobol buffer object for GRPC
-#-------------------------------------------------------------------------------
-if (GRPC_FOUND)
-  set(GRPC_PROTOS ${CMAKE_SOURCE_DIR}/common/grpc-proto/protobuf/Rpc.proto)
-  set(GRPC_PROTOBUF_PATH "${CMAKE_BINARY_DIR}/proto/")
-  PROTOBUF_GENERATE_CPP(GRPC_SRCS GRPC_HDRS ${GRPC_PROTOS})
-  grpc_generate_cpp(GRPC_SVC_SRCS GRPC_SVC_HDRS ${GRPC_PROTOBUF_PATH} ${GRPC_PROTOS})
-
-  set(GRPC_SRCS ${GRPC_SRCS} PARENT_SCOPE)
-  set(GRPC_HDRS ${GRPC_HDRS} PARENT_SCOPE)
-  set(GRPC_SVC_SRCS ${GRPC_SVC_SRCS} PARENT_SCOPE)
-  set(GRPC_SVC_HDRS ${GRPC_SVC_HDRS} PARENT_SCOPE)
-
-  set_source_files_properties(
-    ${GRPC_SRCS}
-    ${GRPC_HDRS}
-    ${GRPC_SVC_SRCS}
-    ${GRPC_SVC_HDRS}
-    PROPERTIES GENERATED TRUE)
-
-  add_library(EosGrpcProto-Objects OBJECT
-    ${GRPC_SRCS}
-    ${GRPC_HDRS}
-    ${GRPC_SVC_SRCS}
-    ${GRPC_SVC_HDRS})
-
-  set_target_properties(EosGrpcProto-Objects PROPERTIES
-    POSITION_INDEPENDENT_CODE TRUE)
-endif()
-
-#-------------------------------------------------------------------------------
 # Generate protobol buffer object for the CLI
 #-------------------------------------------------------------------------------
 PROTOBUF_GENERATE_CPP(REQ_SRCS REQ_HDRS common/cli_proto/ConsoleRequest.proto)
@@ -113,18 +82,49 @@ PROTOBUF_GENERATE_CPP(SPACE_SRCS SPACE_HDRS common/cli_proto/Space.proto)
 PROTOBUF_GENERATE_CPP(CONFIG_SRCS CONFIG_HDRS common/cli_proto/Config.proto)
 PROTOBUF_GENERATE_CPP(ACCESS_SRCS ACCESS_HDRS common/cli_proto/Access.proto)
 PROTOBUF_GENERATE_CPP(FSCK_SRCS FSCK_HDRS common/cli_proto/Fsck.proto)
+PROTOBUF_GENERATE_CPP(GRPC_SRCS GRPC_HDRS ${CMAKE_SOURCE_DIR}/common/grpc-proto/protobuf/Rpc.proto)
+
+#-------------------------------------------------------------------------------
+# Generate protobol buffer object for GRPC
+#-------------------------------------------------------------------------------
+if (GRPC_FOUND)
+  set(GRPC_PROTOS ${CMAKE_SOURCE_DIR}/common/grpc-proto/protobuf/Rpc.proto)
+  set(GRPC_PROTOBUF_PATH "${CMAKE_BINARY_DIR}/proto/")
+#  PROTOBUF_GENERATE_CPP(GRPC_SRCS GRPC_HDRS ${GRPC_PROTOS})
+  grpc_generate_cpp(GRPC_SVC_SRCS GRPC_SVC_HDRS ${GRPC_PROTOBUF_PATH} ${GRPC_PROTOS})
+
+  set(GRPC_SRCS ${GRPC_SRCS} PARENT_SCOPE)
+  set(GRPC_HDRS ${GRPC_HDRS} PARENT_SCOPE)
+  set(GRPC_SVC_SRCS ${GRPC_SVC_SRCS} PARENT_SCOPE)
+  set(GRPC_SVC_HDRS ${GRPC_SVC_HDRS} PARENT_SCOPE)
+
+  set_source_files_properties(
+    ${GRPC_SRCS}
+    ${GRPC_HDRS}
+    ${GRPC_SVC_SRCS}
+    ${GRPC_SVC_HDRS}
+    PROPERTIES GENERATED TRUE)
+
+  add_library(EosGrpcProto-Objects OBJECT
+    ${GRPC_SVC_SRCS}
+    ${GRPC_SVC_HDRS})
+
+  set_target_properties(EosGrpcProto-Objects PROPERTIES
+    POSITION_INDEPENDENT_CODE TRUE)
+endif()
+
 
 set(CLI_PROTO_SRCS
   ${REQ_SRCS} ${REP_SRCS} ${RECY_SRCS} ${ACL_SRCS} ${NS_SRCS} ${DRAIN_SRCS} ${FIND_SRCS} 
   ${FS_SRCS} ${RM_SRCS} ${TOKEN_SRCS} ${STAGER_RM_SRCS} ${ROUTE_SRCS} ${IO_SRCS} ${GROUP_SRCS} 
   ${DEBUG_SRCS} ${NODE_SRCS} ${QUOTA_SRCS} ${SPACE_SRCS} ${CONFIG_SRCS} ${ACCESS_SRCS}
-  ${FSCK_SRCS} ${SHARE_SRCS})
+  ${FSCK_SRCS} ${SHARE_SRCS} ${GRPC_SRCS})
 
 set(CLI_PROTO_HDRS
   ${REQ_HDRS} ${REP_HDRS} ${RECY_HDRS} ${ACL_HDRS} ${NS_HDRS} ${DRAIN_HDRS} ${FIND_HDRS}
   ${FS_HDRS} ${RM_HDRS} ${TOKEN_HDRS} ${STAGER_RM_HDRS} ${ROUTE_HDRS} ${IO_HDRS} ${GROUP_HDRS}
   ${DEBUG_HDRS} ${NODE_HDRS} ${QUOTA_HDRS} ${SPACE_HDRS} ${CONFIG_HDRS} ${ACCESS_HDRS}
-  ${FSCK_HDRS} ${SHARE_HDRS})
+  ${FSCK_HDRS} ${SHARE_HDRS} ${GRPC_HDRS})
 
 set_source_files_properties(
   ${CLI_PROTO_SRCS} ${CLI_PROTO_HDRS}
@@ -153,7 +153,6 @@ else ()
     $<TARGET_OBJECTS:EosCliProto-Objects>)
 
   target_link_libraries(EosProtobuf PUBLIC
-    eosCommon
     ${PROTOBUF_LIBRARIES})
 endif ()
 
@@ -170,7 +169,6 @@ if (GRPC_FOUND)
     $<TARGET_OBJECTS:EosCliProto-Objects>)
 
   target_link_libraries(EosProtobuf-Static PRIVATE
-    eosCommon-Static
     ${PROTOBUF_LIBARIES}
     ${GRPC_GRPC++_LIBRARY_STATIC})
 else ()

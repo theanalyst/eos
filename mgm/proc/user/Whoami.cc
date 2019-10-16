@@ -140,10 +140,12 @@ ProcCommand::Whoami()
     }
 
     std::string tokenDump;
-    pVid->token.Dump(tokenDump, true);
-    if (tokenDump.length()> 4) {
-      stdOut += "\n";
-      stdOut += tokenDump.c_str();
+    if (pVid->token) {
+      pVid->token->Dump(tokenDump, true, true);
+      if (tokenDump.length()> 4) {
+	stdOut += "\n";
+	stdOut += tokenDump.c_str();
+      }
     }
   }
 

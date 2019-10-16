@@ -37,14 +37,12 @@ add_executable(eosdirsync eosdirsync.cc)
 target_link_libraries(
   eosdirsync
   eosCommon-Static
-  EosProtobuf-Static
   ${XROOTD_CL_LIBRARY}
   ${XROOTD_UTILS_LIBRARY})
 
 target_link_libraries(
   eosfilesync
   eosCommon-Static
-  EosProtobuf-Static
   ${XROOTD_CL_LIBRARY}
   ${XROOTD_UTILS_LIBRARY})
 

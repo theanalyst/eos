@@ -36,15 +36,16 @@ Acl::Acl(std::string sysacl, std::string useracl,
 {
   std::string tokenacl;
 
-  if (vid.token.Valid()) {
-    if (!vid.token.ValidatePath(vid.scope)) {
-      tokenacl = "u:";
-      tokenacl += vid.uid_string;
-      tokenacl += ":";
-      tokenacl += vid.token.Permission();
+  if (vid.token) {
+    if (vid.token->Valid()) {
+      if (!vid.token->ValidatePath(vid.scope)) {
+	tokenacl = "u:";
+	tokenacl += vid.uid_string;
+	tokenacl += ":";
+	tokenacl += vid.token->Permission();
+      }
     }
   }
-
   Set(sysacl, useracl, tokenacl, vid, allowUserAcl);
 }
 
@@ -103,12 +104,14 @@ Acl::SetFromAttrMap(const eos::IContainerMD::XAttrMap& attrmap,
     }
   }
 
-  if (vid.token.Valid()) {
-    if (!vid.token.ValidatePath(vid.scope)) {
-      tokenacl = "u:";
-      tokenacl += vid.uid_string;
-      tokenacl += ":";
-      tokenacl += vid.token.Permission();
+  if (vid.token) {
+    if (vid.token->Valid()) {
+      if (!vid.token->ValidatePath(vid.scope)) {
+	tokenacl = "u:";
+	tokenacl += vid.uid_string;
+	tokenacl += ":";
+	tokenacl += vid.token->Permission();
+      }
     }
   }
 

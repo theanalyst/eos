@@ -125,8 +125,7 @@ add_executable(xrdmqsharedobjectbroadcastclient tests/XrdMqSharedObjectBroadCast
 # Libraries that all the above executables are linked against
 #-------------------------------------------------------------------------------
 set(XRDMQ_OTHER_LINK_LIBRARIES
-  XrdMqClient
-  EosProtobuf
+  XrdMqClient-Static
   ${CMAKE_THREAD_LIBS_INIT})
 
 target_link_libraries(xrdmqclienttest PRIVATE ${XRDMQ_OTHER_LINK_LIBRARIES})

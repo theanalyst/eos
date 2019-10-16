@@ -41,10 +41,12 @@ void NamespaceMap(std::string& path, const char* ininfo,
     while (store_path.replace("#AND#", "&")) {}
   }
 
-  if (vid.token.Valid()) {
-    // replace path from a token
-    if (path.substr(0,9),"/zteos64:") {
-      store_path = vid.token.Path().c_str();
+  if (vid.token) {
+    if (vid.token->Valid()) {
+      // replace path from a token
+      if (path.substr(0,9),"/zteos64:") {
+	store_path = vid.token->Path().c_str();
+      }
     }
   }
 

@@ -27,6 +27,7 @@
 #include "common/Logging.hh"
 #include "common/SecEntity.hh"
 #include "common/SymKeys.hh"
+#include "common/token/EosTok.hh"
 #include "XrdSys/XrdSysDNS.hh"
 #include "XrdOuc/XrdOucEnv.hh"
 #include <pwd.h>
@@ -846,20 +847,21 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
       eos::common::SymKey* symkey = eos::common::gSymKeyStore.GetCurrentKey();
       std::string key = symkey?symkey->GetKey64():"0123457890defaultkey";
       int rc = 0;
-      if ( (rc = vid.token.Read(sauthz,key,0))) {
-	vid.token.Reset();
+      vid.token = std::make_shared<EosTok>();
+      if ( (rc = vid.token->Read(sauthz,key,0))) {
+	vid.token->Reset();
 	eos_static_err("failed to decode token tident='%s' token='%s' errno=%d", tident, sauthz.c_str(), -rc);
       } else {
 	// if owner or group is specified, adjust this
-	if (!vid.token.Owner().empty()) {
-	  ruid = vid.token.Owner().c_str();
+	if (!vid.token->Owner().empty()) {
+	  ruid = vid.token->Owner().c_str();
 	}
-	if (!vid.token.Group().empty()) {
-	  rgid = vid.token.Group().c_str();
+	if (!vid.token->Group().empty()) {
+	  rgid = vid.token->Group().c_str();
 	}
 	if (EOS_LOGS_INFO) {
 	  std::string dump;
-	  vid.token.Dump(dump, true, true);
+	  vid.token->Dump(dump, true, true);
 	  eos_static_info("%s",dump.c_str());
 	}
       }
@@ -966,16 +968,18 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
   }
 
   // verify origin 
-  if (vid.token.Valid()) {
-    if (vid.token.VerifyOrigin(vid.host, vid.uid_string, std::string(vid.prot.c_str()))) {
-      // invalidate this token
-      if (EOS_LOGS_DEBUG) {
-	eos_static_debug("invalidating token - origin mismatch %s:%s:%s", 
-			 vid.host.c_str(), 
-			 vid.uid_string.c_str(), 
-			 vid.prot.c_str());
+  if (vid.token) {
+    if (vid.token->Valid()) {
+      if (vid.token->VerifyOrigin(vid.host, vid.uid_string, std::string(vid.prot.c_str()))) {
+	// invalidate this token
+	if (EOS_LOGS_DEBUG) {
+	  eos_static_debug("invalidating token - origin mismatch %s:%s:%s", 
+			   vid.host.c_str(), 
+			   vid.uid_string.c_str(), 
+			   vid.prot.c_str());
+	}
+	vid.token->Reset();
       }
-      vid.token.Reset();
     }
   }
 

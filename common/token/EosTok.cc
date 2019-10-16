@@ -30,7 +30,7 @@
 
 
 #include "EosTok.hh"
-#include "proto/Rpc.grpc.pb.h"
+#include "proto/ConsoleRequest.pb.h"
 #include <google/protobuf/util/json_util.h>
 #include "common/SymKeys.hh"
 #include "common/StringConversion.hh"
@@ -41,16 +41,16 @@
 EOSCOMMONNAMESPACE_BEGIN
 
 EosTok::EosTok() {
-  share = std::make_shared<eos::rpc::ShareToken>();
+  share = std::make_shared<eos::console::TokenEnclosure>();
   valid = false;
 }
 
 EosTok::~EosTok() {
 }
 
-EosTok::EosTok(eos::rpc::ShareToken& token)
+EosTok::EosTok(eos::console::TokenEnclosure& token)
 {
-  share = std::make_shared<eos::rpc::ShareToken>();
+  share = std::make_shared<eos::console::TokenEnclosure>();
   share->CopyFrom(token);
   valid = false;
 }
@@ -89,9 +89,8 @@ EosTok::Write(const std::string& key)
     pad++;
   }
   for (auto i = 0; i< pad; i++) {
-    zb64os+="%%3d";
+    zb64os+="%3d";
   }
-  
   return zb64os;
 }
 
@@ -112,26 +111,27 @@ EosTok::Read(const std::string& zb64is, const std::string& key, uint64_t generat
 
   // deocde the padding
   size_t l = nzb64is.length();
-  size_t l1 = l - 4;
-  size_t l2 = l - 2;
+  size_t l1 = l - 6;
+  size_t l2 = l - 3;
   ssize_t pad = 0;
 
   if (l1 >= 0)  {
-    if (nzb64is.substr(l1,2) == "%%3d") {
+    if (nzb64is.substr(l1,3) == "%3d") {
       pad++;
     }
   }
 
   if (l2 >= 0) {
-    if (nzb64is.substr(l2,2) == "%%3d") {
+    if (nzb64is.substr(l2,3) == "%3d") {
       pad++;
     }
   }
-  nzb64is.erase(l - (pad*2));
+  nzb64is.erase(l - (pad*3));
   for (auto i = 0; i < pad; ++i) {
     nzb64is += "=";
   }
   
+
   if (!eos::common::SymKey::ZDeBase64(nzb64is,is)) {
     return -EINVAL;
   }
@@ -277,7 +277,7 @@ EosTok::SetGeneration(uint64_t generation)
 int
 EosTok::AddOrigin(const std::string& host, const std::string& name, const std::string& prot)
 {
-  eos::rpc::ShareAuth* auth = share->mutable_token()->add_origins();
+  eos::console::TokenAuth* auth = share->mutable_token()->add_origins();
   auth->set_prot(prot);
   auth->set_host(host);
   auth->set_name(name);
@@ -293,7 +293,7 @@ EosTok::VerifyOrigin(const std::string& host, const std::string& name, const std
     return 0;
 
   for ( int i = 0; i < share->token().origins_size(); ++i ) {
-    const eos::rpc::ShareAuth& auth = share->token().origins(i);
+    const eos::console::TokenAuth& auth = share->token().origins(i);
     if ( Match(host, auth.host()) &&
 	 Match(name, auth.name()) &&
 	 Match(prot, auth.prot()) ) {
@@ -322,9 +322,7 @@ EosTok::ValidatePath(const std::string& path) const
     if (path.substr(0, share->token().path().length()) != share->token().path()) {
       return -EACCES;
     }
-    fprintf(stderr,"### return OK tree\n");
   } else {
-    fprintf(stderr,"### %s => %s\n", path.c_str(), share->token().path().c_str());
     if ( (path.back() =='/') && (share->token().path().back() != '/') ) {
       eos::common::Path cPath(share->token().path());
       if (path == cPath.GetParentPath()) {
@@ -333,11 +331,9 @@ EosTok::ValidatePath(const std::string& path) const
     }
     // this is an exact permission
     if (path != share->token().path()) {
-      fprintf(stderr,"### returning EACCES\n");
       return -EACCES;
     }
   }
-  fprintf(stderr,"### returning OK\n");
   return 0;
 }
 

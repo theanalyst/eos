@@ -28,6 +28,7 @@
  *
  */
 
+#pragma once
 
 #include <string>
 
@@ -54,5 +55,11 @@ public:
   virtual int SetGeneration(uint64_t generation) = 0;
   virtual int AddOrigin(const std::string& host, const std::string& name, const std::string& prot) = 0;
   virtual int VerifyOrigin(const std::string& host, const std::string& name, const std::string& prot) = 0;
-
+  virtual int ValidatePath(const std::string& path) const  = 0;
+  virtual bool Valid() const = 0;
+  virtual std::string Owner() const = 0;
+  virtual std::string Group() const = 0;
+  virtual std::string Permission() const = 0;
+  virtual std::string Path() const = 0;
+  virtual int Generation() const = 0;
 };

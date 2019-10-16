@@ -34,8 +34,8 @@
 #include "common/Namespace.hh"
 #include <memory>
 namespace  eos {
-  namespace rpc {
-    class ShareToken;
+  namespace console {
+    class TokenEnclosure;
   }
 }
 
@@ -47,7 +47,7 @@ class EosTok : public Token {
 public:
 
   EosTok();
-  EosTok(eos::rpc::ShareToken& token);
+  EosTok(eos::console::TokenEnclosure& token);
 
   virtual ~EosTok();
 
@@ -78,7 +78,7 @@ public:
 private:
 
   bool Match(const std::string& input, const std::string& match);
-  std::shared_ptr<eos::rpc::ShareToken> share;
+  std::shared_ptr<eos::console::TokenEnclosure> share;
   bool valid;
 };
 

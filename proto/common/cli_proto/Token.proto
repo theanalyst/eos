@@ -8,6 +8,13 @@ message TokenAuth {
  string host = 3;
 }
 
+message TokenEnclosure {
+  TokenProto token = 1;
+  bytes signature = 2;
+  bytes serialized = 3;
+  int32 seed = 4;
+}
+
 message TokenProto {
   string permission = 1;
   uint64 expires    = 2;

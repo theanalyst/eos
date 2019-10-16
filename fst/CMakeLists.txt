@@ -179,7 +179,6 @@ add_library(EosFstIo SHARED
 
 target_link_libraries(EosFstIo PUBLIC
   eosCommon
-  EosProtobuf
   EosCrc32c-Static
   jerasure-static
   ${Z_LIBRARY}
@@ -218,7 +217,6 @@ target_link_libraries(EosFstIo-Static PUBLIC
   XrdMqClient-Static
   EosCrc32c-Static
   jerasure-static
-  EosProtobuf-Static
   ${UUID_LIBRARIES}
   ${ATTR_LIBRARIES}
   ${Z_LIBRARY_STATIC}
@@ -413,7 +411,6 @@ target_link_libraries(XrdEosFst PRIVATE
 
 target_link_libraries(XrdEosFst-Static PUBLIC
   eosCommonServer-Static
-  EosProtobuf-Static
   EosFstIo-Static
   EosNsCommon-Static
   eosCapability-Static
