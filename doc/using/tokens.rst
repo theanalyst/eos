@@ -117,7 +117,16 @@ The token lifetime is given as a unix timestamp during the token creation.
 Token Revocation
 ----------------
 
-Tokens are issued with a generation entry. The generation value is a globally configured incrementing number. In case of emergency all tokens can be revoked by increasing the generation value. Currently there is no CLI to modify the generation entry.
+Tokens are issued with a generation entry. The generation value is a globally configured 64-bit unsigned number. In case of emergency all tokens can be revoked by increasing the generation value. The generation value is configured via the key ``token.generation`` in the default space
+
+.. code-block:: bash
+
+   # change the generation value 
+   eos config default space.token.generation=256
+
+   # show the generation value
+   eos space status default | grep token.generation
+   token.generation                 := 256
 
 Token Origin Restrictions
 -------------------------
