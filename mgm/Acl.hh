@@ -269,6 +269,13 @@ public:         // [+] prevents '+' interpreted as "one or more"
     return mCanPrepare;
   }
 
+  //----------------------------------------------------------------------------
+  //! Extract an ACL from a token
+  //----------------------------------------------------------------------------
+
+  inline std::string TokenAcl(const eos::common::VirtualIdentity& vid) const;
+
+
 private:
   bool mCanRead; ///< acl allows read access
   bool mCanNotRead; ///< acl denies read access

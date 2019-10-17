@@ -46,6 +46,9 @@
 
 EOSCOMMONNAMESPACE_BEGIN
 
+
+std::atomic<uint64_t> EosTok::sTokenGeneration;
+
 EosTok::EosTok() {
   share = std::make_shared<eos::console::TokenEnclosure>();
   valid = false;
@@ -66,6 +69,9 @@ EosTok::Write(const std::string& key)
 {
   valid = false;
   share->set_seed(std::rand());
+
+  // create a unique id for this token
+  share->mutable_token()->set_voucher(eos::common::StringConversion::random_uuidstring());
 
   if (Serialize())
     return "";
@@ -101,7 +107,7 @@ EosTok::Write(const std::string& key)
 }
 
 int 
-EosTok::Read(const std::string& zb64is, const std::string& key, uint64_t generation)
+EosTok::Read(const std::string& zb64is, const std::string& key, uint64_t generation, bool ignoreerror)
 {
   std::string is;
   std::string nzb64is(zb64is);
@@ -147,14 +153,15 @@ EosTok::Read(const std::string& zb64is, const std::string& key, uint64_t generat
   }
 
   Deserialize();
-  if (generation != share->token().generation()) {
-    return -EACCES;
-  }
-  
   time_t now = time(NULL);
 
-  if ((time_t)share->token().expires() < now) {
-    return -EKEYEXPIRED;
+  if (!ignoreerror) {
+    if ((time_t)share->token().expires() < now) {
+      return -EKEYEXPIRED;
+    }
+    if (generation != share->token().generation()) {
+      return -EACCES;
+    }
   }
 
   return Verify(key);
@@ -214,6 +221,8 @@ EosTok::Dump(std::string& dump, bool filtersec, bool oneline)
     while (std::getline(f, line)) {
       if ( (line.find("\"signature\"") != std::string::npos) ||
 	   (line.find("\"serialized\"") != std::string::npos) ||
+	   (line.find("\"voucher\"") != std::string::npos) ||
+	   (line.find("\"requester\"") != std::string::npos) ||
 	   (line.find("\"seed\"") != std::string::npos) ) {
       } else {
 	filtereddump += line;
@@ -277,6 +286,13 @@ int
 EosTok::SetGeneration(uint64_t generation)
 {
   share->mutable_token()->set_generation(generation);
+  return 0;
+}
+
+int 
+EosTok::SetRequester(const std::string& requester)
+{
+  share->mutable_token()->set_requester(requester);
   return 0;
 }
 
@@ -372,6 +388,16 @@ EosTok::Permission() const {
 std::string
 EosTok::Path() const {
   return share->token().path();
+}
+
+std::string
+EosTok::Voucher() const {
+  return share->token().voucher();
+}
+
+std::string
+EosTok::Requester() const {
+  return share->token().requester();
 }
 
 EOSCOMMONNAMESPACE_END

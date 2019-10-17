@@ -38,7 +38,7 @@ public:
   virtual ~Token() {};
 
   virtual std::string Write(const std::string& key) = 0;
-  virtual int Read(const std::string& input, const std::string& key, uint64_t generation) = 0;
+  virtual int Read(const std::string& input, const std::string& key, uint64_t generation, bool ignoreexpired) = 0;
 
 
   virtual int Reset() = 0;
@@ -53,6 +53,7 @@ public:
   virtual int SetGroup(const std::string& group) = 0;
   virtual int SetExpires(time_t expires) = 0;
   virtual int SetGeneration(uint64_t generation) = 0;
+  virtual int SetRequester(const std::string& requesteor) = 0;
   virtual int AddOrigin(const std::string& host, const std::string& name, const std::string& prot) = 0;
   virtual int VerifyOrigin(const std::string& host, const std::string& name, const std::string& prot) = 0;
   virtual int ValidatePath(const std::string& path) const  = 0;
@@ -61,5 +62,7 @@ public:
   virtual std::string Group() const = 0;
   virtual std::string Permission() const = 0;
   virtual std::string Path() const = 0;
+  virtual std::string Voucher() const = 0;
+  virtual std::string Requester() const = 0;
   virtual int Generation() const = 0;
 };

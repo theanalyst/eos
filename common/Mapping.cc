@@ -848,7 +848,7 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
       std::string key = symkey?symkey->GetKey64():"0123457890defaultkey";
       int rc = 0;
       vid.token = std::make_shared<EosTok>();
-      if ( (rc = vid.token->Read(sauthz,key,0))) {
+      if ( (rc = vid.token->Read(sauthz,key,eos::common::EosTok::sTokenGeneration, false))) {
 	vid.token->Reset();
 	eos_static_err("failed to decode token tident='%s' token='%s' errno=%d", tident, sauthz.c_str(), -rc);
       } else {

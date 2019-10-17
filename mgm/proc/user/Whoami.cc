@@ -141,7 +141,7 @@ ProcCommand::Whoami()
 
     std::string tokenDump;
     if (pVid->token) {
-      pVid->token->Dump(tokenDump, true, true);
+      pVid->token->Dump(tokenDump, true, false);
       if (tokenDump.length()> 4) {
 	stdOut += "\n";
 	stdOut += tokenDump.c_str();

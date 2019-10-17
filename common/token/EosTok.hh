@@ -33,6 +33,7 @@
 #include "Token.hh"
 #include "common/Namespace.hh"
 #include <memory>
+#include <atomic>
 namespace  eos {
   namespace console {
     class TokenEnclosure;
@@ -52,7 +53,7 @@ public:
   virtual ~EosTok();
 
   virtual std::string Write(const std::string& key);
-  virtual int Read(const std::string& input, const std::string& key, uint64_t generation);
+  virtual int Read(const std::string& input, const std::string& key, uint64_t generation, bool ignoreerror=false);
 
   virtual int Reset();
   virtual int Serialize();
@@ -66,6 +67,7 @@ public:
   virtual int SetGroup(const std::string& group);
   virtual int SetExpires(time_t expires);
   virtual int SetGeneration(uint64_t generation);
+  virtual int SetRequester(const std::string& requester);
   virtual int AddOrigin(const std::string& host, const std::string& name, const std::string& prot);
   virtual int VerifyOrigin(const std::string& host, const std::string& name, const std::string& prot);
   virtual int ValidatePath(const std::string& path) const;
@@ -74,7 +76,11 @@ public:
   virtual std::string Group() const;
   virtual std::string Permission() const;
   virtual std::string Path() const;
+  virtual std::string Voucher() const;
+  virtual std::string Requester() const;
   virtual int Generation() const;
+
+  static std::atomic<uint64_t> sTokenGeneration; ///< generation value for token issuing/verification 
 private:
 
   bool Match(const std::string& input, const std::string& match);

@@ -34,18 +34,7 @@ EOSMGMNAMESPACE_BEGIN
 Acl::Acl(std::string sysacl, std::string useracl,
          const eos::common::VirtualIdentity& vid, bool allowUserAcl)
 {
-  std::string tokenacl;
-
-  if (vid.token) {
-    if (vid.token->Valid()) {
-      if (!vid.token->ValidatePath(vid.scope)) {
-	tokenacl = "u:";
-	tokenacl += vid.uid_string;
-	tokenacl += ":";
-	tokenacl += vid.token->Permission();
-      }
-    }
-  }
+  std::string tokenacl = TokenAcl(vid);
   Set(sysacl, useracl, tokenacl, vid, allowUserAcl);
 }
 
@@ -104,16 +93,7 @@ Acl::SetFromAttrMap(const eos::IContainerMD::XAttrMap& attrmap,
     }
   }
 
-  if (vid.token) {
-    if (vid.token->Valid()) {
-      if (!vid.token->ValidatePath(vid.scope)) {
-	tokenacl = "u:";
-	tokenacl += vid.uid_string;
-	tokenacl += ":";
-	tokenacl += vid.token->Permission();
-      }
-    }
-  }
+  tokenacl = TokenAcl(vid);
 
   std::string sysAcl;
   auto it = attrmap.find("sys.acl");
@@ -640,5 +620,29 @@ Acl::ConvertIds(std::string& acl_val, bool to_string)
 
   return 0;
 }
+
+
+//------------------------------------------------------------------------------
+// Extract an ACL rule from a token
+//------------------------------------------------------------------------------
+
+std::string 
+Acl::TokenAcl(const eos::common::VirtualIdentity& vid) const
+{
+  if (vid.token) {
+    if (vid.token->Valid()) {
+      if (!vid.token->ValidatePath(vid.scope)) {
+	std::string tokenacl;
+	tokenacl = "u:";
+	tokenacl += vid.uid_string;
+	tokenacl += ":";
+	tokenacl += vid.token->Permission();
+	return tokenacl;
+      }
+    }
+  }
+  return "";
+}
+
 
 EOSMGMNAMESPACE_END

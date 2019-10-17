@@ -893,6 +893,9 @@ XrdMgmOfsFile::open(const char* inpath,
               }
             }
 
+	    fmd->setAttribute("sys.utrace", logId);
+	    fmd->setAttribute("sys.vtrace",vid.getTrace());
+				
             if (ref_fmd) {
               // If we have a target file we tag the latest atomic upload name
               // on a temporary attribute

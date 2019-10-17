@@ -2,35 +2,41 @@
 
 .. _tokens:
 
-Using Eos Tokens forauthorization
-=================================
+Using Eos Tokens for authorization
+==================================
 
-To prepare for upcoming requirements to implement various types of token technologies, we have implemeneted a generic EOS mechanism to delegate permissions to bearer with s.c. EOS tokens.
+To prepare for upcoming requirements to implement various types of token technologies, we have implemeneted a generic EOS mechanism to delegate permissions to a token bearer with s.c. EOS tokens.
 
-The JSON format of an EOS token looks like shown here:
+The JSON representation of an EOS token looks like shown here:
 
 .. code-block:: bash
 
    {
     "token": {
-    "permission": "rwx",
-    "expires": "1571147001",
-    "owner": "",
-    "group": "",
-    "generation": "0",
-    "path": "/eos/dev/token/",
-    "allowtree": true,
-    "origins": []
-   },
-   "signature": "DFjL+dhAA3F6OZtntJpLgGwr1RibtHvaIy6+qKWeuXc=",
-   "serialized": "CgNyd3gQ+ZmX7QUyFy9lb3MvYWpwL3Rva2VuL3RfdG9rZW4vOAE=",
-   "seed": 201665152
-  }
+     "permission": "rwx",
+     "expires": "1571319146",
+     "owner": "",
+     "group": "",
+     "generation": "0",
+     "path": "/eos/dev/token",
+     "allowtree": false,
+     "vtoken": "",
+     "voucher": "baecb618-f0e4-11e9-85d9-fa163eb6b6cf",
+     "requester": "[Thu Oct 17 15:47:59 2019] uid:0[root] gid:0[root] tident:root.13809:107@localhost name:daemon dn: prot:sss host:localhost domain:localdomain geo:cern sudo:1",
+     "origins": []
+    },
+    "signature": "daUeOZafRUt6VfQZ+g3FMbR/ZA5WvARELqFwdQxbyFU=",
+    "serialized": "CgJyeBDq2qHtBTIJL2Vvcy9kZXYvSiRiYWVjYjYxOC1mMGU0LTExZTktODVkOS1mYTE2M2ViNmI2Y2ZSnAFbVGh1IE9jdCAxNyAxNTo0Nzo1OSAyMDE5XSB1aWQ6MFtyb290XSBnaWQ6MFtyb290XSB0aWRlbnQ6cm9vdC4xMzgwOToxMDdAbG9jYWxob3N0IG5hbWU6ZGFlbW9uIGRuOiBwcm90OnNzcyBob3N0OmxvY2FsaG9zdCBkb21haW46bG9jYWxkb21haW4gZ2VvOmFqcCBzdWRvOjE=",
+    "seed": 1399098912
+   }
+
 
 Essentially this token gives the bearer the permission to ``rwx`` under the tree /eos/dev/token/. The token does not bear an
 owner and group information, which means, that the creations will be accounted on the mapped authenticated user using this token or an enforced ``sys.owner.auth`` entry. If the token should map the authenticated user, one can add ``owner`` and ``group`` fields. In practical terms the token removes existing user and system ACL entries and places the token user/group/permission entries as a system ACL.
 
-Tokens are encrypted, zlib compressed, base64url encoded with a replacement of the '+' and '/' characters with '-' and '_'  to avoid confusion with directory and file names.
+Tokens are encrypted, zlib compressed, base64url encoded with a replacement of the '+' and '/' characters with '-' and '_'  and a URL encodign of the '=' character to avoid interferences/confusion with directory and file names.
+
+The ``voucher`` field is tagged on the file when a file has been created and is also used as the logging id for this file upload. The ``requester`` field reports when, by whom and how a token has been generated.
    
 Token creation
 --------------
@@ -139,7 +145,8 @@ Tokens can be requested and verified using GRPC TokenRequest as shown here with 
 
 .. code-block:: bash
 
-   [root@ajp mgm]# eos-grpc-ns --acl rwx -p /eos/ajp/xrootd tokenrequest: 
+   [root@ajp mgm]# eos-grpc-ns --acl rwx -p /eos/ajp/xrootd token
+   request: 
    {
     "authkey": "",
     "token": {
@@ -199,15 +206,17 @@ To verify a token, the ``vtoken`` field should hold the token to decode.
      "seed": 0
      }
     }
-  }
+   }
 
    reply: 
    {
     "error": {
-     "code": "0",
-     "msg": "{\n \"token\": {\n  \"permission\": \"rwx\",\n  \"expires\": \"1571226882\",\n  \"owner\": \"nobody\",\n  \"group\": \"nobody\",\n  \"generation\": \"0\",\n  \"path\": \"/eos/ajp/xrootd\",\n  \"allowtree\": false,\n  \"vtoken\": \"\",\n  \"origins\": []\n },\n \"signature\": \"4HZo0ScpX0H2PiCnh0yDs8h/yO+5uyYNjoQe2BN4D+c=\",\n \"serialized\": \"CgNyd3gQgoqc7QUaBm5vYm9keSIGbm9ib2R5Mg8vZW9zL2FqcC94cm9vdGQ=\",\n \"seed\": 1705937298\n}\n"
+    "code": "0",
+    "msg": "{\n \"token\": {\n  \"permission\": \"rwx\",\n  \"expires\": \"1571321093\",\n  \"owner\": \"nobody\",\n  \"group\": \"nobody\",\n  \"generation\": \"0\",\n  \"path\": \"/eos/ajp/xrootd\",\n  \"allowtree\": false,\n  \"vtoken\": \"\",\n  \"voucher\": \"6496c338-f0e6-11e9-b81d-fa163eb6b6cf\",\n  \"requester\": \"[Thu Oct 17 15:59:53 2019] uid:99[nobody] gid:99[nobody] tident:.1:46602@[:1] name: dn: prot:grpc host:[:1] domain:localdomain geo:cern sudo:0\",\n  \"origins\": []\n },\n \"signature\": \"2B8qIUfJ6rTusI2NFXKH70AoXZ55wKUUDijFCK3e2bY=\",\n \"serialized\": \"CgNyd3gQheqh7QUaBm5vYm9keSIGbm9ib2R5Mg8vZW9zL2FqcC94cm9vdGRKJDY0OTZjMzM4LWYwZTYtMTFlOS1iODFkLWZhMTYzZWI2YjZjZlKNAVtUaHUgT2N0IDE3IDE1OjU5OjUzIDIwMTldIHVpZDo5OVtub2JvZHldIGdpZDo5OVtub2JvZHldIHRpZGVudDouMTo0NjYwMkBbOjFdIG5hbWU6IGRuOiBwcm90OmdycGMgaG9zdDpbOjFdIGRvbWFpbjpsb2NhbGRvbWFpbiBnZW86YWpwIHN1ZG86MA==\",\n \"seed\": 844966647\n}\n"
     }
    }
+
+
 
 The possible return codes are:
 

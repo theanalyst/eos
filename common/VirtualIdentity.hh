@@ -99,6 +99,11 @@ struct VirtualIdentity {
   //! Return group@domain string
   //----------------------------------------------------------------------------
   std::string getGroupAtDomain() const;
+
+  //----------------------------------------------------------------------------
+  //! Return a vid trace string
+  //----------------------------------------------------------------------------
+  std::string getTrace() const;
 };
 
 EOSCOMMONNAMESPACE_END

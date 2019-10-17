@@ -123,14 +123,21 @@ eos::mgm::TokenCmd::ProcessRequest() noexcept
   std::string key=symkey?symkey->GetKey64():"0123456789defaultkey";
 
   if (token.vtoken().empty()) {
+    if (token.permission().find(":") != std::string::npos) {
+      // someone could try to inject more acl entries here
+      reply.set_retc(-EPERM);
+      reply.set_std_err("error: illegal permission requested");
+      return reply;
+    }
+    
     // create a token
     eostoken.SetPath(token.path(), token.allowtree());
     eostoken.SetPermission(token.permission());
     eostoken.SetExpires(token.expires());
     eostoken.SetOwner(token.owner());
     eostoken.SetGroup(token.group());
-    eostoken.SetGeneration(0);
-    
+    eostoken.SetGeneration(eos::common::EosTok::sTokenGeneration);
+    eostoken.SetRequester(mVid.getTrace());
     for ( int i = 0; i < token.origins_size(); ++i ) {
       const eos::console::TokenAuth& auth = token.origins(i);
       eostoken.AddOrigin(auth.host(), auth.name(), auth.prot());
@@ -138,7 +145,7 @@ eos::mgm::TokenCmd::ProcessRequest() noexcept
     
     outStream << eostoken.Write(key) ;
   } else {
-    if (!(ret_c = eostoken.Read(token.vtoken(),key, 0))) {
+    if (!(ret_c = eostoken.Read(token.vtoken(),key, eos::common::EosTok::sTokenGeneration.load(), true))) {
       std::string dump;
       eostoken.Dump(dump);
       outStream << dump;

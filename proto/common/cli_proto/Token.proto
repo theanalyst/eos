@@ -24,6 +24,8 @@ message TokenProto {
   string path    = 6;
   bool allowtree = 7;
   string vtoken = 8;
-  repeated TokenAuth origins = 9;
+  string voucher = 9;
+  string requester = 10;
+  repeated TokenAuth origins = 11;
 }
 
