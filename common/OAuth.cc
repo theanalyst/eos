@@ -166,7 +166,7 @@ OAuth::Validate(OAuth::AuthInfo& info, const std::string& accesstoken, const std
 	} else {
 	  // OIDC style
 	  if (jsonData.isMember("sub")) {
-	    info["username"] = jsonData["sub"];
+	    info["username"] = jsonData["sub"].asString();
 	  } else {
 	    // we need to have this field to map someone
 	    return EINVAL;
