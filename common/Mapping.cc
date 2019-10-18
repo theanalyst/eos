@@ -205,7 +205,10 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
     vid.key = (client->endorsements ? client->endorsements : "");
   }
 
-  eos_static_debug("key %s", vid.key.c_str());
+  if (EOS_LOGS_DEBUG) {
+    eos_static_debug("key %s", vid.key.c_str());
+  }
+
   // ---------------------------------------------------------------------------
   // kerberos mapping
   // ---------------------------------------------------------------------------
