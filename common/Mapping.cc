@@ -205,6 +205,7 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
     vid.key = (client->endorsements ? client->endorsements : "");
   }
 
+  eos_static_debug("key %s", vid.key.c_str());
   // ---------------------------------------------------------------------------
   // kerberos mapping
   // ---------------------------------------------------------------------------
@@ -725,6 +726,15 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
   }
 
   // ---------------------------------------------------------------------------
+  // Environment selected roles
+  // ---------------------------------------------------------------------------
+  XrdOucString ruid = Env.Get("eos.ruid");
+  XrdOucString rgid = Env.Get("eos.rgid");
+  XrdOucString rapp = Env.Get("eos.app");
+
+  const char* authz = Env.Get("authz");
+
+  // ---------------------------------------------------------------------------
   // sss key mapping
   // ---------------------------------------------------------------------------
   if ((vid.prot == "sss") && vid.key.length()) {
@@ -734,57 +744,65 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
     std::vector<std::string> vtident;
     eos::common::StringConversion::Tokenize(client->tident, vtident, "@");
 
-    std::string oauthname;
-    // check for OAuth contents
-    if ( (oauthname = gOAuth.Handle(keyname, vid)).empty() ||
-	 // enable/disable oauth2 mapping
-	 !gVirtualUidMap.count("oauth2:\"<pwd>\":uid") ) {
-      // treat as mapping key
-      if (vtident.size() == 2) {
-	maptident += vtident[1];
-      }
-      
-      maptident += "\":uid";
-      eos_static_info("%d %s %s %s", vtident.size(), client->tident,
-		      maptident.c_str(), wildcardmaptident.c_str());
-      
-      if (gVirtualUidMap.count(maptident.c_str()) ||
-	  gVirtualUidMap.count(wildcardmaptident.c_str())) {
-	// if this is an allowed gateway, map according to client name or authkey
-	std::string uidkey = "sss:\"";
-	uidkey += "key:";
-	uidkey += keyname;
-	uidkey += "\":uid";
-	vid.uid = 99;
-	vid.uid_list.clear();
-	vid.uid_list.push_back(99);
+    // token provided as key
+    if (keyname.substr(0,8) == "zteos64:") {
+      // this is an eos token
+      authz = vid.key.c_str();
+    }  else {
+      // try oauth2
+      std::string oauthname;
+      // check for OAuth contents
+      if ( (oauthname = gOAuth.Handle(keyname, vid)).empty() ||
+	   // enable/disable oauth2 mapping
+	   !gVirtualUidMap.count("oauth2:\"<pwd>\":uid") ) {
+	// treat as mapping key
+	if (vtident.size() == 2) {
+	  maptident += vtident[1];
+	}
 	
-	if (gVirtualUidMap.count(uidkey.c_str())) {
-	  vid.uid = gVirtualUidMap[uidkey.c_str()];
+	maptident += "\":uid";
+	eos_static_info("%d %s %s %s", vtident.size(), client->tident,
+			maptident.c_str(), wildcardmaptident.c_str());
+	
+	if (gVirtualUidMap.count(maptident.c_str()) ||
+	    gVirtualUidMap.count(wildcardmaptident.c_str())) {
+	  // if this is an allowed gateway, map according to client name or authkey
+	  std::string uidkey = "sss:\"";
+	  uidkey += "key:";
+	  uidkey += keyname;
+	  uidkey += "\":uid";
+	  vid.uid = 99;
+	  vid.uid_list.clear();
+	  vid.uid_list.push_back(99);
+	  
+	  if (gVirtualUidMap.count(uidkey.c_str())) {
+	    vid.uid = gVirtualUidMap[uidkey.c_str()];
 	  vid.uid_list.push_back(vid.uid);
+	  }
+	  
+	  std::string gidkey = "sss:\"";
+	  gidkey += "key:";
+	  gidkey += keyname;
+	  gidkey += "\":gid";
+	  vid.gid = 99;
+	  vid.gid_list.clear();
+	  vid.gid_list.push_back(99);
+	  
+	  if (gVirtualGidMap.count(gidkey.c_str())) {
+	    vid.gid = gVirtualGidMap[gidkey.c_str()];
+	    vid.gid_list.push_back(vid.gid);
+	  }
+	} else {
+	  // we are nobody if we are not an authorized host
+	  vid = VirtualIdentity::Nobody();
+	  vid.prot = "sss";
 	}
 	
-	std::string gidkey = "sss:\"";
-	gidkey += "key:";
-	gidkey += keyname;
-	gidkey += "\":gid";
-	vid.gid = 99;
-	vid.gid_list.clear();
-	vid.gid_list.push_back(99);
-	
-	if (gVirtualGidMap.count(gidkey.c_str())) {
-	  vid.gid = gVirtualGidMap[gidkey.c_str()];
-	  vid.gid_list.push_back(vid.gid);
-	}
       } else {
-	// we are nobody if we are not an authorized host
-	vid = VirtualIdentity::Nobody();
-	vid.prot = "sss";
+	// map oauthname
+	Mapping::getPhysicalIds(oauthname.c_str(), vid);
+	vid.prot="oauth2";
       }
-    } else {
-      // map oauthname
-      Mapping::getPhysicalIds(oauthname.c_str(), vid);
-      vid.prot="oauth2";
     }
   }
 
@@ -830,16 +848,10 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
       }
   }
 
+  bool token_sudo = false;
   // ---------------------------------------------------------------------------
-  // Environment selected roles
+  // token based mapping
   // ---------------------------------------------------------------------------
-  XrdOucString ruid = Env.Get("eos.ruid");
-  XrdOucString rgid = Env.Get("eos.rgid");
-  XrdOucString rapp = Env.Get("eos.app");
-
-
-  const char* authz = Env.Get("authz");
-
   if (authz) {
     std::string sauthz = authz;
     if (sauthz.substr(0,8) == "zteos64:") {
@@ -854,9 +866,11 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
       } else {
 	// if owner or group is specified, adjust this
 	if (!vid.token->Owner().empty()) {
+	  token_sudo = true;
 	  ruid = vid.token->Owner().c_str();
 	}
 	if (!vid.token->Group().empty()) {
+	  token_sudo = true;
 	  rgid = vid.token->Group().c_str();
 	}
 	if (EOS_LOGS_INFO) {
@@ -878,11 +892,9 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
       std::string luid = ruid.c_str();
       sel_uid = (gVirtualUidMap.count(ruid.c_str())) ? gVirtualUidMap[ruid.c_str() ] :
                 99;
-
       if (sel_uid == 99) {
         sel_uid = UserNameToUid(luid, errc);
       }
-
       if (errc) {
         sel_uid = 99;
       }
@@ -917,7 +929,7 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
   // ---------------------------------------------------------------------------
   // Check if we are allowed to take sel_uid & sel_gid
   // ---------------------------------------------------------------------------
-  if (!vid.sudoer) {
+  if (!vid.sudoer && !token_sudo) {
     // if we are not a sudore, scan the allowed ids
     if (vid.hasUid(sel_uid)) {
       vid.uid = sel_uid;
@@ -1616,6 +1628,7 @@ Mapping::UserNameToUid(const std::string& username, int& errc)
     XrdSysMutexHelper cMutex(gPhysicalNameCacheMutex);
 
     if (gPhysicalUserIdCache.count(username)) {
+      fprintf(stderr,"returning from cache: %d\n", gPhysicalUserIdCache[username]);
       return gPhysicalUserIdCache[username];
     }
   }
