@@ -2,7 +2,7 @@
 
 .. _tokens:
 
-Using Eos Tokens for authorization
+Using Eos Tokens for Authorization
 ==================================
 
 To prepare for upcoming requirements to implement various types of token technologies, we have implemeneted a generic EOS mechanism to delegate permissions to a token bearer with s.c. EOS tokens.
@@ -149,7 +149,7 @@ The default origin regexp is ``*:*:*`` accepting all origins.
 Token via GRPC
 --------------
 
-Tokens can be requested and verified using GRPC TokenRequest as shown here with the GRPC CLI. To request a token atleast ``path``, ``expires`` and ``permission`` should be defined.
+Tokens can be requested and verified using GRPC TokenRequest as shown here with the GRPC CLI. To request a token at least ``path``, ``expires`` and ``permission`` should be defined.
 
 
 .. code-block:: bash
@@ -225,8 +225,6 @@ To verify a token, the ``vtoken`` field should hold the token to decode.
     }
    }
 
-
-
 The possible return codes are:
 
 * -EINVAL      : the token cannot be decompressed
@@ -234,4 +232,63 @@ The possible return codes are:
 * -EACCES      : the generation number inside the token is not valid anymore
 * -EKEYEXPIRED : the token validity has expired
 * -EPERM       : the token signature is not correct
+
+Using tokens with SSS security
+------------------------------
+
+It is very useful to issue scoped tokens to applications. To avoid the complication of appending tokens to each and every URL  one can use ``sss`` security to forward a generic token for each request via the ``endorsement`` environment variable.
+
+Client and server should share an sss key for a user, which is actually not authorized to use the instance e.g.
+
+.. code-block:: bash
+
+   ############################
+   # client
+   ############################
+   echo 0 u:nfsnobody g:nfsnobody n:eos-test N:5506672669367468033 c:1282122142 e:0 k:0123456789012345678901234567890123456789012345678901234567890123 > $HOME/.eos.keytab
+   # point to keytab file
+   export XrdSecSSSKT=$HOME/.eos.keytab
+   # enforce sss
+   export XrdSecPROTOCOL=sss
+
+   ############################
+   #server
+   ############################
+
+   # server shares the same keytab entry
+   echo 0 u:nfsnobody g:nfsnobody n:eos-test N:5506672669367468033 c:1282122142 e:0 k:0123456789012345678901234567890123456789\012345678901234567890123 >> /etc/eos.keytab
+
+   # server bans user nfsnobody or maybe uses already user allow, which bans this user by default
+   eos access ban user nfsnobody
+  
+   # server issues a scoped token binding to a user/group
+   TOKEN=`eos token --path /eos/cms/www/ --permission rwx --expires 1600000000 --owner cmsprod --group zh`
+ 
+   ############################
+   # client
+   ############################
+   
+   # exports the token in the environment
+   export XrdSecsssENDORSEMENT=zteos64:....
+
+   # test the ID
+   eos whoami
+   Virtual Identity: uid=5410 (65534,99,5410) gid=1339 (65534,99,1338) [authz:sss] host=localhost domain=localdomain geo-location=ajp key=zteos64:....
+   {
+     "token": {
+     "permission": "rwx",
+     "expires": "1000000000",
+     "owner": "cmsprod",
+     "group": "zh",
+     "generation": "0",
+     "path": "/eos/cms/www/",
+     "allowtree": false,
+     "vtoken": "",
+     "origins": []
+    },
+   }
+
+
+
+
 
