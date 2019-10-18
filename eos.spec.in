@@ -80,11 +80,6 @@
 %endif
 
 #-------------------------------------------------------------------------------
-# /opt/eos/xrootd install version (shipped by eos-client for SLC6/EL7)
-#-------------------------------------------------------------------------------
-%define EOS_XROOTD_VERSION 4.9.1
-
-#-------------------------------------------------------------------------------
 # Package definitions
 #-------------------------------------------------------------------------------
 Summary: The EOS project
@@ -110,8 +105,6 @@ Requires: epel-release
 %endif
 
 BuildRequires: %{cmake} >= 3.3
-BuildRequires: xrootd >= %{xrootd_version_min}
-
 
 # ----------------------
 # select xrootd package
@@ -124,12 +117,14 @@ BuildRequires: eos-xrootd
 %global __requires_exclude ^libXrd*
 %else
 # Install default xrootd
+BuildRequires: xrootd >= %{xrootd_version_min}
 BuildRequires: xrootd-client-devel >= %{xrootd_version_min}
 BuildRequires: xrootd-server-devel >= %{xrootd_version_min}
 BuildRequires: xrootd-private-devel >= %{xrootd_version_min}
 %endif
 %else
 # Install default xrootd
+BuildRequires: xrootd >= %{xrootd_version_min}
 BuildRequires: xrootd-client-devel >= %{xrootd_version_min}
 BuildRequires: xrootd-server-devel >= %{xrootd_version_min}
 BuildRequires: xrootd-private-devel >= %{xrootd_version_min}
