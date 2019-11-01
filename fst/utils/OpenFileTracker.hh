@@ -37,7 +37,8 @@ EOSFSTNAMESPACE_BEGIN
 //! Thread-safe. To track both "open-for-read" and "open-for-write" files,
 //! use two different objects.
 //------------------------------------------------------------------------------
-class OpenFileTracker {
+class OpenFileTracker
+{
 public:
   //----------------------------------------------------------------------------
   //! Constructor
@@ -86,22 +87,24 @@ public:
   //! Get open file IDs of a filesystem, sorted by usecount
   //----------------------------------------------------------------------------
   std::map<size_t, std::set<uint64_t>> getSortedByUsecount(
-    eos::common::FileSystem::fsid_t fsid) const;
+                                      eos::common::FileSystem::fsid_t fsid) const;
 
   //----------------------------------------------------------------------------
   //! Get top hot files on current filesystem
   //----------------------------------------------------------------------------
   struct HotEntry {
     HotEntry(eos::common::FileSystem::fsid_t fs, uint64_t f, size_t u)
-    : fsid(fs), fid(f), uses(u) {}
+      : fsid(fs), fid(f), uses(u) {}
 
     HotEntry() {}
 
-    bool operator==(const HotEntry &other) const {
+    bool operator==(const HotEntry& other) const
+    {
       return fsid == other.fsid && fid == other.fid && uses == other.uses;
     }
 
-    bool operator!=(const HotEntry &other) const {
+    bool operator!=(const HotEntry& other) const
+    {
       return !(*this == other);
     }
 
@@ -110,7 +113,8 @@ public:
     size_t uses;
   };
 
-  std::vector<HotEntry> getHotFiles(eos::common::FileSystem::fsid_t fsid, size_t maxEntries) const;
+  std::vector<HotEntry> getHotFiles(eos::common::FileSystem::fsid_t fsid,
+                                    size_t maxEntries) const;
 
   //----------------------------------------------------------------------------
   //! Class acting as a barrier to avoid concurrent file creation interference
@@ -142,7 +146,8 @@ public:
 
 private:
   mutable std::shared_timed_mutex mMutex;
-  std::map<eos::common::FileSystem::fsid_t, std::map<uint64_t, int32_t>> mContents;
+  std::map<eos::common::FileSystem::fsid_t, std::map<uint64_t, int32_t>>
+      mContents;
 };
 
 EOSFSTNAMESPACE_END
