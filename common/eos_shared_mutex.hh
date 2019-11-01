@@ -67,23 +67,29 @@ class __shared_mutex_cv
   // queued.
 
   // Only locked when accessing _M_state or waiting on condition variables.
-  std::mutex		        _M_mut;
+  std::mutex            _M_mut;
   // Used to block while write-entered is set or reader count at maximum.
-  std::condition_variable	_M_gate1;
+  std::condition_variable _M_gate1;
   // Used to block queued writers while reader count is non-zero.
-  std::condition_variable	_M_gate2;
+  std::condition_variable _M_gate2;
   // The write-entered flag and reader count.
-  unsigned		_M_state;
+  unsigned    _M_state;
 
   static constexpr unsigned _S_write_entered
-  = 1U << (sizeof(unsigned)*__CHAR_BIT__ - 1);
+    = 1U << (sizeof(unsigned) * __CHAR_BIT__ - 1);
   static constexpr unsigned _S_max_readers = ~_S_write_entered;
 
   // Test whether the write-entered flag is set. _M_mut must be locked.
-  bool _M_write_entered() const { return _M_state & _S_write_entered; }
+  bool _M_write_entered() const
+  {
+    return _M_state & _S_write_entered;
+  }
 
   // The number of reader locks currently held. _M_mut must be locked.
-  unsigned _M_readers() const { return _M_state & _S_max_readers; }
+  unsigned _M_readers() const
+  {
+    return _M_state & _S_max_readers;
+  }
 
 public:
   __shared_mutex_cv() : _M_state(0) {}
@@ -99,21 +105,22 @@ public:
   {
     std::unique_lock<std::mutex> __lk(_M_mut);
     // Wait until we can set the write-entered flag.
-    _M_gate1.wait(__lk, [=]{ return !_M_write_entered(); });
+    _M_gate1.wait(__lk, [ = ] { return !_M_write_entered(); });
     _M_state |= _S_write_entered;
     // Then wait until there are no more readers.
-    _M_gate2.wait(__lk, [=]{ return _M_readers() == 0; });
+    _M_gate2.wait(__lk, [ = ] { return _M_readers() == 0; });
   }
 
   bool
   try_lock()
   {
     std::unique_lock<std::mutex> __lk(_M_mut, std::try_to_lock);
-    if (__lk.owns_lock() && _M_state == 0)
-      {
-        _M_state = _S_write_entered;
-        return true;
-      }
+
+    if (__lk.owns_lock() && _M_state == 0) {
+      _M_state = _S_write_entered;
+      return true;
+    }
+
     return false;
   }
 
@@ -132,7 +139,7 @@ public:
   lock_shared()
   {
     std::unique_lock<std::mutex> __lk(_M_mut);
-    _M_gate1.wait(__lk, [=]{ return _M_state < _S_max_readers; });
+    _M_gate1.wait(__lk, [ = ] { return _M_state < _S_max_readers; });
     ++_M_state;
   }
 
@@ -140,13 +147,16 @@ public:
   try_lock_shared()
   {
     std::unique_lock<std::mutex> __lk(_M_mut, std::try_to_lock);
-    if (!__lk.owns_lock())
+
+    if (!__lk.owns_lock()) {
       return false;
-    if (_M_state < _S_max_readers)
-      {
-        ++_M_state;
-        return true;
-      }
+    }
+
+    if (_M_state < _S_max_readers) {
+      ++_M_state;
+      return true;
+    }
+
     return false;
   }
 
@@ -155,21 +165,22 @@ public:
   {
     std::lock_guard<std::mutex> __lk(_M_mut);
     auto __prev = _M_state--;
-    if (_M_write_entered())
-      {
-        // Wake the queued writer if there are no more readers.
-        if (_M_readers() == 0)
-          _M_gate2.notify_one();
-        // No need to notify gate1 because we give priority to the queued
-        // writer, and that writer will eventually notify gate1 after it
-        // clears the write-entered flag.
+
+    if (_M_write_entered()) {
+      // Wake the queued writer if there are no more readers.
+      if (_M_readers() == 0) {
+        _M_gate2.notify_one();
       }
-    else
-      {
-        // Wake any thread that was blocked on reader overflow.
-        if (__prev == _S_max_readers)
-          _M_gate1.notify_one();
+
+      // No need to notify gate1 because we give priority to the queued
+      // writer, and that writer will eventually notify gate1 after it
+      // clears the write-entered flag.
+    } else {
+      // Wake any thread that was blocked on reader overflow.
+      if (__prev == _S_max_readers) {
+        _M_gate1.notify_one();
       }
+    }
   }
 };
 
@@ -185,15 +196,33 @@ public:
 
   // Exclusive ownership
 
-  void lock() { _M_impl.lock(); }
-  bool try_lock() { return _M_impl.try_lock(); }
-  void unlock() { _M_impl.unlock(); }
+  void lock()
+  {
+    _M_impl.lock();
+  }
+  bool try_lock()
+  {
+    return _M_impl.try_lock();
+  }
+  void unlock()
+  {
+    _M_impl.unlock();
+  }
 
   // Shared ownership
 
-  void lock_shared() { _M_impl.lock_shared(); }
-  bool try_lock_shared() { return _M_impl.try_lock_shared(); }
-  void unlock_shared() { _M_impl.unlock_shared(); }
+  void lock_shared()
+  {
+    _M_impl.lock_shared();
+  }
+  bool try_lock_shared()
+  {
+    return _M_impl.try_lock_shared();
+  }
+  void unlock_shared()
+  {
+    _M_impl.unlock_shared();
+  }
 
 private:
   __shared_mutex_cv _M_impl;
@@ -208,7 +237,7 @@ class shared_timed_mutex
   using _Base = __shared_timed_mutex_base;
 
   // Must use the same clock as condition_variable for __shared_mutex_cv.
-  typedef std::chrono::system_clock	__clock_t;
+  typedef std::chrono::system_clock __clock_t;
 
 public:
   shared_timed_mutex() = default;
@@ -219,9 +248,18 @@ public:
 
   // Exclusive ownership
 
-  void lock() { _Base::lock(); }
-  bool try_lock() { return _Base::try_lock(); }
-  void unlock() { _Base::unlock(); }
+  void lock()
+  {
+    _Base::lock();
+  }
+  bool try_lock()
+  {
+    return _Base::try_lock();
+  }
+  void unlock()
+  {
+    _Base::unlock();
+  }
 
   template<typename _Rep, typename _Period>
   bool
@@ -232,9 +270,18 @@ public:
 
   // Shared ownership
 
-  void lock_shared() { _Base::lock_shared(); }
-  bool try_lock_shared() { return _Base::try_lock_shared(); }
-  void unlock_shared() { _Base::unlock_shared(); }
+  void lock_shared()
+  {
+    _Base::lock_shared();
+  }
+  bool try_lock_shared()
+  {
+    return _Base::try_lock_shared();
+  }
+  void unlock_shared()
+  {
+    _Base::unlock_shared();
+  }
 
   template<typename _Rep, typename _Period>
   bool
@@ -251,20 +298,20 @@ public:
   try_lock_until(const std::chrono::time_point<_Clock, _Duration>& __abs_time)
   {
     std::unique_lock<std::mutex> __lk(_M_mut);
+
     if (!_M_gate1.wait_until(__lk, __abs_time,
-                             [=]{ return !_M_write_entered(); }))
-      {
-        return false;
-      }
+                             [ = ] { return !_M_write_entered(); })) {
+      return false;
+    }
     _M_state |= _S_write_entered;
+
     if (!_M_gate2.wait_until(__lk, __abs_time,
-                             [=]{ return _M_readers() == 0; }))
-      {
-        _M_state ^= _S_write_entered;
-        // Wake all threads blocked while the write-entered flag was set.
-        _M_gate1.notify_all();
-        return false;
-      }
+                             [ = ] { return _M_readers() == 0; })) {
+      _M_state ^= _S_write_entered;
+      // Wake all threads blocked while the write-entered flag was set.
+      _M_gate1.notify_all();
+      return false;
+    }
     return true;
   }
 
@@ -276,11 +323,11 @@ public:
                         _Duration>& __abs_time)
   {
     std::unique_lock<std::mutex> __lk(_M_mut);
+
     if (!_M_gate1.wait_until(__lk, __abs_time,
-                             [=]{ return _M_state < _S_max_readers; }))
-      {
-        return false;
-      }
+                             [ = ] { return _M_state < _S_max_readers; })) {
+      return false;
+    }
     ++_M_state;
     return true;
   }
