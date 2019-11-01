@@ -28,7 +28,7 @@
 #include <shared_mutex>
 #else
 #pragma message "WARNING: We are using a copy of the shared mutex to enable the condition variable implementation!!!"
-#include "common/shared_mutex"
+#include "common/eos_shared_mutex.hh"
 #endif
 
 EOSCOMMONNAMESPACE_BEGIN
