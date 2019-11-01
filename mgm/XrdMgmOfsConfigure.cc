@@ -1801,14 +1801,14 @@ XrdMgmOfs::Configure(XrdSysError& Eroute)
     eos_notice("loaded io stat dump file %s", ioaccounting.c_str());
   }
 
-  // Start IO ciruclate thread
+  // Start IO circulate thread
   IoStats->StartCirculate();
 
   if (!MgmRedirector) {
     ObjectManager.HashMutex.LockRead();
     XrdMqSharedHash* hash = ObjectManager.GetHash("/eos/*");
 
-    // Ask for a broadcast from fst's
+    // Ask for a broadcast from FSTs
     if (hash) {
       hash->BroadcastRequest("/eos/*/fst");
     }
@@ -1872,6 +1872,14 @@ XrdMgmOfs::Configure(XrdSysError& Eroute)
   gGeoTreeEngine.StartUpdater();
   // Start the drain engine
   mDrainEngine.Start();
+
+  // Start the Converter driver
+  if (getenv("EOS_CONVERTER_DRIVER") != nullptr) {
+    eos_info("msg=\"starting Converter Engine\"");
+    mConverterDriver.reset(new eos::mgm::ConverterDriver(mQdbContactDetails));
+    mConverterDriver->Start();
+  }
+
   return NoGo;
 }
 /*----------------------------------------------------------------------------*/
