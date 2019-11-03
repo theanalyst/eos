@@ -169,6 +169,11 @@ add_library(
   proc/user/Whoami.cc
   Quota.cc
   Scheduler.cc
+  tgc/TapeAwareGc.cc
+  tgc/TapeAwareGcFreeSpace.cc
+  tgc/TapeAwareGcLru.cc
+  tgc/TapeAwareGcSpaceNotFound.cc
+  tgc/TapeAwareGcUtils.cc
   Vid.cc
   FsView.cc
   XrdMgmOfsConfigure.cc
