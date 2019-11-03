@@ -1,6 +1,6 @@
 // ----------------------------------------------------------------------
-// File: Namespace.hh
-// Author: Andreas-Joachim Peters - CERN
+// File: Constants.hh
+// Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
 /************************************************************************
@@ -21,21 +21,38 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_NAMESPACE_HH__
-#define __EOSMGM_NAMESPACE_HH__
+#ifndef __EOSMGMTGC_CONSTANTS_HH__
+#define __EOSMGMTGC_CONSTANTS_HH__
 
-#define USE_EOSMGMNAMESPACE using namespace eos::mgm;
+#include "mgm/Namespace.hh"
 
-#define EOSMGMNAMESPACE_BEGIN namespace eos { namespace mgm {
-#define EOSMGMNAMESPACE_END }}
+#include <stdint.h>
 
+/*----------------------------------------------------------------------------*/
+/**
+ * @file Constants.hh
+ *
+ * @brief Constants specific to the implementation of the tape aware garbage
+ * collector.
+ *
+ */
+/*----------------------------------------------------------------------------*/
+EOSTGCNAMESPACE_BEGIN
 
-#define USE_EOSFUSESERVERNAMESPACE using namespace eos::mgm::FuseServer;
+/// Default age at which the cached value of queryPeriodSecs for a garbage
+/// collector should be renewed
+const uint64_t TGC_DEFAULT_QUERY_PERIOD_CACHED_AGE_SECS = 10;
 
-#define EOSFUSESERVERNAMESPACE_BEGIN namespace eos { namespace mgm { namespace FuseServer {
-#define EOSFUSESERVERNAMESPACE_END }}}
+/// Default age at which the cached value of minFreeBytes for a garbage
+/// collector should be renewed
+const uint64_t TGC_DEFAULT_MIN_FREE_BYTES_CACHE_AGE_SECS = 10;
 
-#define EOSTGCNAMESPACE_BEGIN namespace eos { namespace mgm { namespace tgc {
-#define EOSTGCNAMESPACE_END }}}
+/// Default delay in seconds between free space queries for the tape-aware GC
+const uint64_t TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS = 310;
+
+/// Default minimum number of free bytes within an EOS space for the tape-aware GC
+const uint64_t TGC_DEFAULT_MIN_FREE_BYTES = 0;
+
+EOSTGCNAMESPACE_END
 
 #endif

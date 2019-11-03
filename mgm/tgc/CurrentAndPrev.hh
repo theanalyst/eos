@@ -1,6 +1,6 @@
 // ----------------------------------------------------------------------
-// File: Namespace.hh
-// Author: Andreas-Joachim Peters - CERN
+// File: CurrentAndPrev.hh
+// Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
 /************************************************************************
@@ -21,21 +21,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_NAMESPACE_HH__
-#define __EOSMGM_NAMESPACE_HH__
+#ifndef __EOSMGMTGC_CURRENTANDPREV_HH__
+#define __EOSMGMTGC_CURRENTANDPREV_HH__
 
-#define USE_EOSMGMNAMESPACE using namespace eos::mgm;
+#include "mgm/Namespace.hh"
 
-#define EOSMGMNAMESPACE_BEGIN namespace eos { namespace mgm {
-#define EOSMGMNAMESPACE_END }}
+/*----------------------------------------------------------------------------*/
+/**
+ * @file CurrentAndPrev.hh
+ *
+ * @brief Templated struct to store a current and previous value.
+ *
+ */
+/*----------------------------------------------------------------------------*/
+EOSTGCNAMESPACE_BEGIN
 
+//----------------------------------------------------------------------------
+//! Templated struct to store a current and previous value.
+//!
+//! @tparam ValueType The type of the value.
+//----------------------------------------------------------------------------
+template <typename ValueType> struct CurrentAndPrev {
 
-#define USE_EOSFUSESERVERNAMESPACE using namespace eos::mgm::FuseServer;
+  /// The current value
+  ValueType current;
 
-#define EOSFUSESERVERNAMESPACE_BEGIN namespace eos { namespace mgm { namespace FuseServer {
-#define EOSFUSESERVERNAMESPACE_END }}}
+  // The previous value
+  ValueType prev;
+};
 
-#define EOSTGCNAMESPACE_BEGIN namespace eos { namespace mgm { namespace tgc {
-#define EOSTGCNAMESPACE_END }}}
+EOSTGCNAMESPACE_END
 
 #endif

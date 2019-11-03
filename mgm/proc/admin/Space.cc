@@ -546,6 +546,8 @@ ProcCommand::Space()
                   (key == "geo.access.policy.read.exact") ||
                   (key == "geo.access.policy.write.exact") ||
                   (key == "filearchivedgc") ||
+                  (key == "tgc.freespaceqryperiodsecs") ||
+                  (key == "tgc.minfreebytes") ||
 		  (key == "balancer.threshold") ||
 		  (key == "token.generation") ||
                   (key == eos::common::SCAN_IO_RATE_NAME) ||

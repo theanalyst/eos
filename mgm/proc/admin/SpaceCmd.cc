@@ -709,6 +709,8 @@ void SpaceCmd::ConfigSubcmd(const eos::console::SpaceProto_ConfigProto& config,
             (key == "geo.access.policy.read.exact") ||
             (key == "geo.access.policy.write.exact") ||
             (key == "filearchivedgc") ||
+            (key == "tgc.freespaceqryperiodsecs") ||
+            (key == "tgc.minfreebytes") ||
 	    (key == "token.generation") ||
             (key == "balancer.threshold") ||
             (key == eos::common::SCAN_IO_RATE_NAME) ||
