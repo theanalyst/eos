@@ -171,6 +171,7 @@ class PathRouting;
 class CommitHelper;
 class ReplicationTracker;
 class FileInspector;
+class TapeAwareGc;
 }
 }
 
@@ -1715,6 +1716,7 @@ public:
   eos::common::XrdConnPool mXrdConnPool; ///< XRD connection pool
   //! Tracker for requests which are currently executing MGM code
   eos::mgm::InFlightTracker mTracker;
+  std::unique_ptr<TapeAwareGc> mTapeAwareGc; ///< Tape aware garbage collector
 
   //----------------------------------------------------------------------------
   //! Return string representation of prepare options
