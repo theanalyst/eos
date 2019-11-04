@@ -972,6 +972,8 @@ Requires: xrootd-python >= %{xrootd_version_min}
 The EOS archive daemon.
 
 %files -n eos-archive
+%{_sbindir}/eos-backup
+%{_sbindir}/eos-backup-browser
 %defattr(-, eosarchi, c3, -)
 %{_bindir}/eosarchived.py
 %{_bindir}/eosarch_run.py
