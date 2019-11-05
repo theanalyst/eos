@@ -27,7 +27,7 @@
 #include "common/Logging.hh"
 #include "mgm/Namespace.hh"
 #include "mgm/tgc/TapeAwareGcFreeSpace.hh"
-#include "mgm/tgc/TapeAwareGcLru.hh"
+#include "mgm/tgc/TapeGcLru.hh"
 #include "mgm/tgc/TapeAwareGcThreadSafeCachedValue.hh"
 #include "namespace/interface/IFileMD.hh"
 #include "proto/ConsoleReply.pb.h"
@@ -111,7 +111,7 @@ public:
   //----------------------------------------------------------------------------
   //! @return the size of teh LRU queue
   //----------------------------------------------------------------------------
-  TapeAwareGcLru::FidQueue::size_type getLruQueueSize();
+  TapeGcLru::FidQueue::size_type getLruQueueSize();
 
   //----------------------------------------------------------------------------
   //! @return the amount of free bytes in the EOS space named default
@@ -211,7 +211,7 @@ protected:
   mutable std::mutex m_lruQueueMutex;
 
   /// Queue of Least Recently Used (LRU) files
-  TapeAwareGcLru m_lruQueue;
+  TapeGcLru m_lruQueue;
 
   //----------------------------------------------------------------------------
   //! Entry point for the GC worker thread

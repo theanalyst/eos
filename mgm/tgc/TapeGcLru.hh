@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeAwareGcLru.hh
+// File: TapeGcLru.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_TAPEAWAREGCLRU_HH__
-#define __EOSMGM_TAPEAWAREGCLRU_HH__
+#ifndef __EOSMGM_TAPEGCLRU_HH__
+#define __EOSMGM_TAPEGCLRU_HH__
 
 #include "common/Murmur3.hh"
 #include "common/hopscotch_map.hh"
@@ -35,7 +35,7 @@
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file TapeAwareGcLru.hh
+ * @file TapeGcLru.hh
  *
  * @brief Class implementing a Least Recenting Used (LRU) queue
  *
@@ -46,7 +46,7 @@ EOSMGMNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 //! Class implementing a Least Recenting Used (LRU) queue
 //------------------------------------------------------------------------------
-class TapeAwareGcLru {
+class TapeGcLru {
 public:
 
   //----------------------------------------------------------------------------
@@ -69,7 +69,7 @@ public:
   //!
   //! @throw MaxQueueSizeIsZero If maxQueueSize is equal to 0.
   //----------------------------------------------------------------------------
-  TapeAwareGcLru(const FidQueue::size_type maxQueueSize = 10000000);
+  TapeGcLru(const FidQueue::size_type maxQueueSize = 10000000);
 
   //----------------------------------------------------------------------------
   //! Notify the queue a file has been accessed

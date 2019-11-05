@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeAwareGcLru.cc
+// File: TapeGcLru.cc
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,7 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/TapeAwareGcLru.hh"
+#include "mgm/tgc/TapeGcLru.hh"
 
 #include <stdexcept>
 
@@ -30,7 +30,7 @@ EOSMGMNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 //! Constructor
 //------------------------------------------------------------------------------
-TapeAwareGcLru::TapeAwareGcLru(const FidQueue::size_type maxQueueSize):
+TapeGcLru::TapeGcLru(const FidQueue::size_type maxQueueSize):
   mMaxQueueSize(maxQueueSize), mMaxQueueSizeExceeded(false)
 {
   if(0 == maxQueueSize) {
@@ -42,7 +42,7 @@ TapeAwareGcLru::TapeAwareGcLru(const FidQueue::size_type maxQueueSize):
 //------------------------------------------------------------------------------
 //! Notify the queue a file has been accessed
 //------------------------------------------------------------------------------
-void TapeAwareGcLru::fileAccessed(const IFileMD::id_t fid)
+void TapeGcLru::fileAccessed(const IFileMD::id_t fid)
 {
   const auto mapEntry = mFidToQueueEntry.find(fid);
 
@@ -57,7 +57,7 @@ void TapeAwareGcLru::fileAccessed(const IFileMD::id_t fid)
 //------------------------------------------------------------------------------
 // Handle the fact a new file has been accessed
 //------------------------------------------------------------------------------
-void TapeAwareGcLru::newFileHasBeenAccessed(const IFileMD::id_t fid) {
+void TapeGcLru::newFileHasBeenAccessed(const IFileMD::id_t fid) {
   // Ignore the new file if the maximum queue size has been reached
   // IMPORTANT: This should be a rare situation
   if(mFidToQueueEntry.size() == mMaxQueueSize) {
@@ -72,7 +72,7 @@ void TapeAwareGcLru::newFileHasBeenAccessed(const IFileMD::id_t fid) {
 //------------------------------------------------------------------------------
 // Handle the fact that a file already in the queue has been accessed
 //------------------------------------------------------------------------------
-void TapeAwareGcLru::queuedFileHasBeenAccessed(const IFileMD::id_t fid,
+void TapeGcLru::queuedFileHasBeenAccessed(const IFileMD::id_t fid,
   FidQueue::iterator &queueItor) {
   // Erase the existing file from the LRU queue
   mQueue.erase(queueItor);
@@ -85,7 +85,7 @@ void TapeAwareGcLru::queuedFileHasBeenAccessed(const IFileMD::id_t fid,
 //------------------------------------------------------------------------------
 //! Return true if the queue is empty
 //------------------------------------------------------------------------------
-bool TapeAwareGcLru::empty() const
+bool TapeGcLru::empty() const
 {
   return mQueue.empty();
 }
@@ -93,7 +93,7 @@ bool TapeAwareGcLru::empty() const
 //------------------------------------------------------------------------------
 //! Return queue size
 //------------------------------------------------------------------------------
-TapeAwareGcLru::FidQueue::size_type TapeAwareGcLru::size() const
+TapeGcLru::FidQueue::size_type TapeGcLru::size() const
 {
   return mFidToQueueEntry.size();
 }
@@ -101,7 +101,7 @@ TapeAwareGcLru::FidQueue::size_type TapeAwareGcLru::size() const
 //------------------------------------------------------------------------------
 //! Pop and return the identifier of the least used file
 //------------------------------------------------------------------------------
-IFileMD::id_t TapeAwareGcLru::getAndPopFidOfLeastUsedFile()
+IFileMD::id_t TapeGcLru::getAndPopFidOfLeastUsedFile()
 {
   if(mQueue.empty()) {
     throw QueueIsEmpty(std::string(__FUNCTION__) +
@@ -119,7 +119,7 @@ IFileMD::id_t TapeAwareGcLru::getAndPopFidOfLeastUsedFile()
 //------------------------------------------------------------------------------
 //! Return true if the maximum queue size has been exceeded
 //------------------------------------------------------------------------------
-bool TapeAwareGcLru::maxQueueSizeExceeded() const noexcept {
+bool TapeGcLru::maxQueueSizeExceeded() const noexcept {
   return mMaxQueueSizeExceeded;
 }
 

@@ -364,7 +364,7 @@ TapeGc::getNbStagerrms() const
 //----------------------------------------------------------------------------
 // Return the size of the LRUE queue
 //----------------------------------------------------------------------------
-TapeAwareGcLru::FidQueue::size_type
+TapeGcLru::FidQueue::size_type
 TapeGc::getLruQueueSize()
 {
   std::lock_guard<std::mutex> lruQueueLock(m_lruQueueMutex);
