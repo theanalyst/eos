@@ -23,7 +23,7 @@
 
 #include "mgm/FsView.hh"
 #include "mgm/tgc/TapeAwareGcFreeSpace.hh"
-#include "mgm/tgc/TapeAwareGcSpaceNotFound.hh"
+#include "mgm/tgc/TapeGcSpaceNotFound.hh"
 #include "mgm/tgc/TapeGcUtils.hh"
 
 #include <functional>
@@ -106,13 +106,13 @@ TapeAwareGcFreeSpace::queryMgmForFreeBytes() {
   const auto spaceItor = FsView::gFsView.mSpaceView.find(m_spaceName);
 
   if(FsView::gFsView.mSpaceView.end() == spaceItor) {
-    throw TapeAwareGcSpaceNotFound(std::string(__FUNCTION__) + ": Cannot find space " + m_spaceName +
-      ": FsView does not know the space name");
+    throw TapeGcSpaceNotFound(std::string(__FUNCTION__) + ": Cannot find space " + m_spaceName +
+                              ": FsView does not know the space name");
   }
 
   if(nullptr == spaceItor->second) {
-    throw TapeAwareGcSpaceNotFound(std::string(__FUNCTION__) + ": Cannot find space " + m_spaceName +
-      ": Pointer to FsSpace is nullptr");
+    throw TapeGcSpaceNotFound(std::string(__FUNCTION__) + ": Cannot find space " + m_spaceName +
+                              ": Pointer to FsSpace is nullptr");
   }
 
   const FsSpace &space = *(spaceItor->second);

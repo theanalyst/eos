@@ -25,7 +25,7 @@
 #include "mgm/proc/admin/StagerRmCmd.hh"
 #include "mgm/tgc/TapeGc.hh"
 #include "mgm/tgc/TapeAwareGcConstants.hh"
-#include "mgm/tgc/TapeAwareGcSpaceNotFound.hh"
+#include "mgm/tgc/TapeGcSpaceNotFound.hh"
 #include "mgm/tgc/TapeGcUtils.hh"
 #include "mgm/XrdMgmOfs.hh"
 #include "namespace/interface/IFileMDSvc.hh"
@@ -223,7 +223,7 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
         msg << "msg=\"defaultSpaceMinFreeBytes has been changed to " << defaultSpaceMinFreeBytes << "\"";
         eos_static_info(msg.str().c_str());
       }
-    } catch(TapeAwareGcSpaceNotFound &) {
+    } catch(TapeGcSpaceNotFound &) {
       // Return no file was garbage collected if the space was not found
       return false;
     }
@@ -232,7 +232,7 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
       // Return no file was garbage collected if there is still enough free space
       const auto actualDefaultSpaceNbFreeBytes = m_freeSpaceInDefault.getFreeBytes();
       if(actualDefaultSpaceNbFreeBytes >= defaultSpaceMinFreeBytes) return false;
-    } catch(TapeAwareGcSpaceNotFound &) {
+    } catch(TapeGcSpaceNotFound &) {
       // Return no file was garbage collected if the space was not found
       return false;
     }

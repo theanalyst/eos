@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeAwareGcSpaceNotFound.cc
+// File: TapeGcSpaceNotFound.cc
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -22,14 +22,14 @@
  ************************************************************************/
 
 #include "mgm/Namespace.hh"
-#include "mgm/tgc/TapeAwareGcSpaceNotFound.hh"
+#include "mgm/tgc/TapeGcSpaceNotFound.hh"
 
 EOSMGMNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 //! Thrown when a given EOS space cannot be found
 //------------------------------------------------------------------------------
-TapeAwareGcSpaceNotFound::TapeAwareGcSpaceNotFound(const std::string &msg): std::runtime_error(msg) {
+TapeGcSpaceNotFound::TapeGcSpaceNotFound(const std::string &msg): std::runtime_error(msg) {
 }
 
 EOSMGMNAMESPACE_END

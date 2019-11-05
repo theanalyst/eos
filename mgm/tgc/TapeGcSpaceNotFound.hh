@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeAwareGcSpaceNotFound.hh
+// File: TapeGcSpaceNotFound.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_TAPEAWAREGCSPACENOTFOUND_HH__
-#define __EOSMGM_TAPEAWAREGCSPACENOTFOUND_HH__
+#ifndef __EOSMGM_TAPEGCSPACENOTFOUND_HH__
+#define __EOSMGM_TAPEGCSPACENOTFOUND_HH__
 
 #include <stdexcept>
 
@@ -38,8 +38,8 @@ EOSMGMNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 //! Thrown when a given EOS space cannot be found
 //------------------------------------------------------------------------------
-struct TapeAwareGcSpaceNotFound: public std::runtime_error {
-  TapeAwareGcSpaceNotFound(const std::string &msg);
+struct TapeGcSpaceNotFound: public std::runtime_error {
+  TapeGcSpaceNotFound(const std::string &msg);
 };
 
 EOSMGMNAMESPACE_END
