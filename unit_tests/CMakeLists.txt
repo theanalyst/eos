@@ -66,7 +66,7 @@ set(MGM_UT_SRCS
   mgm/FsckEntryTests.cc
   mgm/SpaceToTapeAwareGcMapTests.cc
   mgm/TapeGcCachedValueTests.cc
-  mgm/TapeAwareGcThreadSafeCachedValueTests.cc
+  mgm/TapeGcThreadSafeCachedValueTests.cc
   mgm/TapeAwareGcLruTests.cc
   mgm/TapeGcUtilsTests.cc
   mgm/XrdMgmOfsTests.cc)
