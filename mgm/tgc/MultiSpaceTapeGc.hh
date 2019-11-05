@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_TAPEAWAREMULTISPACEGC_HH__
-#define __EOSMGM_TAPEAWAREMULTISPACEGC_HH__
+#ifndef __EOSMGM_MULTISPACETAPEGC_HH__
+#define __EOSMGM_MULTISPACETAPEGC_HH__
 
 #include "common/Logging.hh"
 #include "mgm/Namespace.hh"
