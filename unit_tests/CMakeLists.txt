@@ -68,7 +68,7 @@ set(MGM_UT_SRCS
   mgm/TapeGcCachedValueTests.cc
   mgm/TapeAwareGcThreadSafeCachedValueTests.cc
   mgm/TapeAwareGcLruTests.cc
-  mgm/TapeAwareGcUtilsTests.cc
+  mgm/TapeGcUtilsTests.cc
   mgm/XrdMgmOfsTests.cc)
 
 set(COMMON_UT_SRCS

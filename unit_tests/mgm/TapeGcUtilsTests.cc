@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// File: TapeAwareGcUtilsTests.cc
+// File: TapeGcUtilsTests.cc
 // Author: Steven Murray <smurray at cern dot ch>
 //------------------------------------------------------------------------------
 
@@ -25,7 +25,7 @@
 
 #include <gtest/gtest.h>
 
-class TapeAwareGcUtilsTest : public ::testing::Test {
+class TapeGcUtilsTest : public ::testing::Test {
 protected:
 
   virtual void SetUp() {
@@ -38,7 +38,7 @@ protected:
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeAwareGcUtilsTest, isValidUInt_unsigned_int) {
+TEST_F(TapeGcUtilsTest, isValidUInt_unsigned_int) {
   using namespace eos::mgm;
 
   ASSERT_TRUE(TapeGcUtils::isValidUInt("12345"));
@@ -47,7 +47,7 @@ TEST_F(TapeAwareGcUtilsTest, isValidUInt_unsigned_int) {
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeAwareGcUtilsTest, isValidUInt_empty_string) {
+TEST_F(TapeGcUtilsTest, isValidUInt_empty_string) {
   using namespace eos::mgm;
 
   ASSERT_FALSE(TapeGcUtils::isValidUInt(""));
@@ -56,7 +56,7 @@ TEST_F(TapeAwareGcUtilsTest, isValidUInt_empty_string) {
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeAwareGcUtilsTest, isValidUInt_signed_int) {
+TEST_F(TapeGcUtilsTest, isValidUInt_signed_int) {
   using namespace eos::mgm;
 
   ASSERT_FALSE(TapeGcUtils::isValidUInt("-12345"));
@@ -65,38 +65,38 @@ TEST_F(TapeAwareGcUtilsTest, isValidUInt_signed_int) {
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeAwareGcUtilsTest, isValidUInt_not_a_number) {
+TEST_F(TapeGcUtilsTest, isValidUInt_not_a_number) {
   using namespace eos::mgm;
 
   ASSERT_FALSE(TapeGcUtils::isValidUInt("one"));
 }
 
-TEST_F(TapeAwareGcUtilsTest, toUint64_unsigned_int) {
+TEST_F(TapeGcUtilsTest, toUint64_unsigned_int) {
   using namespace eos::mgm;
 
   ASSERT_EQ((uint64_t)12345, TapeGcUtils::toUint64("12345"));
   ASSERT_EQ((uint64_t)18446744073709551615ULL, TapeGcUtils::toUint64("18446744073709551615"));
 }
 
-TEST_F(TapeAwareGcUtilsTest, toUint64_out_of_range) {
+TEST_F(TapeGcUtilsTest, toUint64_out_of_range) {
   using namespace eos::mgm;
 
   ASSERT_THROW(TapeGcUtils::toUint64("18446744073709551616"), TapeGcUtils::OutOfRangeUint64);
 }
 
-TEST_F(TapeAwareGcUtilsTest, toUint64_empty_string) {
+TEST_F(TapeGcUtilsTest, toUint64_empty_string) {
   using namespace eos::mgm;
 
   ASSERT_THROW(TapeGcUtils::toUint64(""), TapeGcUtils::InvalidUint64);
 }
 
-TEST_F(TapeAwareGcUtilsTest, toUint64_max) {
+TEST_F(TapeGcUtilsTest, toUint64_max) {
   using namespace eos::mgm;
 
   ASSERT_EQ((uint64_t)18446744073709551615UL, TapeGcUtils::toUint64("18446744073709551615"));
 }
 
-TEST_F(TapeAwareGcUtilsTest, toUint64_not_a_number) {
+TEST_F(TapeGcUtilsTest, toUint64_not_a_number) {
   using namespace eos::mgm;
 
   ASSERT_THROW(TapeGcUtils::toUint64("one"), TapeGcUtils::InvalidUint64);
