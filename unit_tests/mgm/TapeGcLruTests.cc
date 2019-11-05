@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// File: TapeAwareLruTests.cc
+// File: TapeGcLruTests.cc
 // Author: Steven Murray <smurray at cern dot ch>
 //------------------------------------------------------------------------------
 
@@ -25,7 +25,7 @@
 
 #include <gtest/gtest.h>
 
-class TapeAwareGcLruTest : public ::testing::Test {
+class TapeGcLruTest : public ::testing::Test {
 protected:
 
   virtual void SetUp() {
@@ -38,7 +38,7 @@ protected:
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeAwareGcLruTest, Construction_maxQueueSize_greater_than_zero)
+TEST_F(TapeGcLruTest, Construction_maxQueueSize_greater_than_zero)
 {
   using namespace eos::mgm;
 
@@ -49,7 +49,7 @@ TEST_F(TapeAwareGcLruTest, Construction_maxQueueSize_greater_than_zero)
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeAwareGcLruTest, Construction_maxQueueSize_zero)
+TEST_F(TapeGcLruTest, Construction_maxQueueSize_zero)
 {
   using namespace eos::mgm;
 
@@ -61,7 +61,7 @@ TEST_F(TapeAwareGcLruTest, Construction_maxQueueSize_zero)
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeAwareGcLruTest, getAndPopFidOfLeastUsedFile_empty_queue)
+TEST_F(TapeGcLruTest, getAndPopFidOfLeastUsedFile_empty_queue)
 {
   using namespace eos::mgm;
 
@@ -73,7 +73,7 @@ TEST_F(TapeAwareGcLruTest, getAndPopFidOfLeastUsedFile_empty_queue)
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeAwareGcLruTest, fids_1_2_3_4_5)
+TEST_F(TapeGcLruTest, fids_1_2_3_4_5)
 { 
   using namespace eos;
   using namespace eos::mgm;
@@ -102,7 +102,7 @@ TEST_F(TapeAwareGcLruTest, fids_1_2_3_4_5)
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeAwareGcLruTest, fids_1_2_3_4_5_2)
+TEST_F(TapeGcLruTest, fids_1_2_3_4_5_2)
 { 
   using namespace eos;
   using namespace eos::mgm;
@@ -131,7 +131,7 @@ TEST_F(TapeAwareGcLruTest, fids_1_2_3_4_5_2)
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeAwareGcLruTest, exceed_maxQueueSize_max_size_1)
+TEST_F(TapeGcLruTest, exceed_maxQueueSize_max_size_1)
 {
   using namespace eos;
   using namespace eos::mgm;
@@ -165,7 +165,7 @@ TEST_F(TapeAwareGcLruTest, exceed_maxQueueSize_max_size_1)
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeAwareGcLruTest, exceed_maxQueueSize_5_fids_vs_max_size_2)
+TEST_F(TapeGcLruTest, exceed_maxQueueSize_5_fids_vs_max_size_2)
 {
   using namespace eos;
   using namespace eos::mgm;
@@ -208,7 +208,7 @@ TEST_F(TapeAwareGcLruTest, exceed_maxQueueSize_5_fids_vs_max_size_2)
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeAwareGcLruTest, DISABLED_performance_500000_files) {
+TEST_F(TapeGcLruTest, DISABLED_performance_500000_files) {
   using namespace eos;
   using namespace eos::mgm;
 
