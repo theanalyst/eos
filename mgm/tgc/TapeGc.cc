@@ -24,7 +24,7 @@
 #include "mgm/FsView.hh"
 #include "mgm/proc/admin/StagerRmCmd.hh"
 #include "mgm/tgc/TapeGc.hh"
-#include "mgm/tgc/TapeAwareGcConstants.hh"
+#include "mgm/tgc/TapeGcConstants.hh"
 #include "mgm/tgc/TapeGcSpaceNotFound.hh"
 #include "mgm/tgc/TapeGcUtils.hh"
 #include "mgm/XrdMgmOfs.hh"
@@ -47,7 +47,7 @@ TapeGc::TapeGc():
     0, // Initial value
     std::bind(getSpaceConfigMinNbFreeBytes, "default"), // Value getter
     10), // Maximum age of cached value in seconds
-  m_freeSpaceInDefault("default", TAPEAWAREGC_DEFAULT_SPACE_QUERY_PERIOD_SECS),
+  m_freeSpaceInDefault("default", TAPEGC_DEFAULT_SPACE_QUERY_PERIOD_SECS),
   m_nbStagerrms(0)
 {
 }

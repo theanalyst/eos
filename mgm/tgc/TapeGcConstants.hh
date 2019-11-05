@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeAwareGcCachedValue.hh
+// File: TapeGcConstants.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_TAPEAWAREGCCONSTANTS_HH__
-#define __EOSMGM_TAPEAWAREGCCONSTANTS_HH__
+#ifndef __EOSMGM_TAPEGCCONSTANTS_HH__
+#define __EOSMGM_TAPEGCCONSTANTS_HH__
 
 #include "mgm/Namespace.hh"
 
@@ -30,7 +30,7 @@
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file TapeAwareGcConstants.hh
+ * @file TapeGcConstants.hh
  *
  * @brief Constants specific to the implementation of the tape aware garbage
  * collector.
@@ -40,7 +40,7 @@
 EOSMGMNAMESPACE_BEGIN
 
 /// Default delay in seconds between free space queries
-const uint64_t TAPEAWAREGC_DEFAULT_SPACE_QUERY_PERIOD_SECS=310;
+const uint64_t TAPEGC_DEFAULT_SPACE_QUERY_PERIOD_SECS=310;
 
 EOSMGMNAMESPACE_END
 
