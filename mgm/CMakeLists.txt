@@ -171,7 +171,7 @@ add_library(
   Scheduler.cc
   tgc/SpaceToTapeGcMap.cc
   tgc/TapeGc.cc
-  tgc/TapeAwareGcFreeSpace.cc
+  tgc/TapeGcFreeSpace.cc
   tgc/TapeGcLru.cc
   tgc/TapeGcSpaceNotFound.cc
   tgc/TapeGcUtils.cc

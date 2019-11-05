@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeAwareGcFreeSpace.hh
+// File: TapeGcFreeSpace.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_TAPEAWAREGCFREESPACE_HH__
-#define __EOSMGM_TAPEAWAREGCFREESPACE_HH__
+#ifndef __EOSMGM_TAPEGCFREESPACE_HH__
+#define __EOSMGM_TAPEGCFREESPACE_HH__
 
 #include "mgm/Namespace.hh"
 #include "mgm/tgc/TapeGcCachedValue.hh"
@@ -35,7 +35,7 @@
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file TapeAwareGcFreeSpace.hh
+ * @file TapeGcFreeSpace.hh
  *
  * @brief Templated class for creating a time based cache for a single
  * variable.
@@ -49,7 +49,7 @@ EOSMGMNAMESPACE_BEGIN
 //! class respects the constraint of a specified delay between free space
 //! queries to the EOS MGM.
 //------------------------------------------------------------------------------
-class TapeAwareGcFreeSpace {
+class TapeGcFreeSpace {
 public:
   //----------------------------------------------------------------------------
   //! Constructor
@@ -57,7 +57,7 @@ public:
   //! @param defaultSpaceQueryPeriodSecs The default delay in seconds
   //! between free space queries to the EOS MGM.
   //----------------------------------------------------------------------------
-  TapeAwareGcFreeSpace(const std::string &spaceName, const time_t defaultSpaceQueryPeriodSecs);
+  TapeGcFreeSpace(const std::string &spaceName, const time_t defaultSpaceQueryPeriodSecs);
 
   //----------------------------------------------------------------------------
   //! Notify this object that a file has been queued for deletion so that
@@ -118,7 +118,7 @@ private:
   //----------------------------------------------------------------------------
   static uint64_t getConfSpaceQueryPeriodSecs(const std::string spaceName,
     const uint64_t defaultValue) noexcept;
-}; // class TapeAwareGcFreeSpace
+}; // class TapeGcFreeSpace
 
 EOSMGMNAMESPACE_END
 
