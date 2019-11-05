@@ -21,7 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/TapeAwareGcThreadSafeCachedValue.hh"
+#include "mgm/tgc/TapeGcThreadSafeCachedValue.hh"
 
 #include <gtest/gtest.h>
 #include <stdint.h>
@@ -47,7 +47,7 @@ TEST_F(TapeAwareGcThreadSafeCachedValueTest, noChange)
   const uint64_t nextValue = 5678;
   auto getter = [nextValue]()->uint64_t{return nextValue;};
   const time_t maxAgeSecs = 1000;
-  TapeAwareGcThreadSafeCachedValue<uint64_t> cachedValue(initialValue, getter, maxAgeSecs);
+  TapeGcThreadSafeCachedValue<uint64_t> cachedValue(initialValue, getter, maxAgeSecs);
 
   bool valueChanged = false;
   const uint64_t retrievedValue = cachedValue.get(valueChanged);
@@ -67,7 +67,7 @@ TEST_F(TapeAwareGcThreadSafeCachedValueTest, aChangeOccurred)
   const uint64_t nextValue = 5678;
   auto getter = [nextValue]()->uint64_t{return nextValue;};
   const time_t maxAgeSecs = 0;
-  TapeAwareGcThreadSafeCachedValue<uint64_t> cachedValue(initialValue, getter, maxAgeSecs);
+  TapeGcThreadSafeCachedValue<uint64_t> cachedValue(initialValue, getter, maxAgeSecs);
 
   bool valueChanged = false;
   const uint64_t retrievedValue = cachedValue.get(valueChanged);

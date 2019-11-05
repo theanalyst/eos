@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeGcCachedValue.hh
+// File: TapeGcThreadSafeCachedValue.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_TAPEAWAREGCTHREADSAFECACHEDVALUE_HH__
-#define __EOSMGM_TAPEAWAREGCTHREADSAFECACHEDVALUE_HH__
+#ifndef __EOSMGM_TAPEGCTHREADSAFECACHEDVALUE_HH__
+#define __EOSMGM_TAPEGCTHREADSAFECACHEDVALUE_HH__
 
 #include "mgm/Namespace.hh"
 
@@ -32,7 +32,7 @@
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file TapeAwareGcThreadSafeCachedValue.hh
+ * @file TapeGcThreadSafeCachedValue.hh
  *
  * @brief Templated class for creating a thread-safe time-based cache for a
  * single variable.
@@ -46,7 +46,7 @@ EOSMGMNAMESPACE_BEGIN
 //!
 //! @tparam ValueType The type of the value to be cached.
 //----------------------------------------------------------------------------
-template <typename ValueType> class TapeAwareGcThreadSafeCachedValue {
+template <typename ValueType> class TapeGcThreadSafeCachedValue {
 public:
   //--------------------------------------------------------------------------
   //! Constructor
@@ -54,7 +54,7 @@ public:
   //! @param valueGetter callable responsible for getting a new value
   //! @param maxAgeSecs age at which a call to get() will renew the cache
   //--------------------------------------------------------------------------
-  TapeAwareGcThreadSafeCachedValue(const ValueType &initialValue, std::function<ValueType()> valueGetter, const time_t maxAgeSecs):
+  TapeGcThreadSafeCachedValue(const ValueType &initialValue, std::function<ValueType()> valueGetter, const time_t maxAgeSecs):
     m_value(initialValue),
     m_valueGetter(valueGetter),
     m_maxAgeSecs(maxAgeSecs),
@@ -100,7 +100,7 @@ private:
 
   /// The timestamp of when the value was last updated
   time_t m_timestamp;
-}; // class TapeAwareGcThreadSafeCachedValue
+}; // class TapeGcThreadSafeCachedValue
 
 EOSMGMNAMESPACE_END
 
