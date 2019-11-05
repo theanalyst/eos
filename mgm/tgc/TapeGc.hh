@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeAwareGc.hh
+// File: TapeGc.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_TAPEAWAREGC_HH__
-#define __EOSMGM_TAPEAWAREGC_HH__
+#ifndef __EOSMGM_TAPEGC_HH__
+#define __EOSMGM_TAPEGC_HH__
 
 #include "common/Logging.hh"
 #include "mgm/Namespace.hh"
@@ -43,7 +43,7 @@
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file TapeAwareGc.hh
+ * @file TapeGc.hh
  *
  * @brief Class implementing a tape aware garbage collector
  *
@@ -54,28 +54,28 @@ EOSMGMNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 //! A tape aware garbage collector
 //------------------------------------------------------------------------------
-class TapeAwareGc
+class TapeGc
 {
 public:
   //----------------------------------------------------------------------------
   //! Constructor
   //----------------------------------------------------------------------------
-  TapeAwareGc();
+  TapeGc();
 
   //----------------------------------------------------------------------------
   //! Destructor
   //----------------------------------------------------------------------------
-  ~TapeAwareGc();
+  ~TapeGc();
 
   //----------------------------------------------------------------------------
   //! Delete copy constructor
   //----------------------------------------------------------------------------
-  TapeAwareGc(const TapeAwareGc &) = delete;
+  TapeGc(const TapeGc &) = delete;
 
   //----------------------------------------------------------------------------
   //! Delete assignment operator
   //----------------------------------------------------------------------------
-  TapeAwareGc &operator=(const TapeAwareGc &) = delete;
+  TapeGc &operator=(const TapeGc &) = delete;
 
   //----------------------------------------------------------------------------
   //! Enable the GC

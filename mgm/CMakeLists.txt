@@ -170,7 +170,7 @@ add_library(
   Quota.cc
   Scheduler.cc
   tgc/SpaceToTapeAwareGcMap.cc
-  tgc/TapeAwareGc.cc
+  tgc/TapeGc.cc
   tgc/TapeAwareGcFreeSpace.cc
   tgc/TapeAwareGcLru.cc
   tgc/TapeAwareGcSpaceNotFound.cc

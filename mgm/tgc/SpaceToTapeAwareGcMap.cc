@@ -62,13 +62,13 @@ void SpaceToTapeAwareGcMap::createGc(const std::string &space) {
     throw GcAlreadyExists(msg.str());
   }
 
-  m_gcs.emplace(space, std::make_unique<TapeAwareGc>());
+  m_gcs.emplace(space, std::make_unique<TapeGc>());
 }
 
 //----------------------------------------------------------------------------
 //! Returns the garbage collector associated with the specified EOS space.
 //----------------------------------------------------------------------------
-TapeAwareGc &SpaceToTapeAwareGcMap::getGc(const std::string &space) {
+TapeGc &SpaceToTapeAwareGcMap::getGc(const std::string &space) {
   if(space.empty()) {
     std::ostringstream msg;
     msg << "EOS space passed to " << __FUNCTION__ << " is an empty string";
@@ -87,7 +87,7 @@ TapeAwareGc &SpaceToTapeAwareGcMap::getGc(const std::string &space) {
   auto &gc = itor->second;
   if(!gc) {
     std::stringstream msg;
-    msg << "Encountered unexpected nullptr to TapeAwareGc for EOS space " << space;
+    msg << "Encountered unexpected nullptr to TapeGc for EOS space " << space;
     throw std::runtime_error(msg.str());
   } 
 

@@ -24,7 +24,7 @@
 #ifndef __EOSMGM_SPACETOTAPEAWAREGCMAP_HH__
 #define __EOSMGM_SPACETOTAPEAWAREGCMAP_HH__
 
-#include "mgm/tgc/TapeAwareGc.hh"
+#include "mgm/tgc/TapeGc.hh"
 
 #include <map>
 
@@ -92,7 +92,7 @@ public:
   //! space.
   //! @throw UnknownEOSSpace If the specified EOS space is unknown.
   //----------------------------------------------------------------------------
-  TapeAwareGc &getGc(const std::string &space);
+  TapeGc &getGc(const std::string &space);
 
 private:
 
@@ -104,7 +104,7 @@ private:
   //----------------------------------------------------------------------------
   //! Map from space name to tape aware garbage collector
   //----------------------------------------------------------------------------
-  std::map<std::string, std::unique_ptr<TapeAwareGc> > m_gcs;
+  std::map<std::string, std::unique_ptr<TapeGc> > m_gcs;
 };
 
 EOSMGMNAMESPACE_END

@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeAwareGc.cc
+// File: TapeGc.cc
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -23,7 +23,7 @@
 
 #include "mgm/FsView.hh"
 #include "mgm/proc/admin/StagerRmCmd.hh"
-#include "mgm/tgc/TapeAwareGc.hh"
+#include "mgm/tgc/TapeGc.hh"
 #include "mgm/tgc/TapeAwareGcConstants.hh"
 #include "mgm/tgc/TapeAwareGcSpaceNotFound.hh"
 #include "mgm/tgc/TapeAwareGcUtils.hh"
@@ -41,7 +41,7 @@ EOSMGMNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 // Constructor
 //------------------------------------------------------------------------------
-TapeAwareGc::TapeAwareGc():
+TapeGc::TapeGc():
   m_enabled(false),
   m_cachedDefaultSpaceMinFreeBytes(
     0, // Initial value
@@ -55,7 +55,7 @@ TapeAwareGc::TapeAwareGc():
 //------------------------------------------------------------------------------
 // Destructor
 //------------------------------------------------------------------------------
-TapeAwareGc::~TapeAwareGc()
+TapeGc::~TapeGc()
 {
   try {
     // m_enabled is an std::atomic and is set within enable() after m_worker
@@ -74,7 +74,7 @@ TapeAwareGc::~TapeAwareGc()
 // Enable the GC
 //------------------------------------------------------------------------------
 void
-TapeAwareGc::enable() noexcept
+TapeGc::enable() noexcept
 {
   try {
     // Do nothing if the calling thread is not the first to call start()
@@ -82,7 +82,7 @@ TapeAwareGc::enable() noexcept
 
     m_enabled = true;
 
-    std::function<void()> entryPoint = std::bind(&TapeAwareGc::workerThreadEntryPoint, this);
+    std::function<void()> entryPoint = std::bind(&TapeGc::workerThreadEntryPoint, this);
     m_worker.reset(new std::thread(entryPoint));
   } catch(std::exception &ex) {
     eos_static_err("msg=\"%s\"", ex.what());
@@ -95,10 +95,10 @@ TapeAwareGc::enable() noexcept
 // Entry point for the GC worker thread
 //------------------------------------------------------------------------------
 void
-TapeAwareGc::workerThreadEntryPoint() noexcept
+TapeGc::workerThreadEntryPoint() noexcept
 {
   try {
-    eos_static_info("msg=\"TapeAwareGc worker thread started\"");
+    eos_static_info("msg=\"TapeGc worker thread started\"");
   } catch(...) {
   }
 
@@ -112,7 +112,7 @@ TapeAwareGc::workerThreadEntryPoint() noexcept
 // Notify GC the specified file has been opened
 //------------------------------------------------------------------------------
 void
-TapeAwareGc::fileOpened(const std::string &path, const IFileMD &fmd) noexcept
+TapeGc::fileOpened(const std::string &path, const IFileMD &fmd) noexcept
 {
   if(!m_enabled) return;
 
@@ -146,7 +146,7 @@ TapeAwareGc::fileOpened(const std::string &path, const IFileMD &fmd) noexcept
 // Notify GC a replica of the specified file has been committed
 //------------------------------------------------------------------------------
 void
-TapeAwareGc::fileReplicaCommitted(const std::string &path, const IFileMD &fmd) noexcept
+TapeGc::fileReplicaCommitted(const std::string &path, const IFileMD &fmd) noexcept
 {
   if(!m_enabled) return;
 
@@ -183,7 +183,7 @@ TapeAwareGc::fileReplicaCommitted(const std::string &path, const IFileMD &fmd) n
 // returned.
 //------------------------------------------------------------------------------
 uint64_t
-TapeAwareGc::getSpaceConfigMinNbFreeBytes(const std::string &spaceName) noexcept
+TapeGc::getSpaceConfigMinNbFreeBytes(const std::string &spaceName) noexcept
 {
   try {
     std::string valueStr;
@@ -210,7 +210,7 @@ TapeAwareGc::getSpaceConfigMinNbFreeBytes(const std::string &spaceName) noexcept
 // Try to garage collect a single file if necessary and possible
 //------------------------------------------------------------------------------
 bool
-TapeAwareGc::tryToGarbageCollectASingleFile() noexcept
+TapeGc::tryToGarbageCollectASingleFile() noexcept
 {
   try {
     uint64_t defaultSpaceMinFreeBytes = 0;
@@ -296,7 +296,7 @@ TapeAwareGc::tryToGarbageCollectASingleFile() noexcept
 //----------------------------------------------------------------------------
 // Determine if the specified file exists and is not scheduled for deletion
 //----------------------------------------------------------------------------
-bool TapeAwareGc::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t fid) {
+bool TapeGc::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t fid) {
   // Prefetch before taking lock because metadata may not be in memory
   Prefetcher::prefetchFileMDAndWait(gOFS->eosView, fid);
   common::RWMutexReadLock lock(gOFS->eosViewRWMutex);
@@ -309,7 +309,7 @@ bool TapeAwareGc::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t 
 //----------------------------------------------------------------------------
 // Return size of the specified file
 //----------------------------------------------------------------------------
-uint64_t TapeAwareGc::getFileSizeBytes(const IFileMD::id_t fid) {
+uint64_t TapeGc::getFileSizeBytes(const IFileMD::id_t fid) {
   // Prefetch before taking lock because metadata may not be in memory
   Prefetcher::prefetchFileMDAndWait(gOFS->eosView, fid);
   common::RWMutexReadLock lock(gOFS->eosViewRWMutex);
@@ -326,7 +326,7 @@ uint64_t TapeAwareGc::getFileSizeBytes(const IFileMD::id_t fid) {
 // Execute stagerrm as user root
 //----------------------------------------------------------------------------
 console::ReplyProto
-TapeAwareGc::stagerrmAsRoot(const IFileMD::id_t fid)
+TapeGc::stagerrmAsRoot(const IFileMD::id_t fid)
 {
   eos::common::VirtualIdentity rootVid = eos::common::VirtualIdentity::Root();
 
@@ -343,7 +343,7 @@ TapeAwareGc::stagerrmAsRoot(const IFileMD::id_t fid)
 // Return the preamble to be placed at the beginning of every log message
 //----------------------------------------------------------------------------
 std::string
-TapeAwareGc::createLogPreamble(const std::string &path, const IFileMD::id_t fid)
+TapeGc::createLogPreamble(const std::string &path, const IFileMD::id_t fid)
 {
   std::ostringstream preamble;
 
@@ -356,7 +356,7 @@ TapeAwareGc::createLogPreamble(const std::string &path, const IFileMD::id_t fid)
 // Return the number of files successfully stagerrm'ed since boot
 //----------------------------------------------------------------------------
 uint64_t
-TapeAwareGc::getNbStagerrms() const
+TapeGc::getNbStagerrms() const
 {
   return m_nbStagerrms;
 }
@@ -365,7 +365,7 @@ TapeAwareGc::getNbStagerrms() const
 // Return the size of the LRUE queue
 //----------------------------------------------------------------------------
 TapeAwareGcLru::FidQueue::size_type
-TapeAwareGc::getLruQueueSize()
+TapeGc::getLruQueueSize()
 {
   std::lock_guard<std::mutex> lruQueueLock(m_lruQueueMutex);
   return m_lruQueue.size();
@@ -375,7 +375,7 @@ TapeAwareGc::getLruQueueSize()
 // Return the amount of free bytes in the EOS space named default
 //----------------------------------------------------------------------------
 uint64_t
-TapeAwareGc::getDefaultSpaceFreeBytes() {
+TapeGc::getDefaultSpaceFreeBytes() {
   return m_freeSpaceInDefault.getFreeBytes();
 }
 
@@ -383,7 +383,7 @@ TapeAwareGc::getDefaultSpaceFreeBytes() {
 // Return the amount of free bytes in the EOS space named default
 //----------------------------------------------------------------------------
 time_t
-TapeAwareGc::getDefaultSpaceFreeSpaceQueryTimestamp() {
+TapeGc::getDefaultSpaceFreeSpaceQueryTimestamp() {
   return m_freeSpaceInDefault.getFreeSpaceQueryTimestamp();
 }
 
