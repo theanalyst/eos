@@ -174,7 +174,7 @@ add_library(
   tgc/TapeAwareGcFreeSpace.cc
   tgc/TapeGcLru.cc
   tgc/TapeAwareGcSpaceNotFound.cc
-  tgc/TapeAwareGcUtils.cc
+  tgc/TapeGcUtils.cc
   Vid.cc
   FsView.cc
   XrdMgmOfsConfigure.cc

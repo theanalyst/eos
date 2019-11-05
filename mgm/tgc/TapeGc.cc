@@ -26,7 +26,7 @@
 #include "mgm/tgc/TapeGc.hh"
 #include "mgm/tgc/TapeAwareGcConstants.hh"
 #include "mgm/tgc/TapeAwareGcSpaceNotFound.hh"
-#include "mgm/tgc/TapeAwareGcUtils.hh"
+#include "mgm/tgc/TapeGcUtils.hh"
 #include "mgm/XrdMgmOfs.hh"
 #include "namespace/interface/IFileMDSvc.hh"
 #include "namespace/Prefetcher.hh"
@@ -199,7 +199,7 @@ TapeGc::getSpaceConfigMinNbFreeBytes(const std::string &spaceName) noexcept
     if(valueStr.empty()) {
      return 0;
     } else {
-      return TapeAwareGcUtils::toUint64(valueStr);
+      return TapeGcUtils::toUint64(valueStr);
     }
   } catch(...) {
     return 0;

@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeAwareGcUtils.hh
+// File: TapeGcUtils.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_TAPEAWAREGCUTILS_HH__
-#define __EOSMGM_TAPEAWAREGCUTILS_HH__
+#ifndef __EOSMGM_TAPEGCUTILS_HH__
+#define __EOSMGM_TAPEGCUTILS_HH__
 
 #include "common/Logging.hh"
 #include "mgm/Namespace.hh"
@@ -50,9 +50,9 @@
 EOSMGMNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
-//! Class of utility functions for TapeAwareGc
+//! Class of utility functions for TapeGc
 //------------------------------------------------------------------------------
-class TapeAwareGcUtils
+class TapeGcUtils
 {
 public:
   /// Thrown when a string is not a valid unsigned 64-bit integer

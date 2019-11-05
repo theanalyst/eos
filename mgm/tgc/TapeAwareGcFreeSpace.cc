@@ -24,7 +24,7 @@
 #include "mgm/FsView.hh"
 #include "mgm/tgc/TapeAwareGcFreeSpace.hh"
 #include "mgm/tgc/TapeAwareGcSpaceNotFound.hh"
-#include "mgm/tgc/TapeAwareGcUtils.hh"
+#include "mgm/tgc/TapeGcUtils.hh"
 
 #include <functional>
 #include <sstream>
@@ -170,7 +170,7 @@ TapeAwareGcFreeSpace::getConfSpaceQueryPeriodSecs(const std::string spaceName,
       }
     }
 
-    return TapeAwareGcUtils::toUint64(valueStr);
+    return TapeGcUtils::toUint64(valueStr);
   } catch(...) {
     return defaultValue;
   }

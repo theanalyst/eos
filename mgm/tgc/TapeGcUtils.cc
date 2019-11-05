@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeAwareGcUtils.cc
+// File: TapeGcUtils.cc
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,7 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/TapeAwareGcUtils.hh"
+#include "mgm/tgc/TapeGcUtils.hh"
 
 EOSMGMNAMESPACE_BEGIN
 
@@ -29,7 +29,7 @@ EOSMGMNAMESPACE_BEGIN
 // Return the integer representation of the specified string
 //------------------------------------------------------------------------------
 uint64_t
-TapeAwareGcUtils::toUint64(const std::string &str)
+TapeGcUtils::toUint64(const std::string &str)
 {
   bool outOfRange = false;
 
@@ -55,7 +55,7 @@ TapeAwareGcUtils::toUint64(const std::string &str)
 // Return true if the specified string is a valid unsigned integer
 //------------------------------------------------------------------------------
 bool
-TapeAwareGcUtils::isValidUInt(std::string str)
+TapeGcUtils::isValidUInt(std::string str)
 {
   // left trim
   str.erase(0, str.find_first_not_of(" \t"));
