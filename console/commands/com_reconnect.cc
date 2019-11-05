@@ -21,11 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-/*----------------------------------------------------------------------------*/
 #include "console/ConsoleMain.hh"
-#include "XrdClient/XrdClientConn.hh"
 #include "common/StringTokenizer.hh"
-/*----------------------------------------------------------------------------*/
 
 /* Force a reconnection/reauthentication */
 int
@@ -53,15 +50,6 @@ com_reconnect(char* arg1)
 
     XrdOucString path = serveruri;
     path += "//proc/admin/";
-
-    /* - NOT SUPPORTED IN THE NEW CLIENT
-    XrdClientAdmin admin(path.c_str());
-    admin.Connect();
-    if (admin.GetClientConn()) {
-      admin.GetClientConn()->Disconnect(true);
-    }
-     */
-
     return (0);
   } else {
     fprintf(stdout,

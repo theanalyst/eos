@@ -23,22 +23,18 @@
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
-  ${XROOTD_INCLUDE_DIRS}
   ${OPENSSL_INCLUDE_DIRS}
   ${PROTOBUF_INCLUDE_DIRS})
-  
 
 #-------------------------------------------------------------------------------
 # eosCapability-Static library
 #-------------------------------------------------------------------------------
-add_library(
-  eosCapability-Static STATIC
+add_library(eosCapability-Static STATIC
   XrdCapability.cc  XrdCapability.hh)
 
-target_link_libraries(eosCapability-Static
+target_link_libraries(eosCapability-Static PUBLIC
+  XROOTD::UTILS
   ${PROTOBUF_LIBRARY})
 
-set_target_properties(
-  eosCapability-Static
-  PROPERTIES
-  COMPILE_FLAGS -fPIC)
+set_target_properties(eosCapability-Static
+  PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
