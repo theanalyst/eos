@@ -288,7 +288,7 @@ protected:
   //! value then the garbage collector will try to free up space by garbage
   //! collecting disk replicas.
   //----------------------------------------------------------------------------
-  TapeAwareGcCachedValue<uint64_t> m_cachedDefaultSpaceMinFreeBytes;
+  TapeGcCachedValue<uint64_t> m_cachedDefaultSpaceMinFreeBytes;
 
   //----------------------------------------------------------------------------
   //! Object responsible for determining the number of free bytes in the EOS

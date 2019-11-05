@@ -25,7 +25,7 @@
 #define __EOSMGM_TAPEAWAREGCFREESPACE_HH__
 
 #include "mgm/Namespace.hh"
-#include "mgm/tgc/TapeAwareGcCachedValue.hh"
+#include "mgm/tgc/TapeGcCachedValue.hh"
 
 #include <mutex>
 #include <stdexcept>
@@ -91,7 +91,7 @@ private:
   //! Cached configuration value for the delay in seconds between space queries
   //! to the EOS MGM
   //----------------------------------------------------------------------------
-  TapeAwareGcCachedValue<time_t> m_cachedSpaceQueryPeriodSecs;
+  TapeGcCachedValue<time_t> m_cachedSpaceQueryPeriodSecs;
 
   /// The current amount of free space in bytes
   uint64_t m_freeSpaceBytes;
