@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeAwareMultiSpaceGc.hh
+// File: MultiSpaceTapeGc.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -24,28 +24,16 @@
 #ifndef __EOSMGM_MULTISPACETAPEGC_HH__
 #define __EOSMGM_MULTISPACETAPEGC_HH__
 
-#include "common/Logging.hh"
 #include "mgm/Namespace.hh"
-#include "mgm/tgc/TapeAwareGcFreeSpace.hh"
-#include "mgm/tgc/TapeAwareGcLru.hh"
-#include "mgm/tgc/TapeAwareGcThreadSafeCachedValue.hh"
-#include "namespace/interface/IFileMD.hh"
-#include "proto/ConsoleReply.pb.h"
-#include "proto/ConsoleRequest.pb.h"
-
-#include <atomic>
-#include <condition_variable>
-#include <mutex>
-#include <stdexcept>
-#include <stdint.h>
-#include <thread>
-#include <time.h>
+#include "mgm/tgc/SpaceToTapeGcMap.hh"
+#include "mgm/tgc/TapeGcLru.hh"
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file TapeAwareMultiSpaceGc.hh
+ * @file MultiSpaceTapeGc.hh
  *
- * @brief Class implementing a tape aware garbage collector
+ * @brief Class implementing a tape aware garbage collector that can work over
+ * multiple EOS spaces
  *
  */
 /*----------------------------------------------------------------------------*/
@@ -54,33 +42,35 @@ EOSMGMNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 //! A tape aware garbage collector that can work over multiple EOS spaces
 //------------------------------------------------------------------------------
-class TapeAwareMultiSpaceGc
+class MultiSpaceTapeGc
 {
 public:
   //----------------------------------------------------------------------------
   //! Constructor
   //----------------------------------------------------------------------------
-  TapeAwareMultiSpaceGc();
+  MultiSpaceTapeGc();
 
   //----------------------------------------------------------------------------
   //! Destructor
   //----------------------------------------------------------------------------
-  ~TapeAwareMultiSpaceGc();
+  ~MultiSpaceTapeGc();
 
   //----------------------------------------------------------------------------
   //! Delete copy constructor
   //----------------------------------------------------------------------------
-  TapeAwareMultiSpaceGc(const TapeAwareMultiSpaceGc &) = delete;
+  MultiSpaceTapeGc(const MultiSpaceTapeGc &) = delete;
 
   //----------------------------------------------------------------------------
   //! Delete assignment operator
   //----------------------------------------------------------------------------
-  TapeAwareMultiSpaceGc &operator=(const TapeAwareMultiSpaceGc &) = delete;
+  MultiSpaceTapeGc &operator=(const MultiSpaceTapeGc &) = delete;
 
   //----------------------------------------------------------------------------
-  //! Enable the GC
+  //! Enable the garbage collection for the specified EOS space
+  //!
+  //! @param space The name of the EOs space
   //----------------------------------------------------------------------------
-  void enable() noexcept;
+  void enable(const std::string &space) noexcept;
 
   //----------------------------------------------------------------------------
   //! Notify GC the specified file has been opened
@@ -119,7 +109,7 @@ public:
   //!
   //! @param space the name of the EOS space
   //----------------------------------------------------------------------------
-  TapeAwareGcLru::FidQueue::size_type getLruQueueSize(const std::string &space);
+  TapeGcLru::FidQueue::size_type getLruQueueSize(const std::string &space);
 
   //----------------------------------------------------------------------------
   //! @return the amount of free bytes in the specified EOS space
@@ -141,7 +131,7 @@ private:
   //----------------------------------------------------------------------------
   //! Map from EOS space name to tape aware garbage collector
   //----------------------------------------------------------------------------
-  SpaceToTapeAwareGc m_gcs;
+  SpaceToTapeGcMap m_gcs;
 };
 
 EOSMGMNAMESPACE_END
