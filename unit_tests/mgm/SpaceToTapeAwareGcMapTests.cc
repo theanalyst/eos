@@ -21,7 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/SpaceToTapeAwareGcMap.hh"
+#include "mgm/tgc/SpaceToTapeGcMap.hh"
 
 #include <gtest/gtest.h>
 
@@ -43,7 +43,7 @@ TEST_F(SpaceToTapeAwareGcMapTest, Constructor)
   using namespace eos::mgm;
 
   const std::string space = "space";
-  SpaceToTapeAwareGcMap map();
+  SpaceToTapeGcMap map();
 }
 
 //------------------------------------------------------------------------------
@@ -54,9 +54,9 @@ TEST_F(SpaceToTapeAwareGcMapTest, getGc_unknown_eos_space)
   using namespace eos::mgm;
 
   const std::string space = "space";
-  SpaceToTapeAwareGcMap map;
+  SpaceToTapeGcMap map;
 
-  ASSERT_THROW(map.getGc(space), SpaceToTapeAwareGcMap::UnknownEOSSpace);
+  ASSERT_THROW(map.getGc(space), SpaceToTapeGcMap::UnknownEOSSpace);
 }
 
 //------------------------------------------------------------------------------
@@ -67,7 +67,7 @@ TEST_F(SpaceToTapeAwareGcMapTest, createGc)
   using namespace eos::mgm;
 
   const std::string space = "space";
-  SpaceToTapeAwareGcMap map;
+  SpaceToTapeGcMap map;
 
   map.createGc(space);
 
@@ -82,9 +82,9 @@ TEST_F(SpaceToTapeAwareGcMapTest, createGc_already_exists)
   using namespace eos::mgm;
 
   const std::string space = "space";
-  SpaceToTapeAwareGcMap map;
+  SpaceToTapeGcMap map;
 
   map.createGc(space);
 
-  ASSERT_THROW(map.createGc(space), SpaceToTapeAwareGcMap::GcAlreadyExists);
+  ASSERT_THROW(map.createGc(space), SpaceToTapeGcMap::GcAlreadyExists);
 }

@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: SpaceToTapeAwareGcMap.hh
+// File: SpaceToTapeGcMap.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_SPACETOTAPEAWAREGCMAP_HH__
-#define __EOSMGM_SPACETOTAPEAWAREGCMAP_HH__
+#ifndef __EOSMGM_SPACETOTAPEAGCMAP_HH__
+#define __EOSMGM_SPACETOTAPEAGCMAP_HH__
 
 #include "mgm/tgc/TapeGc.hh"
 
@@ -30,7 +30,7 @@
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file SpaceToTapeAwareGcMap.hh
+ * @file SpaceToTapeGcMap.hh
  *
  * @brief Class implementing a thread safe map from EOS space name to tape aware
  * garbage collector
@@ -43,23 +43,23 @@ EOSMGMNAMESPACE_BEGIN
 //! Class implementing a thread safe map from EOS space name to tape aware
 //! garbage collector
 //------------------------------------------------------------------------------
-class SpaceToTapeAwareGcMap {
+class SpaceToTapeGcMap {
 public:
 
   //----------------------------------------------------------------------------
   //! Constructor.
   //----------------------------------------------------------------------------
-  SpaceToTapeAwareGcMap();
+  SpaceToTapeGcMap();
 
   //----------------------------------------------------------------------------
   //! Deletion of copy constructor.
   //----------------------------------------------------------------------------
-  SpaceToTapeAwareGcMap(const SpaceToTapeAwareGcMap &) = delete;
+  SpaceToTapeGcMap(const SpaceToTapeGcMap &) = delete;
 
   //----------------------------------------------------------------------------
   //! Deletion of move constructor.
   //----------------------------------------------------------------------------
-  SpaceToTapeAwareGcMap(const SpaceToTapeAwareGcMap &&) = delete;
+  SpaceToTapeGcMap(const SpaceToTapeGcMap &&) = delete;
 
   //----------------------------------------------------------------------------
   //! Exception thrown when a tape aware garbage collector already exists.

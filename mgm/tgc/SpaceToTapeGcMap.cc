@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: SpaceToTapeAwareGcMap.cc
+// File: SpaceToTapeGcMap.cc
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,7 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/SpaceToTapeAwareGcMap.hh"
+#include "mgm/tgc/SpaceToTapeGcMap.hh"
 
 #include <memory>
 #include <sstream>
@@ -40,13 +40,13 @@ EOSMGMNAMESPACE_BEGIN
 //----------------------------------------------------------------------------
 //! Constructor
 //----------------------------------------------------------------------------
-SpaceToTapeAwareGcMap::SpaceToTapeAwareGcMap() {
+SpaceToTapeGcMap::SpaceToTapeGcMap() {
 }
 
 //----------------------------------------------------------------------------
 //! Create a tape aware garbage collector for the specified EOS space.
 //----------------------------------------------------------------------------
-void SpaceToTapeAwareGcMap::createGc(const std::string &space) {
+void SpaceToTapeGcMap::createGc(const std::string &space) {
   if(space.empty()) {
     std::ostringstream msg;
     msg << "EOS space passed to " << __FUNCTION__ << " is an empty string";
@@ -68,7 +68,7 @@ void SpaceToTapeAwareGcMap::createGc(const std::string &space) {
 //----------------------------------------------------------------------------
 //! Returns the garbage collector associated with the specified EOS space.
 //----------------------------------------------------------------------------
-TapeGc &SpaceToTapeAwareGcMap::getGc(const std::string &space) {
+TapeGc &SpaceToTapeGcMap::getGc(const std::string &space) {
   if(space.empty()) {
     std::ostringstream msg;
     msg << "EOS space passed to " << __FUNCTION__ << " is an empty string";
