@@ -23,13 +23,9 @@
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
-  ${XROOTD_INCLUDE_DIR}
-  ${XROOTD_PRIVATE_INCLUDE_DIR}
-  ${Z_INCLUDE_DIRS}
   ${ZMQ_INCLUDE_DIRS}
   ${JSONCPP_INCLUDE_DIR}
   ${LDAP_INCLUDE_DIRS}
-  ${XROOTD_INCLUDE_DIRS}
   ${NCURSES_INCLUDE_DIRS}
   ${PROTOBUF_INCLUDE_DIRS}
   ${SPARSEHASH_INCLUDE_DIRS}
@@ -66,26 +62,18 @@ target_sources(EosMgmProto-Objects PUBLIC
 #-------------------------------------------------------------------------------
 # EosMgmHttp library
 #-------------------------------------------------------------------------------
-add_library(
-  EosMgmHttp-Objects OBJECT
+add_library(EosMgmHttp MODULE
   http/xrdhttp/EosMgmHttpHandler.hh
   http/xrdhttp/EosMgmHttpHandler.cc)
-
-set_target_properties(
-  EosMgmHttp-Objects
-  PROPERTIES
-  POSITION_INDEPENDENT_CODE TRUE)
-
-#add_dependencies(EosMgmHttp-Objects EosProtobuf)
-add_dependencies(EosMgmHttp-Objects EosAuthProto-Objects)
-
-add_library(EosMgmHttp MODULE
-  $<TARGET_OBJECTS:EosMgmHttp-Objects>)
 
 target_link_libraries(EosMgmHttp PUBLIC
   EosCommon
   EosCommonServer
-  ${XROOTD_HTTP_UTILS_LIBRARY})
+  XROOTD::UTILS
+  XROOTD::HTTP)
+
+target_include_directories(EosMgmHttp PRIVATE
+  $<TARGET_PROPERTY:XROOTD::PRIVATE,INTERFACE_INCLUDE_DIRECTORIES>)
 
 install(
   TARGETS EosMgmHttp
@@ -257,10 +245,8 @@ add_library(
   inspector/FileInspector.cc
   ${FUSEX_SRCS})
 
-#-------------------------------------------------------------------------------
 # Add dependency to protobuf objects so we guarantee that the protocol
 # buffer files are generated when we try to build XrdEosMgm
-#-------------------------------------------------------------------------------
 add_dependencies(XrdEosMgm-Objects EosCliProto-Objects)
 add_dependencies(XrdEosMgm-Objects EosAuthProto-Objects)
 add_dependencies(XrdEosMgm-Objects XrdSsiPbEosCta-Objects)
@@ -269,18 +255,23 @@ if (GRPC_FOUND)
   add_dependencies(XrdEosMgm-Objects EosGrpcProto-Objects)
 endif ()
 
+target_include_directories(XrdEosMgm-Objects PRIVATE
+  $<TARGET_PROPERTY:XROOTD::UTILS,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:XROOTD::PRIVATE,INTERFACE_INCLUDE_DIRECTORIES>)
+
 target_compile_definitions(XrdEosMgm-Objects PUBLIC
   -DDAEMONUID=${DAEMONUID} -DDAEMONGID=${DAEMONGID})
 
-set_target_properties(
-  XrdEosMgm-Objects
-  PROPERTIES
+set_target_properties(XrdEosMgm-Objects PROPERTIES
   POSITION_INDEPENDENT_CODE TRUE)
 
 add_library(XrdEosMgm MODULE
   $<TARGET_OBJECTS:EosAuthProto-Objects>
   $<TARGET_OBJECTS:XrdEosMgm-Objects>
   $<TARGET_OBJECTS:XrdSsiPbEosCta-Objects>)
+
+target_include_directories(XrdEosMgm PRIVATE
+  $<TARGET_PROPERTY:XROOTD::PRIVATE,INTERFACE_INCLUDE_DIRECTORIES>)
 
 target_compile_definitions(
   XrdEosMgm PUBLIC
@@ -293,6 +284,10 @@ endif()
 
 target_link_libraries(
   XrdEosMgm PUBLIC
+  ZLIB::ZLIB
+  XROOTD::CL
+  XROOTD::SSI
+  XROOTD::UTILS
   qclient
   EosCommon
   EosCommonServer
@@ -300,15 +295,10 @@ target_link_libraries(
   eosCapability-Static
   bfd
   ${FOLLY_LIBRARIES}
-  ${Z_LIBRARY}
   ${ZMQ_LIBRARIES}
   ${LDAP_LIBRARIES}
   ${NCURSES_LIBRARY}
   ${GLIBC_DL_LIBRARY}
-  ${XROOTD_CL_LIBRARY}
-  ${XROOTD_POSIX_LIBRARY}
-  ${XROOTD_UTILS_LIBRARY}
-  ${XROOTD_SSI_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
   ${JSONCPP_LIBRARIES}
@@ -347,7 +337,7 @@ add_executable(
 target_link_libraries(
   testschedulingtree
   EosCommon
-  ${XROOTD_UTILS_LIBRARY}
+  XROOTD::UTILS
   ${CMAKE_THREAD_LIBS_INIT})
 
 #-------------------------------------------------------------------------------
@@ -359,24 +349,26 @@ if(Linux)
     $<TARGET_OBJECTS:XrdEosMgm-Objects>
     $<TARGET_OBJECTS:XrdSsiPbEosCta-Objects>)
 
+  target_include_directories(XrdEosMgm-Static PRIVATE
+    $<TARGET_PROPERTY:XROOTD::PRIVATE,INTERFACE_INCLUDE_DIRECTORIES>)
+
   target_compile_definitions(
     XrdEosMgm-Static PUBLIC
     -DDAEMONUID=${DAEMONUID} -DDAEMONGID=${DAEMONGID})
 
   target_link_libraries(XrdEosMgm-Static PUBLIC
+    ZLIB::ZLIB
+    XROOTD::CL
+    XROOTD::SSI
+    XROOTD::UTILS
     EosNsCommon-Static
     EosCommonServer-Static
     eosCapability-Static
     ${FOLLY_LIBRARIES}
-    ${Z_LIBRARY}
     ${ZMQ_LIBRARIES}
     ${LDAP_LIBRARIES}
     ${NCURSES_LIBRARY}
     ${GLIBC_DL_LIBRARY}
-    ${XROOTD_CL_LIBRARY}
-    ${XROOTD_POSIX_LIBRARY}
-    ${XROOTD_UTILS_LIBRARY}
-    ${XROOTD_SSI_LIBRARY}
     ${OPENSSL_CRYPTO_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT}
     ${JSONCPP_LIBRARIES}

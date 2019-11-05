@@ -25,7 +25,6 @@ include_directories(
   ${CMAKE_SOURCE_DIR}
   ${NCURSES_INCLUDE_DIRS}
   ${OPENSSL_INCLUDE_DIRS}
-  ${XROOTD_INCLUDE_DIRS}
   ${FOLLY_INCLUDE_DIRS}
   ${SPARSEHASH_INCLUDE_DIRS}
   ${CMAKE_SOURCE_DIR}/namespace/ns_quarkdb/qclient/include
@@ -46,13 +45,15 @@ add_library(XrdMqClient-Objects OBJECT
   XrdMqMessaging.cc        XrdMqMessaging.hh
   XrdMqSharedObject.cc     XrdMqSharedObject.hh)
 
+target_include_directories(XrdMqClient-Objects
+  PRIVATE
+  $<TARGET_PROPERTY:XROOTD::UTILS,INTERFACE_INCLUDE_DIRECTORIES>)
+
 set_target_properties(XrdMqClient-Objects PROPERTIES
   POSITION_INDEPENDENT_CODE TRUE)
 
 set(XRD_MQ_CLIENT_LIBS
   ${NCURSES_LIBRARIES}
-  ${XROOTD_CL_LIBRARY}
-  ${XROOTD_UTILS_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY})
 
 #-------------------------------------------------------------------------------
@@ -91,12 +92,10 @@ add_library(XrdMqOfs MODULE
   ${CMAKE_SOURCE_DIR}/namespace/ns_quarkdb/BackendClient.cc)
 
 target_link_libraries(
-  XrdMqOfs PRIVATE
+  XrdMqOfs PUBLIC
   EosCommon
   qclient
   ${NCURSES_LIBRARIES}
-  ${XROOTD_CL_LIBRARY}
-  ${XROOTD_UTILS_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY})
 
 install(

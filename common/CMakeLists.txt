@@ -53,10 +53,6 @@ add_library(EosCrc32c-Objects OBJECT
   crc32c/crc32c.cc
   crc32c/crc32ctables.cc)
 
-target_include_directories(EosCrc32c-Objects
-  PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
-
 set_target_properties(EosCrc32c-Objects PROPERTIES
   POSITION_INDEPENDENT_CODE TRUE)
 
@@ -148,13 +144,15 @@ else ()
     $<TARGET_OBJECTS:EosFstProto-Objects>)
 endif ()
 
-target_link_libraries(EosCommon
-  PUBLIC
+target_link_libraries(EosCommon PUBLIC
   ZLIB::ZLIB
   UUID::UUID
   XROOTD::CL
   XROOTD::UTILS
   ${EOSCOMMON_LIBS})
+
+target_include_directories(EosCommon
+  PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>)
 
 target_compile_definitions(EosCommon-Objects PUBLIC
   -DDAEMONUID=${DAEMONUID} -DDAEMONGID=${DAEMONGID})
@@ -182,8 +180,7 @@ else ()
     $<TARGET_OBJECTS:EosFstProto-Objects>)
 endif ()
 
-target_link_libraries(EosCommon-Static
-  PUBLIC
+target_link_libraries(EosCommon-Static PUBLIC
   ${EOSCOMMON_LIBS}
   XROOTD::CL
   XROOTD::UTILS
@@ -196,9 +193,8 @@ set_target_properties(EosCommon-Static PROPERTIES
 target_compile_definitions(EosCommon-Static PUBLIC
   -DDAEMONUID=${DAEMONUID} -DDAEMONGID=${DAEMONGID})
 
-target_include_directories(EosCommon-Static PUBLIC
-  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-  $<INSTALL_INTERFACE:include>)
+target_include_directories(EosCommon-Static
+  PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>)
 
 install(TARGETS EosCommon
   LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
@@ -234,7 +230,7 @@ if (Linux)
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
     PRIVATE
     $<TARGET_PROPERTY:XROOTD::UTILS,INTERFACE_INCLUDE_DIRECTORIES>
-    ${XROOTD_PRIVATE_INCLUDE_DIR})
+    $<TARGET_PROPERTY:XROOTD::PRIVATE,INTERFACE_INCLUDE_DIRECTORIES>)
 
   target_compile_definitions(EosCommonServer-Objects PUBLIC
     -DSQLITE_NO_SYNC=1)
