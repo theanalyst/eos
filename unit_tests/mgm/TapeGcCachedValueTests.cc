@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// File: TapeAwareGcCachedValueTests.cc
+// File: TapeGcCachedValueTests.cc
 // Author: Steven Murray <smurray at cern dot ch>
 //------------------------------------------------------------------------------
 
@@ -26,7 +26,7 @@
 #include <gtest/gtest.h>
 #include <stdint.h>
 
-class TapeAwareGcCachedValueTest : public ::testing::Test {
+class TapeGcCachedValueTest : public ::testing::Test {
 protected:
 
   virtual void SetUp() {
@@ -39,7 +39,7 @@ protected:
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeAwareGcCachedValueTest, noChange)
+TEST_F(TapeGcCachedValueTest, noChange)
 {
   using namespace eos::mgm;
 
@@ -59,7 +59,7 @@ TEST_F(TapeAwareGcCachedValueTest, noChange)
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeAwareGcCachedValueTest, aChangeOccurred)
+TEST_F(TapeGcCachedValueTest, aChangeOccurred)
 {
   using namespace eos::mgm;
 
