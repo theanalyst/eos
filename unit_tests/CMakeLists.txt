@@ -64,6 +64,7 @@ set(MGM_UT_SRCS
   mgm/RoutingTests.cc
   mgm/IdTrackerTests.cc
   mgm/FsckEntryTests.cc
+  mgm/SpaceToTapeAwareGcMapTests.cc
   mgm/TapeAwareGcCachedValueTests.cc
   mgm/TapeAwareGcThreadSafeCachedValueTests.cc
   mgm/TapeAwareGcLruTests.cc
