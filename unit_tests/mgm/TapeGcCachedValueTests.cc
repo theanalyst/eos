@@ -39,39 +39,28 @@ protected:
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeGcCachedValueTest, noChange)
+TEST_F(TapeGcCachedValueTest, changedFollowedByNoChange)
 {
   using namespace eos::mgm;
 
-  const uint64_t initialValue = 1234;
-  const uint64_t nextValue = 5678;
-  auto getter = [nextValue]()->uint64_t{return nextValue;};
+  const uint64_t value = 5678;
+  auto getter = [value]()->uint64_t{return value;};
   const time_t maxAgeSecs = 1000;
-  TapeGcCachedValue<uint64_t> cachedValue(initialValue, getter, maxAgeSecs);
+  TapeGcCachedValue<uint64_t> cachedValue(getter, maxAgeSecs);
 
-  bool valueChanged = false;
-  const uint64_t retrievedValue = cachedValue.get(valueChanged);
+  {
+    bool valueChanged = false;
+    const uint64_t firstRetrievedValue = cachedValue.get(valueChanged);
 
-  ASSERT_EQ(initialValue, retrievedValue);
-  ASSERT_FALSE(valueChanged);
-}
+    ASSERT_EQ(value, firstRetrievedValue);
+    ASSERT_TRUE(valueChanged);
+  }
 
-//------------------------------------------------------------------------------
-// Test
-//------------------------------------------------------------------------------
-TEST_F(TapeGcCachedValueTest, aChangeOccurred)
-{
-  using namespace eos::mgm;
+  {
+    bool valueChanged = false;
+    const uint64_t firstRetrievedValue = cachedValue.get(valueChanged);
 
-  const uint64_t initialValue = 1234;
-  const uint64_t nextValue = 5678;
-  auto getter = [nextValue]()->uint64_t{return nextValue;};
-  const time_t maxAgeSecs = 0;
-  TapeGcCachedValue<uint64_t> cachedValue(initialValue, getter, maxAgeSecs);
-
-  bool valueChanged = false;
-  const uint64_t retrievedValue = cachedValue.get(valueChanged);
-
-  ASSERT_EQ(nextValue, retrievedValue);
-  ASSERT_TRUE(valueChanged);
+    ASSERT_EQ(value, firstRetrievedValue);
+    ASSERT_FALSE(valueChanged);
+  }
 }

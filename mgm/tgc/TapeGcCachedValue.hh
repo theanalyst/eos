@@ -49,12 +49,11 @@ template <typename ValueType> class TapeGcCachedValue {
 public:
   //--------------------------------------------------------------------------
   //! Constructor
-  //! @param initialValue initial value
   //! @param valueGetter callable responsible for getting a new value
   //! @param maxAgeSecs age at which a call to get() will renew the cache
   //--------------------------------------------------------------------------
-  TapeGcCachedValue(const ValueType &initialValue, std::function<ValueType()> valueGetter, const time_t maxAgeSecs):
-    m_value(initialValue),
+  TapeGcCachedValue(std::function<ValueType()> valueGetter, const time_t maxAgeSecs):
+    m_valueHasNeverBeenSet(true),
     m_valueGetter(valueGetter),
     m_maxAgeSecs(maxAgeSecs),
     m_timestamp(time(nullptr))
@@ -72,7 +71,8 @@ public:
     const time_t now = time(nullptr);
     const time_t age = now - m_timestamp;
 
-    if(age >= m_maxAgeSecs) {
+    if(m_valueHasNeverBeenSet || age >= m_maxAgeSecs) {
+      m_valueHasNeverBeenSet = false;
       m_timestamp = now;
       const ValueType newValue = m_valueGetter();
       valueChanged = newValue != m_value;
@@ -83,6 +83,9 @@ public:
   }
 
 private:
+  /// True if the cached value has never been set
+  bool m_valueHasNeverBeenSet;
+
   /// The cached value
   ValueType m_value;
 

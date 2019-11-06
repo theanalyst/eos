@@ -44,7 +44,6 @@ EOSMGMNAMESPACE_BEGIN
 TapeGc::TapeGc():
   m_enabled(false),
   m_cachedDefaultSpaceMinFreeBytes(
-    0, // Initial value
     std::bind(getSpaceConfigMinNbFreeBytes, "default"), // Value getter
     10), // Maximum age of cached value in seconds
   m_freeSpaceInDefault("default", TAPEGC_DEFAULT_SPACE_QUERY_PERIOD_SECS),

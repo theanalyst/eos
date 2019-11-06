@@ -34,12 +34,11 @@ EOSMGMNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 // Constructor
 //------------------------------------------------------------------------------
-TapeGcFreeSpace::TapeGcFreeSpace(const std::string &spaceName,
-  const time_t defaultSpaceQueryPeriodSecs):
-  m_spaceName(spaceName),
+TapeGcFreeSpace::TapeGcFreeSpace(const std::string &space,
+  const time_t queryPeriodSecs):
+  m_space(space),
   m_cachedSpaceQueryPeriodSecs(
-    defaultSpaceQueryPeriodSecs, // Initial value
-    std::bind(TapeGcFreeSpace::getConfSpaceQueryPeriodSecs, spaceName, defaultSpaceQueryPeriodSecs),
+    std::bind(TapeGcFreeSpace::getConfSpaceQueryPeriodSecs, space, queryPeriodSecs),
     10), // Maximum age of cached value in seconds
   m_freeSpaceBytes(0),
   m_freeSpaceQueryTimestamp(0)
@@ -103,15 +102,15 @@ uint64_t
 TapeGcFreeSpace::queryMgmForFreeBytes() {
   eos::common::RWMutexReadLock lock(FsView::gFsView.ViewMutex);
 
-  const auto spaceItor = FsView::gFsView.mSpaceView.find(m_spaceName);
+  const auto spaceItor = FsView::gFsView.mSpaceView.find(m_space);
 
   if(FsView::gFsView.mSpaceView.end() == spaceItor) {
-    throw TapeGcSpaceNotFound(std::string(__FUNCTION__) + ": Cannot find space " + m_spaceName +
+    throw TapeGcSpaceNotFound(std::string(__FUNCTION__) + ": Cannot find space " + m_space +
                               ": FsView does not know the space name");
   }
 
   if(nullptr == spaceItor->second) {
-    throw TapeGcSpaceNotFound(std::string(__FUNCTION__) + ": Cannot find space " + m_spaceName +
+    throw TapeGcSpaceNotFound(std::string(__FUNCTION__) + ": Cannot find space " + m_space +
                               ": Pointer to FsSpace is nullptr");
   }
 
@@ -124,7 +123,7 @@ TapeGcFreeSpace::queryMgmForFreeBytes() {
     // Skip this file system if it cannot be found
     if(nullptr == fs) {
       std::ostringstream msg;
-      msg << "Unable to find file system: space=" << m_spaceName << " fsid=" << fsid;
+      msg << "Unable to find file system: space=" << m_space << " fsid=" << fsid;
       eos_static_warning(msg.str().c_str());
       continue;
     }
@@ -135,7 +134,7 @@ TapeGcFreeSpace::queryMgmForFreeBytes() {
     const bool doLock = true;
     if(!fs->SnapShotFileSystem(fsSnapshot, doLock)) {
       std::ostringstream msg;
-      msg << "Unable to take a snaphot of file system: space=" << m_spaceName << " fsid=" << fsid;
+      msg << "Unable to take a snaphot of file system: space=" << m_space << " fsid=" << fsid;
       eos_static_warning(msg.str().c_str());
     }
 

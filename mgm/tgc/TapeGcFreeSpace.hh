@@ -37,27 +37,24 @@
 /**
  * @file TapeGcFreeSpace.hh
  *
- * @brief Templated class for creating a time based cache for a single
- * variable.
+ * @brief Class for getting the amount of free space in a specific EOS space.
  *
  */
 /*----------------------------------------------------------------------------*/
 EOSMGMNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
-//! Class for getting the amount of free space in a specific EOS space.  This
-//! class respects the constraint of a specified delay between free space
-//! queries to the EOS MGM.
+//! Class for getting the amount of free space in a specific EOS space.
 //------------------------------------------------------------------------------
 class TapeGcFreeSpace {
 public:
   //----------------------------------------------------------------------------
   //! Constructor
-  //! @param spaceName The name of the space to be queried for free space.
-  //! @param defaultSpaceQueryPeriodSecs The default delay in seconds
-  //! between free space queries to the EOS MGM.
+  //! @param space The name of the space to be queried for free space.
+  //! @param queryPeriodSecs The minimum delay between free space queries to the
+  //! EOS MGM.
   //----------------------------------------------------------------------------
-  TapeGcFreeSpace(const std::string &spaceName, const time_t defaultSpaceQueryPeriodSecs);
+  TapeGcFreeSpace(const std::string &space, const time_t queryPeriodSecs);
 
   //----------------------------------------------------------------------------
   //! Notify this object that a file has been queued for deletion so that
@@ -84,8 +81,8 @@ private:
   /// Mutex
   std::mutex m_mutex;
 
-  /// The name of the space to be queried for free space
-  std::string m_spaceName;
+  /// The name of the EOS space to be queried for free space
+  std::string m_space;
 
   //----------------------------------------------------------------------------
   //! Cached configuration value for the delay in seconds between space queries
