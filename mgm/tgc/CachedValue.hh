@@ -25,13 +25,14 @@
 #define __EOSMGMTGC_CACHEDVALUE_HH__
 
 #include "mgm/Namespace.hh"
+#include "mgm/tgc/CurrentAndPrev.hh"
 
 #include <functional>
 #include <time.h>
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file TapeAwareGcCachedValue.hh
+ * @file CachedValue.hh
  *
  * @brief Templated class for creating a time based cache for a single
  * variable.
@@ -50,7 +51,8 @@ public:
   //--------------------------------------------------------------------------
   //! Constructor
   //! @param valueGetter callable responsible for getting a new value
-  //! @param maxAgeSecs age at which a call to get() will renew the cache
+  //! @param maxAgeSecs age at which a call to get() will renew the cache. A
+  //! value of zero means the a call to get() will always renew the cache.
   //--------------------------------------------------------------------------
   CachedValue(std::function<ValueType()> valueGetter, const time_t maxAgeSecs):
     m_valueHasNeverBeenSet(true),
@@ -65,18 +67,25 @@ public:
   //! value has changed
   //! @return the cached value.
   //--------------------------------------------------------------------------
-  ValueType
-  get(bool &valueChanged)
+  CurrentAndPrev<ValueType>
+  get()
   {
     const time_t now = time(nullptr);
     const time_t age = now - m_timestamp;
 
     if(m_valueHasNeverBeenSet || age >= m_maxAgeSecs) {
-      m_valueHasNeverBeenSet = false;
       m_timestamp = now;
       const ValueType newValue = m_valueGetter();
-      valueChanged = newValue != m_value;
-      m_value = newValue;
+
+      if (m_valueHasNeverBeenSet) {
+        m_valueHasNeverBeenSet = false;
+
+        m_value.prev = newValue;
+        m_value.current = newValue;
+      } else {
+        m_value.prev = m_value.current;
+        m_value.current = newValue;
+      }
     }
 
     return m_value;
@@ -87,7 +96,7 @@ private:
   bool m_valueHasNeverBeenSet;
 
   /// The cached value
-  ValueType m_value;
+  CurrentAndPrev<ValueType> m_value;
 
   /// Callable responsible for getting a new value
   std::function<ValueType()> m_valueGetter;

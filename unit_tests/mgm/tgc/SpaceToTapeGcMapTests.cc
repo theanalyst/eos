@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// File: TapeGcCachedValueTests.cc
+// File: TapeAwareLruTests.cc
 // Author: Steven Murray <smurray at cern dot ch>
 //------------------------------------------------------------------------------
 
@@ -21,12 +21,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/CachedValue.hh"
+#include "mgm/tgc/SpaceToTapeGcMap.hh"
 
 #include <gtest/gtest.h>
-#include <stdint.h>
 
-class TapeGcCachedValueTest : public ::testing::Test {
+class TgcSpaceToTapeGcMapTest : public ::testing::Test {
 protected:
 
   virtual void SetUp() {
@@ -39,28 +38,53 @@ protected:
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeGcCachedValueTest, changedFollowedByNoChange)
+TEST_F(TgcSpaceToTapeGcMapTest, Constructor)
 {
   using namespace eos::mgm::tgc;
 
-  const uint64_t value = 5678;
-  auto getter = [value]()->uint64_t{return value;};
-  const time_t maxAgeSecs = 1000;
-  CachedValue<uint64_t> cachedValue(getter, maxAgeSecs);
+  const std::string space = "space";
+  SpaceToTapeGcMap map();
+}
 
-  {
-    bool valueChanged = false;
-    const uint64_t firstRetrievedValue = cachedValue.get(valueChanged);
+//------------------------------------------------------------------------------
+// Test
+//------------------------------------------------------------------------------
+TEST_F(TgcSpaceToTapeGcMapTest, getGc_unknown_eos_space)
+{
+  using namespace eos::mgm::tgc;
 
-    ASSERT_EQ(value, firstRetrievedValue);
-    ASSERT_TRUE(valueChanged);
-  }
+  const std::string space = "space";
+  SpaceToTapeGcMap map;
 
-  {
-    bool valueChanged = false;
-    const uint64_t firstRetrievedValue = cachedValue.get(valueChanged);
+  ASSERT_THROW(map.getGc(space), SpaceToTapeGcMap::UnknownEOSSpace);
+}
 
-    ASSERT_EQ(value, firstRetrievedValue);
-    ASSERT_FALSE(valueChanged);
-  }
+//------------------------------------------------------------------------------
+// Test
+//------------------------------------------------------------------------------
+TEST_F(TgcSpaceToTapeGcMapTest, createGc)
+{
+  using namespace eos::mgm::tgc;
+
+  const std::string space = "space";
+  SpaceToTapeGcMap map;
+
+  map.createGc(space);
+
+  map.getGc(space);
+}
+
+//------------------------------------------------------------------------------
+// Test
+//------------------------------------------------------------------------------
+TEST_F(TgcSpaceToTapeGcMapTest, createGc_already_exists)
+{
+  using namespace eos::mgm::tgc;
+
+  const std::string space = "space";
+  SpaceToTapeGcMap map;
+
+  map.createGc(space);
+
+  ASSERT_THROW(map.createGc(space), SpaceToTapeGcMap::GcAlreadyExists);
 }

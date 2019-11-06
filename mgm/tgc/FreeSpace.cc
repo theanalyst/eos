@@ -49,7 +49,8 @@ FreeSpace::FreeSpace(const std::string &space,
 // Notify this object that a file has been queued for deletion
 //------------------------------------------------------------------------------
 void
-FreeSpace::fileQueuedForDeletion(const size_t deletedFileSize) {
+FreeSpace::fileQueuedForDeletion(const size_t deletedFileSize)
+{
   std::lock_guard<std::mutex> lock(m_mutex);
 
   if(m_freeSpaceBytes < deletedFileSize) {
@@ -70,19 +71,30 @@ FreeSpace::getFreeBytes()
   const time_t now = time(nullptr);
   const time_t secsSinceLastQuery = now - m_freeSpaceQueryTimestamp;
 
-  bool hasChanged = false;
-  const auto queryPeriodSecs = m_queryPeriodSecs.get(hasChanged);
-  if (hasChanged) {
-    std::ostringstream msg;
-    msg << "msg=\"spaceQueryPeriodSecs has been changed to " << queryPeriodSecs << "\"";
-    eos_static_info(msg.str().c_str());
-  }
+  const auto queryPeriodSecs = getQueryPeriodSecsAndLogIfChanged();
 
   if(secsSinceLastQuery >= queryPeriodSecs) {
     m_freeSpaceQueryTimestamp = now;
     m_freeSpaceBytes = queryMgmForFreeBytes();
   }
   return m_freeSpaceBytes;
+}
+
+//------------------------------------------------------------------------------
+// Returns the configured query period and logs if changed
+//------------------------------------------------------------------------------
+time_t
+FreeSpace::getQueryPeriodSecsAndLogIfChanged()
+{
+  const auto queryPeriodSecs = m_queryPeriodSecs.get();
+  if (queryPeriodSecs.prev != queryPeriodSecs.current) {
+    std::ostringstream msg;
+    msg << "msg=\"spaceQueryPeriodSecs has been changed from " << queryPeriodSecs.prev  << " to " <<
+      queryPeriodSecs.current << "\"";
+    eos_static_info(msg.str().c_str());
+  }
+
+  return queryPeriodSecs.current;
 }
 
 //------------------------------------------------------------------------------

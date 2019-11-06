@@ -115,6 +115,11 @@ private:
   //----------------------------------------------------------------------------
   static uint64_t getConfSpaceQueryPeriodSecs(const std::string spaceName,
     const uint64_t defaultValue) noexcept;
+
+  //----------------------------------------------------------------------------
+  //! @return the configured query period and log if changed
+  //----------------------------------------------------------------------------
+  time_t getQueryPeriodSecsAndLogIfChanged();
 }; // class FreeSpace
 
 EOSTGCNAMESPACE_END

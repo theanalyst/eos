@@ -44,7 +44,7 @@ EOSTGCNAMESPACE_BEGIN
 TapeGc::TapeGc():
   m_enabled(false),
   m_cachedDefaultSpaceMinFreeBytes(
-    std::bind(getSpaceConfigMinNbFreeBytes, "default"), // Value getter
+    std::bind(getSpaceConfigMinFreeBytes, "default"), // Value getter
     10), // Maximum age of cached value in seconds
   m_freeSpaceInDefault("default", TAPEGC_DEFAULT_SPACE_QUERY_PERIOD_SECS),
   m_nbStagerrms(0)
@@ -182,7 +182,7 @@ TapeGc::fileReplicaCommitted(const std::string &path, const IFileMD &fmd) noexce
 // returned.
 //------------------------------------------------------------------------------
 uint64_t
-TapeGc::getSpaceConfigMinNbFreeBytes(const std::string &spaceName) noexcept
+TapeGc::getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept
 {
   try {
     std::string valueStr;
@@ -212,20 +212,7 @@ bool
 TapeGc::tryToGarbageCollectASingleFile() noexcept
 {
   try {
-    uint64_t defaultSpaceMinFreeBytes = 0;
-
-    try {
-      bool defaultSpaceMinFreeBytesHasChanged = false;
-      defaultSpaceMinFreeBytes = m_cachedDefaultSpaceMinFreeBytes.get(defaultSpaceMinFreeBytesHasChanged);
-      if(defaultSpaceMinFreeBytesHasChanged) {
-        std::ostringstream msg;
-        msg << "msg=\"defaultSpaceMinFreeBytes has been changed to " << defaultSpaceMinFreeBytes << "\"";
-        eos_static_info(msg.str().c_str());
-      }
-    } catch(SpaceNotFound &) {
-      // Return no file was garbage collected if the space was not found
-      return false;
-    }
+    const auto defaultSpaceMinFreeBytes = getDefaultSpaceMinFreeBytesAndLogIfChanged();
 
     try {
       // Return no file was garbage collected if there is still enough free space
@@ -290,6 +277,21 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
   }
 
   return false; // No file was garbage collected
+}
+
+//------------------------------------------------------------------------------
+// Returns the configured min free bytes for default space and logs if changed
+//------------------------------------------------------------------------------
+uint64_t TapeGc::getDefaultSpaceMinFreeBytesAndLogIfChanged() {
+  const auto minFreeBytes = m_cachedDefaultSpaceMinFreeBytes.get();
+  if(minFreeBytes.prev != minFreeBytes.current) {
+    std::ostringstream msg;
+    msg << "msg=\"defaultSpaceMinFreeBytes has been changed from " << minFreeBytes.prev << "to " <<
+      minFreeBytes.current << "\"";
+    eos_static_info(msg.str().c_str());
+  }
+
+  return minFreeBytes.current;
 }
 
 //----------------------------------------------------------------------------

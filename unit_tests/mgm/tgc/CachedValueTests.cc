@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// File: TapeAwareLruTests.cc
+// File: TgcCachedValueTests.cc
 // Author: Steven Murray <smurray at cern dot ch>
 //------------------------------------------------------------------------------
 
@@ -21,11 +21,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/SpaceToTapeGcMap.hh"
+#include "mgm/tgc/CachedValue.hh"
 
 #include <gtest/gtest.h>
+#include <stdint.h>
 
-class SpaceToTapeAwareGcMapTest : public ::testing::Test {
+class TgcCachedValueTest : public ::testing::Test {
 protected:
 
   virtual void SetUp() {
@@ -35,56 +36,77 @@ protected:
   }
 };
 
-//------------------------------------------------------------------------------
-// Test
-//------------------------------------------------------------------------------
-TEST_F(SpaceToTapeAwareGcMapTest, Constructor)
+TEST_F(TgcCachedValueTest, get_value_not_change)
 {
   using namespace eos::mgm::tgc;
 
-  const std::string space = "space";
-  SpaceToTapeGcMap map();
+  const uint64_t sourceValue = 1234;
+  auto getter = [&sourceValue]()->uint64_t{return sourceValue;};
+  const time_t maxAgeSecs = 0;
+  CachedValue<uint64_t> cachedValue(getter, maxAgeSecs);
+
+  {
+    const auto retrievedValue = cachedValue.get();
+    ASSERT_EQ(retrievedValue.current, retrievedValue.prev);
+    ASSERT_EQ(sourceValue, retrievedValue.current);
+  }
 }
 
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(SpaceToTapeAwareGcMapTest, getGc_unknown_eos_space)
+TEST_F(TgcCachedValueTest, get_value_changed_no_cache)
 {
   using namespace eos::mgm::tgc;
 
-  const std::string space = "space";
-  SpaceToTapeGcMap map;
+  uint64_t sourceValue = 1234;
+  auto getter = [&sourceValue]()->uint64_t{return sourceValue;};
+  const time_t maxAgeSecs = 0; // No cache
+  CachedValue<uint64_t> cachedValue(getter, maxAgeSecs);
 
-  ASSERT_THROW(map.getGc(space), SpaceToTapeGcMap::UnknownEOSSpace);
+  {
+    const auto retrievedValue = cachedValue.get();
+    ASSERT_EQ(1234, retrievedValue.prev);
+    ASSERT_EQ(1234, retrievedValue.current);
+  }
+
+  sourceValue = 5678;
+
+  {
+    const auto retrievedValue = cachedValue.get();
+    ASSERT_EQ(1234, retrievedValue.prev);
+    ASSERT_EQ(5678, retrievedValue.current);
+  }
+
+  {
+    const auto retrievedValue = cachedValue.get();
+    ASSERT_EQ(5678, retrievedValue.prev);
+    ASSERT_EQ(5678, retrievedValue.current);
+  }
 }
 
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(SpaceToTapeAwareGcMapTest, createGc)
-{
+TEST_F(TgcCachedValueTest, get_value_changed_long_wait_cache) {
   using namespace eos::mgm::tgc;
 
-  const std::string space = "space";
-  SpaceToTapeGcMap map;
+  uint64_t sourceValue = 1234;
+  auto getter = [&sourceValue]() -> uint64_t { return sourceValue; };
+  const time_t maxAgeSecs = 1000; // Long wait cache
+  CachedValue<uint64_t> cachedValue(getter, maxAgeSecs);
 
-  map.createGc(space);
+  {
+    const auto retrievedValue = cachedValue.get();
+    ASSERT_EQ(retrievedValue.current, retrievedValue.prev);
+    ASSERT_EQ(1234, retrievedValue.current);
+  }
 
-  map.getGc(space);
-}
+  sourceValue = 5678;
 
-//------------------------------------------------------------------------------
-// Test
-//------------------------------------------------------------------------------
-TEST_F(SpaceToTapeAwareGcMapTest, createGc_already_exists)
-{
-  using namespace eos::mgm::tgc;
-
-  const std::string space = "space";
-  SpaceToTapeGcMap map;
-
-  map.createGc(space);
-
-  ASSERT_THROW(map.createGc(space), SpaceToTapeGcMap::GcAlreadyExists);
+  {
+    const auto retrievedValue = cachedValue.get();
+    ASSERT_EQ(1234, retrievedValue.prev);
+    ASSERT_EQ(1234, retrievedValue.current);
+  }
 }

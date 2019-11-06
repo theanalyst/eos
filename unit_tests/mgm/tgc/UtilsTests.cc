@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// File: TapeGcThreadSafeCachedValueTests.cc
+// File: TgcUtilsTests.cc
 // Author: Steven Murray <smurray at cern dot ch>
 //------------------------------------------------------------------------------
 
@@ -21,12 +21,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/ThreadSafeCachedValue.hh"
+#include "mgm/tgc/Utils.hh"
 
 #include <gtest/gtest.h>
-#include <stdint.h>
 
-class TapeGcThreadSafeCachedValueTest : public ::testing::Test {
+class TgcUtilsTest : public ::testing::Test {
 protected:
 
   virtual void SetUp() {
@@ -39,39 +38,66 @@ protected:
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeGcThreadSafeCachedValueTest, noChange)
-{
+TEST_F(TgcUtilsTest, isValidUInt_unsigned_int) {
   using namespace eos::mgm::tgc;
 
-  const uint64_t initialValue = 1234;
-  const uint64_t nextValue = 5678;
-  auto getter = [nextValue]()->uint64_t{return nextValue;};
-  const time_t maxAgeSecs = 1000;
-  ThreadSafeCachedValue<uint64_t> cachedValue(initialValue, getter, maxAgeSecs);
-
-  bool valueChanged = false;
-  const uint64_t retrievedValue = cachedValue.get(valueChanged);
-
-  ASSERT_EQ(initialValue, retrievedValue);
-  ASSERT_FALSE(valueChanged);
+  ASSERT_TRUE(Utils::isValidUInt("12345"));
 }
 
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TapeGcThreadSafeCachedValueTest, aChangeOccurred)
-{
+TEST_F(TgcUtilsTest, isValidUInt_empty_string) {
   using namespace eos::mgm::tgc;
 
-  const uint64_t initialValue = 1234;
-  const uint64_t nextValue = 5678;
-  auto getter = [nextValue]()->uint64_t{return nextValue;};
-  const time_t maxAgeSecs = 0;
-  ThreadSafeCachedValue<uint64_t> cachedValue(initialValue, getter, maxAgeSecs);
+  ASSERT_FALSE(Utils::isValidUInt(""));
+}
 
-  bool valueChanged = false;
-  const uint64_t retrievedValue = cachedValue.get(valueChanged);
+//------------------------------------------------------------------------------
+// Test
+//------------------------------------------------------------------------------
+TEST_F(TgcUtilsTest, isValidUInt_signed_int) {
+  using namespace eos::mgm::tgc;
 
-  ASSERT_EQ(nextValue, retrievedValue);
-  ASSERT_TRUE(valueChanged);
+  ASSERT_FALSE(Utils::isValidUInt("-12345"));
+}
+
+//------------------------------------------------------------------------------
+// Test
+//------------------------------------------------------------------------------
+TEST_F(TgcUtilsTest, isValidUInt_not_a_number) {
+  using namespace eos::mgm::tgc;
+
+  ASSERT_FALSE(Utils::isValidUInt("one"));
+}
+
+TEST_F(TgcUtilsTest, toUint64_unsigned_int) {
+  using namespace eos::mgm::tgc;
+
+  ASSERT_EQ((uint64_t)12345, Utils::toUint64("12345"));
+  ASSERT_EQ((uint64_t)18446744073709551615ULL, Utils::toUint64("18446744073709551615"));
+}
+
+TEST_F(TgcUtilsTest, toUint64_out_of_range) {
+  using namespace eos::mgm::tgc;
+
+  ASSERT_THROW(Utils::toUint64("18446744073709551616"), Utils::OutOfRangeUint64);
+}
+
+TEST_F(TgcUtilsTest, toUint64_empty_string) {
+  using namespace eos::mgm::tgc;
+
+  ASSERT_THROW(Utils::toUint64(""), Utils::InvalidUint64);
+}
+
+TEST_F(TgcUtilsTest, toUint64_max) {
+  using namespace eos::mgm::tgc;
+
+  ASSERT_EQ((uint64_t)18446744073709551615UL, Utils::toUint64("18446744073709551615"));
+}
+
+TEST_F(TgcUtilsTest, toUint64_not_a_number) {
+  using namespace eos::mgm::tgc;
+
+  ASSERT_THROW(Utils::toUint64("one"), Utils::InvalidUint64);
 }

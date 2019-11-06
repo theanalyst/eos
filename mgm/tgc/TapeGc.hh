@@ -226,7 +226,7 @@ protected:
   //!
   //! @param spaceName The name of the space
   //----------------------------------------------------------------------------
-  static uint64_t getSpaceConfigMinNbFreeBytes(const std::string &spaceName) noexcept;
+  static uint64_t getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept;
 
   //----------------------------------------------------------------------------
   //! Try to garbage collect a single file if necessary and possible.
@@ -300,6 +300,11 @@ protected:
   //! Counter that is incremented each time a file is successfully stagerrm'ed
   //----------------------------------------------------------------------------
   std::atomic<uint64_t> m_nbStagerrms;
+
+  //----------------------------------------------------------------------------
+  //! @return the configured min free bytes for default space and log if changed
+  //----------------------------------------------------------------------------
+  uint64_t getDefaultSpaceMinFreeBytesAndLogIfChanged();
 };
 
 EOSTGCNAMESPACE_END
