@@ -172,7 +172,7 @@ add_library(
   tgc/MultiSpaceTapeGc.cc
   tgc/SpaceToTapeGcMap.cc
   tgc/TapeGc.cc
-  tgc/TapeGcFreeSpace.cc
+  tgc/FreeSpace.cc
   tgc/TapeGcLru.cc
   tgc/TapeGcSpaceNotFound.cc
   tgc/TapeGcUtils.cc

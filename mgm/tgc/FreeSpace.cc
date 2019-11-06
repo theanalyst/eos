@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeGcFreeSpace.cc
+// File: FreeSpace.cc
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -22,7 +22,7 @@
  ************************************************************************/
 
 #include "mgm/FsView.hh"
-#include "mgm/tgc/TapeGcFreeSpace.hh"
+#include "mgm/tgc/FreeSpace.hh"
 #include "mgm/tgc/TapeGcSpaceNotFound.hh"
 #include "mgm/tgc/TapeGcUtils.hh"
 
@@ -34,11 +34,11 @@ EOSTGCNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 // Constructor
 //------------------------------------------------------------------------------
-TapeGcFreeSpace::TapeGcFreeSpace(const std::string &space,
+FreeSpace::FreeSpace(const std::string &space,
   const time_t queryPeriodSecs):
   m_space(space),
   m_queryPeriodSecs(
-    std::bind(TapeGcFreeSpace::getConfSpaceQueryPeriodSecs, space, queryPeriodSecs),
+    std::bind(FreeSpace::getConfSpaceQueryPeriodSecs, space, queryPeriodSecs),
     10), // Maximum age of cached value in seconds
   m_freeSpaceBytes(0),
   m_freeSpaceQueryTimestamp(0)
@@ -49,7 +49,7 @@ TapeGcFreeSpace::TapeGcFreeSpace(const std::string &space,
 // Notify this object that a file has been queued for deletion
 //------------------------------------------------------------------------------
 void
-TapeGcFreeSpace::fileQueuedForDeletion(const size_t deletedFileSize) {
+FreeSpace::fileQueuedForDeletion(const size_t deletedFileSize) {
   std::lock_guard<std::mutex> lock(m_mutex);
 
   if(m_freeSpaceBytes < deletedFileSize) {
@@ -63,7 +63,7 @@ TapeGcFreeSpace::fileQueuedForDeletion(const size_t deletedFileSize) {
 // Return the amount of free space in bytes
 //------------------------------------------------------------------------------
 uint64_t
-TapeGcFreeSpace::getFreeBytes()
+FreeSpace::getFreeBytes()
 {
   std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -89,7 +89,7 @@ TapeGcFreeSpace::getFreeBytes()
 // Return the timestamp at which the last free space query was made
 //------------------------------------------------------------------------------
 time_t
-TapeGcFreeSpace::getFreeSpaceQueryTimestamp() {
+FreeSpace::getFreeSpaceQueryTimestamp() {
   std::lock_guard<std::mutex> lock(m_mutex);
 
   return m_freeSpaceQueryTimestamp;
@@ -99,7 +99,7 @@ TapeGcFreeSpace::getFreeSpaceQueryTimestamp() {
 // Query the EOS MGM for the amount of free space in bytes
 //------------------------------------------------------------------------------
 uint64_t
-TapeGcFreeSpace::queryMgmForFreeBytes() {
+FreeSpace::queryMgmForFreeBytes() {
   eos::common::RWMutexReadLock lock(FsView::gFsView.ViewMutex);
 
   const auto spaceItor = FsView::gFsView.mSpaceView.find(m_space);
@@ -153,7 +153,7 @@ TapeGcFreeSpace::queryMgmForFreeBytes() {
 // Return the configured delay in seconds between free space queries
 //------------------------------------------------------------------------------
 uint64_t
-TapeGcFreeSpace::getConfSpaceQueryPeriodSecs(const std::string spaceName,
+FreeSpace::getConfSpaceQueryPeriodSecs(const std::string spaceName,
   const uint64_t defaultValue) noexcept
 {
   try {

@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeGcFreeSpace.hh
+// File: FreeSpace.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -46,7 +46,7 @@ EOSTGCNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 //! Class for getting the amount of free space in a specific EOS space.
 //------------------------------------------------------------------------------
-class TapeGcFreeSpace {
+class FreeSpace {
 public:
   //----------------------------------------------------------------------------
   //! Constructor
@@ -54,7 +54,7 @@ public:
   //! @param queryPeriodSecs The minimum delay between free space queries to the
   //! EOS MGM.
   //----------------------------------------------------------------------------
-  TapeGcFreeSpace(const std::string &space, const time_t queryPeriodSecs);
+  FreeSpace(const std::string &space, const time_t queryPeriodSecs);
 
   //----------------------------------------------------------------------------
   //! Notify this object that a file has been queued for deletion so that
@@ -115,7 +115,7 @@ private:
   //----------------------------------------------------------------------------
   static uint64_t getConfSpaceQueryPeriodSecs(const std::string spaceName,
     const uint64_t defaultValue) noexcept;
-}; // class TapeGcFreeSpace
+}; // class FreeSpace
 
 EOSTGCNAMESPACE_END
 

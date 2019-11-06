@@ -26,7 +26,7 @@
 
 #include "common/Logging.hh"
 #include "mgm/Namespace.hh"
-#include "mgm/tgc/TapeGcFreeSpace.hh"
+#include "mgm/tgc/FreeSpace.hh"
 #include "mgm/tgc/TapeGcLru.hh"
 #include "mgm/tgc/TapeGcThreadSafeCachedValue.hh"
 #include "namespace/interface/IFileMD.hh"
@@ -294,7 +294,7 @@ protected:
   //! Object responsible for determining the number of free bytes in the EOS
   //! space named "default".
   //----------------------------------------------------------------------------
-  TapeGcFreeSpace m_freeSpaceInDefault;
+  FreeSpace m_freeSpaceInDefault;
 
   //----------------------------------------------------------------------------
   //! Counter that is incremented each time a file is successfully stagerrm'ed
