@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeGcCachedValue.hh
+// File: CachedValue.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -45,14 +45,14 @@ EOSTGCNAMESPACE_BEGIN
 //!
 //! @tparam ValueType The type of the value to be cached.
 //----------------------------------------------------------------------------
-template <typename ValueType> class TapeGcCachedValue {
+template <typename ValueType> class CachedValue {
 public:
   //--------------------------------------------------------------------------
   //! Constructor
   //! @param valueGetter callable responsible for getting a new value
   //! @param maxAgeSecs age at which a call to get() will renew the cache
   //--------------------------------------------------------------------------
-  TapeGcCachedValue(std::function<ValueType()> valueGetter, const time_t maxAgeSecs):
+  CachedValue(std::function<ValueType()> valueGetter, const time_t maxAgeSecs):
     m_valueHasNeverBeenSet(true),
     m_valueGetter(valueGetter),
     m_maxAgeSecs(maxAgeSecs),
@@ -97,7 +97,7 @@ private:
 
   /// The timestamp of when the value was last updated
   time_t m_timestamp;
-}; // class TapeGcCachedValue
+}; // class CachedValue
 
 EOSTGCNAMESPACE_END
 

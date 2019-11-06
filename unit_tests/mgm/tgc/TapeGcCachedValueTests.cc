@@ -21,7 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/TapeGcCachedValue.hh"
+#include "mgm/tgc/CachedValue.hh"
 
 #include <gtest/gtest.h>
 #include <stdint.h>
@@ -46,7 +46,7 @@ TEST_F(TapeGcCachedValueTest, changedFollowedByNoChange)
   const uint64_t value = 5678;
   auto getter = [value]()->uint64_t{return value;};
   const time_t maxAgeSecs = 1000;
-  TapeGcCachedValue<uint64_t> cachedValue(getter, maxAgeSecs);
+  CachedValue<uint64_t> cachedValue(getter, maxAgeSecs);
 
   {
     bool valueChanged = false;

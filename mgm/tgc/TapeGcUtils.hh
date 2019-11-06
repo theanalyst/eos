@@ -26,7 +26,7 @@
 
 #include "common/Logging.hh"
 #include "mgm/Namespace.hh"
-#include "mgm/tgc/TapeGcCachedValue.hh"
+#include "mgm/tgc/CachedValue.hh"
 #include "mgm/tgc/TapeGcLru.hh"
 #include "namespace/interface/IFileMD.hh"
 #include "proto/ConsoleReply.pb.h"
