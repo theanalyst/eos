@@ -35,4 +35,7 @@
 #define EOSFUSESERVERNAMESPACE_BEGIN namespace eos { namespace mgm { namespace FuseServer {
 #define EOSFUSESERVERNAMESPACE_END }}}
 
+#define EOSTGCNAMESPACE_BEGIN namespace eos { namespace mgm { namespace tgc {
+#define EOSTGCNAMESPACE_END }}}
+
 #endif
