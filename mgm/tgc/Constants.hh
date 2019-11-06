@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeGcConstants.hh
+// File: Constants.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_TAPEGCCONSTANTS_HH__
-#define __EOSMGM_TAPEGCCONSTANTS_HH__
+#ifndef __EOSMGMTGC_CONSTANTS_HH__
+#define __EOSMGMTGC_CONSTANTS_HH__
 
 #include "mgm/Namespace.hh"
 
@@ -30,7 +30,7 @@
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file TapeGcConstants.hh
+ * @file Constants.hh
  *
  * @brief Constants specific to the implementation of the tape aware garbage
  * collector.

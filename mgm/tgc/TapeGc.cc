@@ -23,8 +23,8 @@
 
 #include "mgm/FsView.hh"
 #include "mgm/proc/admin/StagerRmCmd.hh"
+#include "mgm/tgc/Constants.hh"
 #include "mgm/tgc/TapeGc.hh"
-#include "mgm/tgc/TapeGcConstants.hh"
 #include "mgm/tgc/TapeGcSpaceNotFound.hh"
 #include "mgm/tgc/TapeGcUtils.hh"
 #include "mgm/XrdMgmOfs.hh"
