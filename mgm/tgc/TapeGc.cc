@@ -36,7 +36,7 @@
 #include <sstream>
 #include <time.h>
 
-EOSMGMNAMESPACE_BEGIN
+EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 // Constructor
@@ -386,4 +386,4 @@ TapeGc::getDefaultSpaceFreeSpaceQueryTimestamp() {
   return m_freeSpaceInDefault.getFreeSpaceQueryTimestamp();
 }
 
-EOSMGMNAMESPACE_END
+EOSTGCNAMESPACE_END

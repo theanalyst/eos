@@ -37,7 +37,7 @@
  *
  */
 /*----------------------------------------------------------------------------*/
-EOSMGMNAMESPACE_BEGIN
+EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 //! Class implementing a thread safe map from EOS space name to tape aware
@@ -107,6 +107,6 @@ private:
   std::map<std::string, std::unique_ptr<TapeGc> > m_gcs;
 };
 
-EOSMGMNAMESPACE_END
+EOSTGCNAMESPACE_END
 
 #endif

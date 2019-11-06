@@ -49,7 +49,7 @@
  *
  */
 /*----------------------------------------------------------------------------*/
-EOSMGMNAMESPACE_BEGIN
+EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 //! A tape aware garbage collector
@@ -302,6 +302,6 @@ protected:
   std::atomic<uint64_t> m_nbStagerrms;
 };
 
-EOSMGMNAMESPACE_END
+EOSTGCNAMESPACE_END
 
 #endif

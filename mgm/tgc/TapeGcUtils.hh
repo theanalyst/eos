@@ -47,7 +47,7 @@
  *
  */
 /*----------------------------------------------------------------------------*/
-EOSMGMNAMESPACE_BEGIN
+EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 //! Class of utility functions for TapeGc
@@ -81,6 +81,6 @@ public:
   static bool isValidUInt(std::string str);
 };
 
-EOSMGMNAMESPACE_END
+EOSTGCNAMESPACE_END
 
 #endif

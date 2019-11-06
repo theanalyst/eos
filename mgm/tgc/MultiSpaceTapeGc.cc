@@ -32,7 +32,7 @@
  *
  */
 /*----------------------------------------------------------------------------*/
-EOSMGMNAMESPACE_BEGIN
+EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 //! Constructor
@@ -96,4 +96,4 @@ time_t MultiSpaceTapeGc::getSpaceFreeSpaceQueryTimestamp(
   return 0;
 }
 
-EOSMGMNAMESPACE_END
+EOSTGCNAMESPACE_END

@@ -23,7 +23,7 @@
 
 #include "mgm/tgc/TapeGcUtils.hh"
 
-EOSMGMNAMESPACE_BEGIN
+EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 // Return the integer representation of the specified string
@@ -78,4 +78,4 @@ TapeGcUtils::isValidUInt(std::string str)
   return true;
 }
 
-EOSMGMNAMESPACE_END
+EOSTGCNAMESPACE_END

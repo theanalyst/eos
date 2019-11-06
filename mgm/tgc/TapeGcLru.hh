@@ -41,7 +41,7 @@
  *
  */
 /*----------------------------------------------------------------------------*/
-EOSMGMNAMESPACE_BEGIN
+EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 //! Class implementing a Least Recenting Used (LRU) queue
@@ -156,6 +156,6 @@ private:
   void queuedFileHasBeenAccessed(const IFileMD::id_t fid, FidQueue::iterator &queueItor);
 };
 
-EOSMGMNAMESPACE_END
+EOSTGCNAMESPACE_END
 
 #endif

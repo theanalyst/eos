@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// File: TapeAwareLruTests.cc
+// File: TapeGcUtilsTests.cc
 // Author: Steven Murray <smurray at cern dot ch>
 //------------------------------------------------------------------------------
 
@@ -21,11 +21,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/SpaceToTapeGcMap.hh"
+#include "mgm/tgc/TapeGcUtils.hh"
 
 #include <gtest/gtest.h>
 
-class SpaceToTapeAwareGcMapTest : public ::testing::Test {
+class TapeGcUtilsTest : public ::testing::Test {
 protected:
 
   virtual void SetUp() {
@@ -38,53 +38,66 @@ protected:
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(SpaceToTapeAwareGcMapTest, Constructor)
-{
-  using namespace eos::mgm;
+TEST_F(TapeGcUtilsTest, isValidUInt_unsigned_int) {
+  using namespace eos::mgm::tgc;
 
-  const std::string space = "space";
-  SpaceToTapeGcMap map();
+  ASSERT_TRUE(TapeGcUtils::isValidUInt("12345"));
 }
 
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(SpaceToTapeAwareGcMapTest, getGc_unknown_eos_space)
-{
-  using namespace eos::mgm;
+TEST_F(TapeGcUtilsTest, isValidUInt_empty_string) {
+  using namespace eos::mgm::tgc;
 
-  const std::string space = "space";
-  SpaceToTapeGcMap map;
-
-  ASSERT_THROW(map.getGc(space), SpaceToTapeGcMap::UnknownEOSSpace);
+  ASSERT_FALSE(TapeGcUtils::isValidUInt(""));
 }
 
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(SpaceToTapeAwareGcMapTest, createGc)
-{
-  using namespace eos::mgm;
+TEST_F(TapeGcUtilsTest, isValidUInt_signed_int) {
+  using namespace eos::mgm::tgc;
 
-  const std::string space = "space";
-  SpaceToTapeGcMap map;
-
-  map.createGc(space);
-
-  map.getGc(space);
+  ASSERT_FALSE(TapeGcUtils::isValidUInt("-12345"));
 }
 
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(SpaceToTapeAwareGcMapTest, createGc_already_exists)
-{
-  using namespace eos::mgm;
+TEST_F(TapeGcUtilsTest, isValidUInt_not_a_number) {
+  using namespace eos::mgm::tgc;
 
-  const std::string space = "space";
-  SpaceToTapeGcMap map;
+  ASSERT_FALSE(TapeGcUtils::isValidUInt("one"));
+}
 
-  map.createGc(space);
+TEST_F(TapeGcUtilsTest, toUint64_unsigned_int) {
+  using namespace eos::mgm::tgc;
 
-  ASSERT_THROW(map.createGc(space), SpaceToTapeGcMap::GcAlreadyExists);
+  ASSERT_EQ((uint64_t)12345, TapeGcUtils::toUint64("12345"));
+  ASSERT_EQ((uint64_t)18446744073709551615ULL, TapeGcUtils::toUint64("18446744073709551615"));
+}
+
+TEST_F(TapeGcUtilsTest, toUint64_out_of_range) {
+  using namespace eos::mgm::tgc;
+
+  ASSERT_THROW(TapeGcUtils::toUint64("18446744073709551616"), TapeGcUtils::OutOfRangeUint64);
+}
+
+TEST_F(TapeGcUtilsTest, toUint64_empty_string) {
+  using namespace eos::mgm::tgc;
+
+  ASSERT_THROW(TapeGcUtils::toUint64(""), TapeGcUtils::InvalidUint64);
+}
+
+TEST_F(TapeGcUtilsTest, toUint64_max) {
+  using namespace eos::mgm::tgc;
+
+  ASSERT_EQ((uint64_t)18446744073709551615UL, TapeGcUtils::toUint64("18446744073709551615"));
+}
+
+TEST_F(TapeGcUtilsTest, toUint64_not_a_number) {
+  using namespace eos::mgm::tgc;
+
+  ASSERT_THROW(TapeGcUtils::toUint64("one"), TapeGcUtils::InvalidUint64);
 }

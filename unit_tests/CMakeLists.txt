@@ -64,11 +64,11 @@ set(MGM_UT_SRCS
   mgm/RoutingTests.cc
   mgm/IdTrackerTests.cc
   mgm/FsckEntryTests.cc
-  mgm/SpaceToTapeAwareGcMapTests.cc
-  mgm/TapeGcCachedValueTests.cc
-  mgm/TapeGcThreadSafeCachedValueTests.cc
-  mgm/TapeGcLruTests.cc
-  mgm/TapeGcUtilsTests.cc
+  mgm/tgc/SpaceToTapeAwareGcMapTests.cc
+  mgm/tgc/TapeGcCachedValueTests.cc
+  mgm/tgc/TapeGcThreadSafeCachedValueTests.cc
+  mgm/tgc/TapeGcLruTests.cc
+  mgm/tgc/TapeGcUtilsTests.cc
   mgm/XrdMgmOfsTests.cc)
 
 set(COMMON_UT_SRCS

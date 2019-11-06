@@ -24,7 +24,7 @@
 #include "mgm/Namespace.hh"
 #include "mgm/tgc/TapeGcSpaceNotFound.hh"
 
-EOSMGMNAMESPACE_BEGIN
+EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 //! Thrown when a given EOS space cannot be found
@@ -32,4 +32,4 @@ EOSMGMNAMESPACE_BEGIN
 TapeGcSpaceNotFound::TapeGcSpaceNotFound(const std::string &msg): std::runtime_error(msg) {
 }
 
-EOSMGMNAMESPACE_END
+EOSTGCNAMESPACE_END

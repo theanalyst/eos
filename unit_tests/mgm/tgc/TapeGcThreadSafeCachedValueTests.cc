@@ -41,7 +41,7 @@ protected:
 //------------------------------------------------------------------------------
 TEST_F(TapeGcThreadSafeCachedValueTest, noChange)
 {
-  using namespace eos::mgm;
+  using namespace eos::mgm::tgc;
 
   const uint64_t initialValue = 1234;
   const uint64_t nextValue = 5678;
@@ -61,7 +61,7 @@ TEST_F(TapeGcThreadSafeCachedValueTest, noChange)
 //------------------------------------------------------------------------------
 TEST_F(TapeGcThreadSafeCachedValueTest, aChangeOccurred)
 {
-  using namespace eos::mgm;
+  using namespace eos::mgm::tgc;
 
   const uint64_t initialValue = 1234;
   const uint64_t nextValue = 5678;

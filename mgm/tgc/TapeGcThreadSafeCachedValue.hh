@@ -39,7 +39,7 @@
  *
  */
 /*----------------------------------------------------------------------------*/
-EOSMGMNAMESPACE_BEGIN
+EOSTGCNAMESPACE_BEGIN
 
 //----------------------------------------------------------------------------
 //! Templated class for creating a time based cache for a single variable.
@@ -102,6 +102,6 @@ private:
   time_t m_timestamp;
 }; // class TapeGcThreadSafeCachedValue
 
-EOSMGMNAMESPACE_END
+EOSTGCNAMESPACE_END
 
 #endif

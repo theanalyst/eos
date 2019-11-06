@@ -29,7 +29,7 @@
 #include <functional>
 #include <sstream>
 
-EOSMGMNAMESPACE_BEGIN
+EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 // Constructor
@@ -37,7 +37,7 @@ EOSMGMNAMESPACE_BEGIN
 TapeGcFreeSpace::TapeGcFreeSpace(const std::string &space,
   const time_t queryPeriodSecs):
   m_space(space),
-  m_cachedSpaceQueryPeriodSecs(
+  m_queryPeriodSecs(
     std::bind(TapeGcFreeSpace::getConfSpaceQueryPeriodSecs, space, queryPeriodSecs),
     10), // Maximum age of cached value in seconds
   m_freeSpaceBytes(0),
@@ -70,15 +70,15 @@ TapeGcFreeSpace::getFreeBytes()
   const time_t now = time(nullptr);
   const time_t secsSinceLastQuery = now - m_freeSpaceQueryTimestamp;
 
-  bool spaceQueryPeriodSecsHasChanged = false;
-  const auto spaceQueryPeriodSecs = m_cachedSpaceQueryPeriodSecs.get(spaceQueryPeriodSecsHasChanged);
-  if(spaceQueryPeriodSecsHasChanged) {
+  bool hasChanged = false;
+  const auto queryPeriodSecs = m_queryPeriodSecs.get(hasChanged);
+  if (hasChanged) {
     std::ostringstream msg;
-    msg << "msg=\"spaceQueryPeriodSecs has been changed to " << spaceQueryPeriodSecs << "\"";
+    msg << "msg=\"spaceQueryPeriodSecs has been changed to " << queryPeriodSecs << "\"";
     eos_static_info(msg.str().c_str());
   }
 
-  if(secsSinceLastQuery >= spaceQueryPeriodSecs) {
+  if(secsSinceLastQuery >= queryPeriodSecs) {
     m_freeSpaceQueryTimestamp = now;
     m_freeSpaceBytes = queryMgmForFreeBytes();
   }
@@ -176,4 +176,4 @@ TapeGcFreeSpace::getConfSpaceQueryPeriodSecs(const std::string spaceName,
 }
 
 
-EOSMGMNAMESPACE_END
+EOSTGCNAMESPACE_END

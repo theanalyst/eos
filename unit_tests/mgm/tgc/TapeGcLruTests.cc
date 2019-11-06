@@ -40,7 +40,7 @@ protected:
 //------------------------------------------------------------------------------
 TEST_F(TapeGcLruTest, Construction_maxQueueSize_greater_than_zero)
 {
-  using namespace eos::mgm;
+  using namespace eos::mgm::tgc;
 
   const TapeGcLru::FidQueue::size_type maxQueueSize = 5;
   TapeGcLru lru(maxQueueSize);
@@ -51,7 +51,7 @@ TEST_F(TapeGcLruTest, Construction_maxQueueSize_greater_than_zero)
 //------------------------------------------------------------------------------
 TEST_F(TapeGcLruTest, Construction_maxQueueSize_zero)
 {
-  using namespace eos::mgm;
+  using namespace eos::mgm::tgc;
 
   const TapeGcLru::FidQueue::size_type maxQueueSize = 0;
   ASSERT_THROW(TapeGcLru lru(maxQueueSize),
@@ -63,7 +63,7 @@ TEST_F(TapeGcLruTest, Construction_maxQueueSize_zero)
 //------------------------------------------------------------------------------
 TEST_F(TapeGcLruTest, getAndPopFidOfLeastUsedFile_empty_queue)
 {
-  using namespace eos::mgm;
+  using namespace eos::mgm::tgc;
 
   const TapeGcLru::FidQueue::size_type maxQueueSize = 5;
   TapeGcLru lru(maxQueueSize);
@@ -76,7 +76,7 @@ TEST_F(TapeGcLruTest, getAndPopFidOfLeastUsedFile_empty_queue)
 TEST_F(TapeGcLruTest, fids_1_2_3_4_5)
 { 
   using namespace eos;
-  using namespace eos::mgm;
+  using namespace eos::mgm::tgc;
 
   const std::list<IFileMD::id_t> fidsIn = {1, 2, 3, 4, 5};
 
@@ -105,7 +105,7 @@ TEST_F(TapeGcLruTest, fids_1_2_3_4_5)
 TEST_F(TapeGcLruTest, fids_1_2_3_4_5_2)
 { 
   using namespace eos;
-  using namespace eos::mgm;
+  using namespace eos::mgm::tgc;
 
   const std::list<IFileMD::id_t> fidsIn = {1, 2, 3, 4, 5, 2};
 
@@ -134,7 +134,7 @@ TEST_F(TapeGcLruTest, fids_1_2_3_4_5_2)
 TEST_F(TapeGcLruTest, exceed_maxQueueSize_max_size_1)
 {
   using namespace eos;
-  using namespace eos::mgm;
+  using namespace eos::mgm::tgc;
 
   const TapeGcLru::FidQueue::size_type maxQueueSize = 1;
   TapeGcLru lru(maxQueueSize);
@@ -168,7 +168,7 @@ TEST_F(TapeGcLruTest, exceed_maxQueueSize_max_size_1)
 TEST_F(TapeGcLruTest, exceed_maxQueueSize_5_fids_vs_max_size_2)
 {
   using namespace eos;
-  using namespace eos::mgm;
+  using namespace eos::mgm::tgc;
   const std::list<IFileMD::id_t> fidsIn = {1, 2, 3, 4, 5};
 
   const std::list<IFileMD::id_t> fidsOut = {1, 2};
@@ -210,7 +210,7 @@ TEST_F(TapeGcLruTest, exceed_maxQueueSize_5_fids_vs_max_size_2)
 //------------------------------------------------------------------------------
 TEST_F(TapeGcLruTest, DISABLED_performance_500000_files) {
   using namespace eos;
-  using namespace eos::mgm;
+  using namespace eos::mgm::tgc;
 
   const TapeGcLru::FidQueue::size_type maxQueueSize = 500000;
   TapeGcLru lru(maxQueueSize);

@@ -37,7 +37,7 @@
  *
  */
 /*----------------------------------------------------------------------------*/
-EOSMGMNAMESPACE_BEGIN
+EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 //! A tape aware garbage collector that can work over multiple EOS spaces
@@ -134,6 +134,6 @@ private:
   SpaceToTapeGcMap m_gcs;
 };
 
-EOSMGMNAMESPACE_END
+EOSTGCNAMESPACE_END
 
 #endif

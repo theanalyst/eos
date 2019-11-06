@@ -1,11 +1,11 @@
-// ----------------------------------------------------------------------
-// File: TapeGcSpaceNotFound.hh
-// Author: Steven Murray - CERN
-// ----------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// File: TapeGcCachedValueTests.cc
+// Author: Steven Murray <smurray at cern dot ch>
+//------------------------------------------------------------------------------
 
 /************************************************************************
  * EOS - the CERN Disk Storage System                                   *
- * Copyright (C) 2011 CERN/Switzerland                                  *
+ * Copyright (C) 2018 CERN/Switzerland                                  *
  *                                                                      *
  * This program is free software: you can redistribute it and/or modify *
  * it under the terms of the GNU General Public License as published by *
@@ -21,27 +21,46 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_TAPEGCSPACENOTFOUND_HH__
-#define __EOSMGM_TAPEGCSPACENOTFOUND_HH__
+#include "mgm/tgc/TapeGcCachedValue.hh"
 
-#include <stdexcept>
+#include <gtest/gtest.h>
+#include <stdint.h>
 
-/**
- * @file TapeAwareGcSpaceNotFound.hh
- *
- * @brief Exception thrown when a given EOS space cannot be found
- *
- */
-/*----------------------------------------------------------------------------*/
-EOSTGCNAMESPACE_BEGIN
+class TapeGcCachedValueTest : public ::testing::Test {
+protected:
 
-//------------------------------------------------------------------------------
-//! Thrown when a given EOS space cannot be found
-//------------------------------------------------------------------------------
-struct TapeGcSpaceNotFound: public std::runtime_error {
-  TapeGcSpaceNotFound(const std::string &msg);
+  virtual void SetUp() {
+  }
+
+  virtual void TearDown() {
+  }
 };
 
-EOSTGCNAMESPACE_END
+//------------------------------------------------------------------------------
+// Test
+//------------------------------------------------------------------------------
+TEST_F(TapeGcCachedValueTest, changedFollowedByNoChange)
+{
+  using namespace eos::mgm::tgc;
 
-#endif
+  const uint64_t value = 5678;
+  auto getter = [value]()->uint64_t{return value;};
+  const time_t maxAgeSecs = 1000;
+  TapeGcCachedValue<uint64_t> cachedValue(getter, maxAgeSecs);
+
+  {
+    bool valueChanged = false;
+    const uint64_t firstRetrievedValue = cachedValue.get(valueChanged);
+
+    ASSERT_EQ(value, firstRetrievedValue);
+    ASSERT_TRUE(valueChanged);
+  }
+
+  {
+    bool valueChanged = false;
+    const uint64_t firstRetrievedValue = cachedValue.get(valueChanged);
+
+    ASSERT_EQ(value, firstRetrievedValue);
+    ASSERT_FALSE(valueChanged);
+  }
+}

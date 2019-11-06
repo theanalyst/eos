@@ -37,11 +37,11 @@
  *
  */
 /*----------------------------------------------------------------------------*/
-EOSMGMNAMESPACE_BEGIN
+EOSTGCNAMESPACE_BEGIN
 
 /// Default delay in seconds between free space queries
 const uint64_t TAPEGC_DEFAULT_SPACE_QUERY_PERIOD_SECS=310;
 
-EOSMGMNAMESPACE_END
+EOSTGCNAMESPACE_END
 
 #endif

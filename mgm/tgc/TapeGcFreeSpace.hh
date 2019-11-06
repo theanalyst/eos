@@ -41,7 +41,7 @@
  *
  */
 /*----------------------------------------------------------------------------*/
-EOSMGMNAMESPACE_BEGIN
+EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 //! Class for getting the amount of free space in a specific EOS space.
@@ -88,7 +88,7 @@ private:
   //! Cached configuration value for the delay in seconds between space queries
   //! to the EOS MGM
   //----------------------------------------------------------------------------
-  TapeGcCachedValue<time_t> m_cachedSpaceQueryPeriodSecs;
+  TapeGcCachedValue<time_t> m_queryPeriodSecs;
 
   /// The current amount of free space in bytes
   uint64_t m_freeSpaceBytes;
@@ -117,6 +117,6 @@ private:
     const uint64_t defaultValue) noexcept;
 }; // class TapeGcFreeSpace
 
-EOSMGMNAMESPACE_END
+EOSTGCNAMESPACE_END
 
 #endif

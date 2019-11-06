@@ -35,7 +35,7 @@
  *
  */
 /*----------------------------------------------------------------------------*/
-EOSMGMNAMESPACE_BEGIN
+EOSTGCNAMESPACE_BEGIN
 
 //----------------------------------------------------------------------------
 //! Constructor
@@ -94,4 +94,4 @@ TapeGc &SpaceToTapeGcMap::getGc(const std::string &space) {
   return *gc;
 }
 
-EOSMGMNAMESPACE_END
+EOSTGCNAMESPACE_END

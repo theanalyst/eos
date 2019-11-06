@@ -25,7 +25,7 @@
 
 #include <stdexcept>
 
-EOSMGMNAMESPACE_BEGIN
+EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 //! Constructor
@@ -123,4 +123,4 @@ bool TapeGcLru::maxQueueSizeExceeded() const noexcept {
   return mMaxQueueSizeExceeded;
 }
 
-EOSMGMNAMESPACE_END
+EOSTGCNAMESPACE_END
