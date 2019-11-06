@@ -29,7 +29,6 @@ include_directories(
   ${SPARSEHASH_INCLUDE_DIRS}
   ${KRB5_INCLUDE_DIR}
   ${OPENSSL_INCLUDE_DIR}
-  ${PROTOBUF_INCLUDE_DIRS}
   ${JSONCPP_INCLUDE_DIR}
   ${HIREDIS_INCLUDE_DIR}
   ${ZMQ_INCLUDE_DIRS}
@@ -42,7 +41,6 @@ set(LIBRARIES_TO_LINK_TEST_EXECUTABLES_WITH
   ${CMAKE_THREAD_LIBS_INIT}
   ${KRB5_LIBRARIES}
   ${OPENSSL_CRYPTO_LIBRARY}
-  ${PROTOBUF_LIBRARY}
   ${JSONCPP_LIBRARIES}
   ${HIREDIS_LIBRARIES}
   ${LIBEVENT_LIBRARIES}
@@ -73,10 +71,8 @@ add_executable(eos-fusex-tests
   ${TEST_SOURCES_IF_ROCKSDB_WAS_FOUND}
   ${EOSXD_COMMON_SOURCES})
 
-target_include_directories(eos-fusex-tests PRIVATE
-  $<TARGET_PROPERTY:XROOTD::PRIVATE,INTERFACE_INCLUDE_DIRECTORIES>)
-
-target_link_libraries(eos-fusex-tests
+target_link_libraries(eos-fusex-tests PRIVATE
+  eosxd-objects
   ${LIBRARIES_TO_LINK_TEST_EXECUTABLES_WITH})
 
 set_target_properties(eos-fusex-tests
@@ -89,7 +85,7 @@ add_executable(eos-fusex-stress-tests
   ${CMAKE_SOURCE_DIR}/common/ShellCmd.cc
   ${CMAKE_SOURCE_DIR}/common/ShellExecutor.cc)
 
-target_link_libraries( eos-fusex-stress-tests
+target_link_libraries(eos-fusex-stress-tests PRIVATE
   ${LIBRARIES_TO_LINK_TEST_EXECUTABLES_WITH})
 
 set_target_properties(eos-fusex-stress-tests
@@ -97,7 +93,7 @@ set_target_properties(eos-fusex-stress-tests
 
 add_executable(eos-fusex-ioverify ioverify.cc)
 
-target_link_libraries(eos-fusex-ioverify
+target_link_libraries(eos-fusex-ioverify PRIVATE
   ${LIBRARIES_TO_LINK_TEST_EXECUTABLES_WITH})
 
 set_target_properties(eos-fusex-ioverify
