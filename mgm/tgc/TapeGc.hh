@@ -28,7 +28,6 @@
 #include "mgm/Namespace.hh"
 #include "mgm/tgc/FreeSpace.hh"
 #include "mgm/tgc/Lru.hh"
-#include "mgm/tgc/ThreadSafeCachedValue.hh"
 #include "namespace/interface/IFileMD.hh"
 #include "proto/ConsoleReply.pb.h"
 #include "proto/ConsoleRequest.pb.h"
