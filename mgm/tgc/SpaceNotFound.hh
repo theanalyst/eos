@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeGcUtils.cc
+// File: SpaceNotFound.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,61 +21,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/TapeGcUtils.hh"
+#ifndef __EOSMGMTGC_SPACENOTFOUND_HH__
+#define __EOSMGMTGC_SPACENOTFOUND_HH__
 
+#include <stdexcept>
+
+/**
+ * @file TapeAwareGcSpaceNotFound.hh
+ *
+ * @brief Exception thrown when a given EOS space cannot be found
+ *
+ */
+/*----------------------------------------------------------------------------*/
 EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
-// Return the integer representation of the specified string
+//! Thrown when a given EOS space cannot be found
 //------------------------------------------------------------------------------
-uint64_t
-TapeGcUtils::toUint64(const std::string &str)
-{
-  bool outOfRange = false;
-
-  if(isValidUInt(str)) {
-    try {
-      return std::stoul(str);
-    } catch(std::out_of_range &) {
-      outOfRange = true;
-    }
-  }
-
-  std::ostringstream errMsg;
-  errMsg << "Invalid unsigned 64-bit integer: value=" << str;
-  if(outOfRange) {
-    errMsg << ",reason='Out of range'";
-    throw OutOfRangeUint64(errMsg.str());
-  } else {
-    throw InvalidUint64(errMsg.str());
-  }
-}
-
-//------------------------------------------------------------------------------
-// Return true if the specified string is a valid unsigned integer
-//------------------------------------------------------------------------------
-bool
-TapeGcUtils::isValidUInt(std::string str)
-{
-  // left trim
-  str.erase(0, str.find_first_not_of(" \t"));
-
-  // An empty string is not a valid unsigned integer
-  if(str.empty()) {
-    return false;
-  }
-
-  // For each character in the string
-  for(std::string::const_iterator itor = str.begin(); itor != str.end();
-    itor++) {
-
-    // If the current character is not a valid numerical digit
-    if(*itor < '0' || *itor > '9') {
-      return false;
-    }
-  }
-
-  return true;
-}
+struct SpaceNotFound: public std::runtime_error {
+  SpaceNotFound(const std::string &msg);
+};
 
 EOSTGCNAMESPACE_END
+
+#endif

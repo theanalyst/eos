@@ -25,8 +25,8 @@
 #include "mgm/proc/admin/StagerRmCmd.hh"
 #include "mgm/tgc/Constants.hh"
 #include "mgm/tgc/TapeGc.hh"
-#include "mgm/tgc/TapeGcSpaceNotFound.hh"
-#include "mgm/tgc/TapeGcUtils.hh"
+#include "mgm/tgc/SpaceNotFound.hh"
+#include "mgm/tgc/Utils.hh"
 #include "mgm/XrdMgmOfs.hh"
 #include "namespace/interface/IFileMDSvc.hh"
 #include "namespace/Prefetcher.hh"
@@ -198,7 +198,7 @@ TapeGc::getSpaceConfigMinNbFreeBytes(const std::string &spaceName) noexcept
     if(valueStr.empty()) {
      return 0;
     } else {
-      return TapeGcUtils::toUint64(valueStr);
+      return Utils::toUint64(valueStr);
     }
   } catch(...) {
     return 0;
@@ -222,7 +222,7 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
         msg << "msg=\"defaultSpaceMinFreeBytes has been changed to " << defaultSpaceMinFreeBytes << "\"";
         eos_static_info(msg.str().c_str());
       }
-    } catch(TapeGcSpaceNotFound &) {
+    } catch(SpaceNotFound &) {
       // Return no file was garbage collected if the space was not found
       return false;
     }
@@ -231,7 +231,7 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
       // Return no file was garbage collected if there is still enough free space
       const auto actualDefaultSpaceNbFreeBytes = m_freeSpaceInDefault.getFreeBytes();
       if(actualDefaultSpaceNbFreeBytes >= defaultSpaceMinFreeBytes) return false;
-    } catch(TapeGcSpaceNotFound &) {
+    } catch(SpaceNotFound &) {
       // Return no file was garbage collected if the space was not found
       return false;
     }
@@ -363,7 +363,7 @@ TapeGc::getNbStagerrms() const
 //----------------------------------------------------------------------------
 // Return the size of the LRUE queue
 //----------------------------------------------------------------------------
-TapeGcLru::FidQueue::size_type
+Lru::FidQueue::size_type
 TapeGc::getLruQueueSize()
 {
   std::lock_guard<std::mutex> lruQueueLock(m_lruQueueMutex);

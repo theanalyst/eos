@@ -21,7 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/TapeGcUtils.hh"
+#include "mgm/tgc/Utils.hh"
 
 #include <gtest/gtest.h>
 
@@ -41,7 +41,7 @@ protected:
 TEST_F(TapeGcUtilsTest, isValidUInt_unsigned_int) {
   using namespace eos::mgm::tgc;
 
-  ASSERT_TRUE(TapeGcUtils::isValidUInt("12345"));
+  ASSERT_TRUE(Utils::isValidUInt("12345"));
 }
 
 //------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ TEST_F(TapeGcUtilsTest, isValidUInt_unsigned_int) {
 TEST_F(TapeGcUtilsTest, isValidUInt_empty_string) {
   using namespace eos::mgm::tgc;
 
-  ASSERT_FALSE(TapeGcUtils::isValidUInt(""));
+  ASSERT_FALSE(Utils::isValidUInt(""));
 }
 
 //------------------------------------------------------------------------------
@@ -59,7 +59,7 @@ TEST_F(TapeGcUtilsTest, isValidUInt_empty_string) {
 TEST_F(TapeGcUtilsTest, isValidUInt_signed_int) {
   using namespace eos::mgm::tgc;
 
-  ASSERT_FALSE(TapeGcUtils::isValidUInt("-12345"));
+  ASSERT_FALSE(Utils::isValidUInt("-12345"));
 }
 
 //------------------------------------------------------------------------------
@@ -68,36 +68,36 @@ TEST_F(TapeGcUtilsTest, isValidUInt_signed_int) {
 TEST_F(TapeGcUtilsTest, isValidUInt_not_a_number) {
   using namespace eos::mgm::tgc;
 
-  ASSERT_FALSE(TapeGcUtils::isValidUInt("one"));
+  ASSERT_FALSE(Utils::isValidUInt("one"));
 }
 
 TEST_F(TapeGcUtilsTest, toUint64_unsigned_int) {
   using namespace eos::mgm::tgc;
 
-  ASSERT_EQ((uint64_t)12345, TapeGcUtils::toUint64("12345"));
-  ASSERT_EQ((uint64_t)18446744073709551615ULL, TapeGcUtils::toUint64("18446744073709551615"));
+  ASSERT_EQ((uint64_t)12345, Utils::toUint64("12345"));
+  ASSERT_EQ((uint64_t)18446744073709551615ULL, Utils::toUint64("18446744073709551615"));
 }
 
 TEST_F(TapeGcUtilsTest, toUint64_out_of_range) {
   using namespace eos::mgm::tgc;
 
-  ASSERT_THROW(TapeGcUtils::toUint64("18446744073709551616"), TapeGcUtils::OutOfRangeUint64);
+  ASSERT_THROW(Utils::toUint64("18446744073709551616"), Utils::OutOfRangeUint64);
 }
 
 TEST_F(TapeGcUtilsTest, toUint64_empty_string) {
   using namespace eos::mgm::tgc;
 
-  ASSERT_THROW(TapeGcUtils::toUint64(""), TapeGcUtils::InvalidUint64);
+  ASSERT_THROW(Utils::toUint64(""), Utils::InvalidUint64);
 }
 
 TEST_F(TapeGcUtilsTest, toUint64_max) {
   using namespace eos::mgm::tgc;
 
-  ASSERT_EQ((uint64_t)18446744073709551615UL, TapeGcUtils::toUint64("18446744073709551615"));
+  ASSERT_EQ((uint64_t)18446744073709551615UL, Utils::toUint64("18446744073709551615"));
 }
 
 TEST_F(TapeGcUtilsTest, toUint64_not_a_number) {
   using namespace eos::mgm::tgc;
 
-  ASSERT_THROW(TapeGcUtils::toUint64("one"), TapeGcUtils::InvalidUint64);
+  ASSERT_THROW(Utils::toUint64("one"), Utils::InvalidUint64);
 }

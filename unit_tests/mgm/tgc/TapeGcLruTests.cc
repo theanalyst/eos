@@ -21,7 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/TapeGcLru.hh"
+#include "mgm/tgc/Lru.hh"
 
 #include <gtest/gtest.h>
 
@@ -42,8 +42,8 @@ TEST_F(TapeGcLruTest, Construction_maxQueueSize_greater_than_zero)
 {
   using namespace eos::mgm::tgc;
 
-  const TapeGcLru::FidQueue::size_type maxQueueSize = 5;
-  TapeGcLru lru(maxQueueSize);
+  const Lru::FidQueue::size_type maxQueueSize = 5;
+  Lru lru(maxQueueSize);
 }
 
 //------------------------------------------------------------------------------
@@ -53,9 +53,9 @@ TEST_F(TapeGcLruTest, Construction_maxQueueSize_zero)
 {
   using namespace eos::mgm::tgc;
 
-  const TapeGcLru::FidQueue::size_type maxQueueSize = 0;
-  ASSERT_THROW(TapeGcLru lru(maxQueueSize),
-    TapeGcLru::MaxQueueSizeIsZero);
+  const Lru::FidQueue::size_type maxQueueSize = 0;
+  ASSERT_THROW(Lru lru(maxQueueSize),
+    Lru::MaxQueueSizeIsZero);
 }
 
 //------------------------------------------------------------------------------
@@ -65,9 +65,9 @@ TEST_F(TapeGcLruTest, getAndPopFidOfLeastUsedFile_empty_queue)
 {
   using namespace eos::mgm::tgc;
 
-  const TapeGcLru::FidQueue::size_type maxQueueSize = 5;
-  TapeGcLru lru(maxQueueSize);
-  ASSERT_THROW(lru.getAndPopFidOfLeastUsedFile(), TapeGcLru::QueueIsEmpty);
+  const Lru::FidQueue::size_type maxQueueSize = 5;
+  Lru lru(maxQueueSize);
+  ASSERT_THROW(lru.getAndPopFidOfLeastUsedFile(), Lru::QueueIsEmpty);
 }
 
 //------------------------------------------------------------------------------
@@ -82,8 +82,8 @@ TEST_F(TapeGcLruTest, fids_1_2_3_4_5)
 
   const std::list<IFileMD::id_t> fidsOut = fidsIn;
 
-  const TapeGcLru::FidQueue::size_type maxQueueSize = fidsOut.size();
-  TapeGcLru lru(maxQueueSize);
+  const Lru::FidQueue::size_type maxQueueSize = fidsOut.size();
+  Lru lru(maxQueueSize);
 
   for(const auto fid: fidsIn) {
     lru.fileAccessed(fid);
@@ -111,8 +111,8 @@ TEST_F(TapeGcLruTest, fids_1_2_3_4_5_2)
 
   const std::list<IFileMD::id_t> fidsOut = {1, 3, 4, 5, 2};
 
-  const TapeGcLru::FidQueue::size_type maxQueueSize = fidsOut.size();
-  TapeGcLru lru(maxQueueSize);
+  const Lru::FidQueue::size_type maxQueueSize = fidsOut.size();
+  Lru lru(maxQueueSize);
 
   for(const auto fid: fidsIn) {
     lru.fileAccessed(fid);
@@ -136,8 +136,8 @@ TEST_F(TapeGcLruTest, exceed_maxQueueSize_max_size_1)
   using namespace eos;
   using namespace eos::mgm::tgc;
 
-  const TapeGcLru::FidQueue::size_type maxQueueSize = 1;
-  TapeGcLru lru(maxQueueSize);
+  const Lru::FidQueue::size_type maxQueueSize = 1;
+  Lru lru(maxQueueSize);
 
   ASSERT_TRUE(lru.empty());
   ASSERT_EQ(0, lru.size());
@@ -173,8 +173,8 @@ TEST_F(TapeGcLruTest, exceed_maxQueueSize_5_fids_vs_max_size_2)
 
   const std::list<IFileMD::id_t> fidsOut = {1, 2};
 
-  const TapeGcLru::FidQueue::size_type maxQueueSize = fidsOut.size();
-  TapeGcLru lru(maxQueueSize);
+  const Lru::FidQueue::size_type maxQueueSize = fidsOut.size();
+  Lru lru(maxQueueSize);
 
   ASSERT_TRUE(lru.empty());
   ASSERT_EQ(0, lru.size());
@@ -212,10 +212,10 @@ TEST_F(TapeGcLruTest, DISABLED_performance_500000_files) {
   using namespace eos;
   using namespace eos::mgm::tgc;
 
-  const TapeGcLru::FidQueue::size_type maxQueueSize = 500000;
-  TapeGcLru lru(maxQueueSize);
+  const Lru::FidQueue::size_type maxQueueSize = 500000;
+  Lru lru(maxQueueSize);
 
-  for(TapeGcLru::FidQueue::size_type fid = 0; fid < maxQueueSize; fid++) {
+  for(Lru::FidQueue::size_type fid = 0; fid < maxQueueSize; fid++) {
     const auto start = std::chrono::high_resolution_clock::now();
     lru.fileAccessed(fid);
     const auto end = std::chrono::high_resolution_clock::now();

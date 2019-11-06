@@ -26,7 +26,7 @@
 
 #include "mgm/Namespace.hh"
 #include "mgm/tgc/SpaceToTapeGcMap.hh"
-#include "mgm/tgc/TapeGcLru.hh"
+#include "mgm/tgc/Lru.hh"
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -109,7 +109,7 @@ public:
   //!
   //! @param space the name of the EOS space
   //----------------------------------------------------------------------------
-  TapeGcLru::FidQueue::size_type getLruQueueSize(const std::string &space);
+  Lru::FidQueue::size_type getLruQueueSize(const std::string &space);
 
   //----------------------------------------------------------------------------
   //! @return the amount of free bytes in the specified EOS space

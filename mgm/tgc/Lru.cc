@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeGcLru.cc
+// File: Lru.cc
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,7 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/TapeGcLru.hh"
+#include "mgm/tgc/Lru.hh"
 
 #include <stdexcept>
 
@@ -30,7 +30,7 @@ EOSTGCNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 //! Constructor
 //------------------------------------------------------------------------------
-TapeGcLru::TapeGcLru(const FidQueue::size_type maxQueueSize):
+Lru::Lru(const FidQueue::size_type maxQueueSize):
   mMaxQueueSize(maxQueueSize), mMaxQueueSizeExceeded(false)
 {
   if(0 == maxQueueSize) {
@@ -42,7 +42,7 @@ TapeGcLru::TapeGcLru(const FidQueue::size_type maxQueueSize):
 //------------------------------------------------------------------------------
 //! Notify the queue a file has been accessed
 //------------------------------------------------------------------------------
-void TapeGcLru::fileAccessed(const IFileMD::id_t fid)
+void Lru::fileAccessed(const IFileMD::id_t fid)
 {
   const auto mapEntry = mFidToQueueEntry.find(fid);
 
@@ -57,7 +57,7 @@ void TapeGcLru::fileAccessed(const IFileMD::id_t fid)
 //------------------------------------------------------------------------------
 // Handle the fact a new file has been accessed
 //------------------------------------------------------------------------------
-void TapeGcLru::newFileHasBeenAccessed(const IFileMD::id_t fid) {
+void Lru::newFileHasBeenAccessed(const IFileMD::id_t fid) {
   // Ignore the new file if the maximum queue size has been reached
   // IMPORTANT: This should be a rare situation
   if(mFidToQueueEntry.size() == mMaxQueueSize) {
@@ -72,7 +72,7 @@ void TapeGcLru::newFileHasBeenAccessed(const IFileMD::id_t fid) {
 //------------------------------------------------------------------------------
 // Handle the fact that a file already in the queue has been accessed
 //------------------------------------------------------------------------------
-void TapeGcLru::queuedFileHasBeenAccessed(const IFileMD::id_t fid,
+void Lru::queuedFileHasBeenAccessed(const IFileMD::id_t fid,
   FidQueue::iterator &queueItor) {
   // Erase the existing file from the LRU queue
   mQueue.erase(queueItor);
@@ -85,7 +85,7 @@ void TapeGcLru::queuedFileHasBeenAccessed(const IFileMD::id_t fid,
 //------------------------------------------------------------------------------
 //! Return true if the queue is empty
 //------------------------------------------------------------------------------
-bool TapeGcLru::empty() const
+bool Lru::empty() const
 {
   return mQueue.empty();
 }
@@ -93,7 +93,7 @@ bool TapeGcLru::empty() const
 //------------------------------------------------------------------------------
 //! Return queue size
 //------------------------------------------------------------------------------
-TapeGcLru::FidQueue::size_type TapeGcLru::size() const
+Lru::FidQueue::size_type Lru::size() const
 {
   return mFidToQueueEntry.size();
 }
@@ -101,7 +101,7 @@ TapeGcLru::FidQueue::size_type TapeGcLru::size() const
 //------------------------------------------------------------------------------
 //! Pop and return the identifier of the least used file
 //------------------------------------------------------------------------------
-IFileMD::id_t TapeGcLru::getAndPopFidOfLeastUsedFile()
+IFileMD::id_t Lru::getAndPopFidOfLeastUsedFile()
 {
   if(mQueue.empty()) {
     throw QueueIsEmpty(std::string(__FUNCTION__) +
@@ -119,7 +119,7 @@ IFileMD::id_t TapeGcLru::getAndPopFidOfLeastUsedFile()
 //------------------------------------------------------------------------------
 //! Return true if the maximum queue size has been exceeded
 //------------------------------------------------------------------------------
-bool TapeGcLru::maxQueueSizeExceeded() const noexcept {
+bool Lru::maxQueueSizeExceeded() const noexcept {
   return mMaxQueueSizeExceeded;
 }
 

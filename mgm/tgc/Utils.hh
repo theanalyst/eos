@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeGcUtils.hh
+// File: Utils.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,13 +21,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_TAPEGCUTILS_HH__
-#define __EOSMGM_TAPEGCUTILS_HH__
+#ifndef __EOSMGMTGC_UTILS_HH__
+#define __EOSMGMTGC_UTILS_HH__
 
 #include "common/Logging.hh"
 #include "mgm/Namespace.hh"
 #include "mgm/tgc/CachedValue.hh"
-#include "mgm/tgc/TapeGcLru.hh"
+#include "mgm/tgc/Lru.hh"
 #include "namespace/interface/IFileMD.hh"
 #include "proto/ConsoleReply.pb.h"
 #include "proto/ConsoleRequest.pb.h"
@@ -50,9 +50,9 @@
 EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
-//! Class of utility functions for TapeGc
+//! Class of utility functions for the tape aware garbage collector
 //------------------------------------------------------------------------------
-class TapeGcUtils
+class Utils
 {
 public:
   /// Thrown when a string is not a valid unsigned 64-bit integer

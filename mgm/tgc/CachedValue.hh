@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_TAPEGCCACHEDVALUE_HH__
-#define __EOSMGM_TAPEGCCACHEDVALUE_HH__
+#ifndef __EOSMGMTGC_CACHEDVALUE_HH__
+#define __EOSMGMTGC_CACHEDVALUE_HH__
 
 #include "mgm/Namespace.hh"
 

@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeGcThreadSafeCachedValue.hh
+// File: ThreadSafeCachedValue.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_TAPEGCTHREADSAFECACHEDVALUE_HH__
-#define __EOSMGM_TAPEGCTHREADSAFECACHEDVALUE_HH__
+#ifndef __EOSMGMTGC_THREADSAFECACHEDVALUE_HH__
+#define __EOSMGMTGC_THREADSAFECACHEDVALUE_HH__
 
 #include "mgm/Namespace.hh"
 
@@ -46,7 +46,7 @@ EOSTGCNAMESPACE_BEGIN
 //!
 //! @tparam ValueType The type of the value to be cached.
 //----------------------------------------------------------------------------
-template <typename ValueType> class TapeGcThreadSafeCachedValue {
+template <typename ValueType> class ThreadSafeCachedValue {
 public:
   //--------------------------------------------------------------------------
   //! Constructor
@@ -54,7 +54,7 @@ public:
   //! @param valueGetter callable responsible for getting a new value
   //! @param maxAgeSecs age at which a call to get() will renew the cache
   //--------------------------------------------------------------------------
-  TapeGcThreadSafeCachedValue(const ValueType &initialValue, std::function<ValueType()> valueGetter, const time_t maxAgeSecs):
+  ThreadSafeCachedValue(const ValueType &initialValue, std::function<ValueType()> valueGetter, const time_t maxAgeSecs):
     m_value(initialValue),
     m_valueGetter(valueGetter),
     m_maxAgeSecs(maxAgeSecs),
@@ -100,7 +100,7 @@ private:
 
   /// The timestamp of when the value was last updated
   time_t m_timestamp;
-}; // class TapeGcThreadSafeCachedValue
+}; // class ThreadSafeCachedValue
 
 EOSTGCNAMESPACE_END
 

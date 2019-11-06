@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeGcLru.hh
+// File: Lru.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -46,7 +46,7 @@ EOSTGCNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 //! Class implementing a Least Recenting Used (LRU) queue
 //------------------------------------------------------------------------------
-class TapeGcLru {
+class Lru {
 public:
 
   //----------------------------------------------------------------------------
@@ -69,7 +69,7 @@ public:
   //!
   //! @throw MaxQueueSizeIsZero If maxQueueSize is equal to 0.
   //----------------------------------------------------------------------------
-  TapeGcLru(const FidQueue::size_type maxQueueSize = 10000000);
+  Lru(const FidQueue::size_type maxQueueSize = 10000000);
 
   //----------------------------------------------------------------------------
   //! Notify the queue a file has been accessed

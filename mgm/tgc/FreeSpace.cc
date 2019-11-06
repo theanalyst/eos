@@ -23,8 +23,8 @@
 
 #include "mgm/FsView.hh"
 #include "mgm/tgc/FreeSpace.hh"
-#include "mgm/tgc/TapeGcSpaceNotFound.hh"
-#include "mgm/tgc/TapeGcUtils.hh"
+#include "mgm/tgc/SpaceNotFound.hh"
+#include "mgm/tgc/Utils.hh"
 
 #include <functional>
 #include <sstream>
@@ -105,13 +105,13 @@ FreeSpace::queryMgmForFreeBytes() {
   const auto spaceItor = FsView::gFsView.mSpaceView.find(m_space);
 
   if(FsView::gFsView.mSpaceView.end() == spaceItor) {
-    throw TapeGcSpaceNotFound(std::string(__FUNCTION__) + ": Cannot find space " + m_space +
-                              ": FsView does not know the space name");
+    throw SpaceNotFound(std::string(__FUNCTION__) + ": Cannot find space " + m_space +
+                        ": FsView does not know the space name");
   }
 
   if(nullptr == spaceItor->second) {
-    throw TapeGcSpaceNotFound(std::string(__FUNCTION__) + ": Cannot find space " + m_space +
-                              ": Pointer to FsSpace is nullptr");
+    throw SpaceNotFound(std::string(__FUNCTION__) + ": Cannot find space " + m_space +
+                        ": Pointer to FsSpace is nullptr");
   }
 
   const FsSpace &space = *(spaceItor->second);
@@ -169,7 +169,7 @@ FreeSpace::getConfSpaceQueryPeriodSecs(const std::string spaceName,
       }
     }
 
-    return TapeGcUtils::toUint64(valueStr);
+    return Utils::toUint64(valueStr);
   } catch(...) {
     return defaultValue;
   }

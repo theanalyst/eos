@@ -173,9 +173,9 @@ add_library(
   tgc/SpaceToTapeGcMap.cc
   tgc/TapeGc.cc
   tgc/FreeSpace.cc
-  tgc/TapeGcLru.cc
-  tgc/TapeGcSpaceNotFound.cc
-  tgc/TapeGcUtils.cc
+        tgc/Lru.cc
+        tgc/SpaceNotFound.cc
+        tgc/Utils.cc
   Vid.cc
   FsView.cc
   XrdMgmOfsConfigure.cc

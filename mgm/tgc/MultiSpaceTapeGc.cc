@@ -76,7 +76,7 @@ uint64_t MultiSpaceTapeGc::getNbStagerrms(const std::string &space) const {
 //------------------------------------------------------------------------------
 //! Return the size of the LRU queue for the specified EOS space
 //------------------------------------------------------------------------------
-TapeGcLru::FidQueue::size_type MultiSpaceTapeGc::getLruQueueSize(
+Lru::FidQueue::size_type MultiSpaceTapeGc::getLruQueueSize(
   const std::string &space) {
   return 0;
 }
