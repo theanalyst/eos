@@ -69,7 +69,8 @@ public:
   };
 
   //----------------------------------------------------------------------------
-  //! Create a tape aware garbage collector for the specified EOS space.
+  //! Thread safe method that creates a tape aware garbage collector for the
+  //! specified EOS space.
   //!
   //! @param space The name of the EOS space.
   //! @throw GcAlreadyExists If a tape aware garbage collector altready exists
@@ -85,7 +86,8 @@ public:
   };
 
   //----------------------------------------------------------------------------
-  //! Returns the garbage collector associated with the specified EOS space.
+  //! Thread safe method that returns the garbage collector associated with the
+  //! specified EOS space.
   //!
   //! @param space The name of the EOS space.
   //! @return The tape aware garbage collector associated with the specified EOS
