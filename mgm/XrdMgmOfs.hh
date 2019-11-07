@@ -172,7 +172,7 @@ class CommitHelper;
 class ReplicationTracker;
 class FileInspector;
 namespace tgc {
-class TapeGc;
+class MultiSpaceTapeGc;
 }
 }
 }
@@ -1718,7 +1718,8 @@ public:
   eos::common::XrdConnPool mXrdConnPool; ///< XRD connection pool
   //! Tracker for requests which are currently executing MGM code
   eos::mgm::InFlightTracker mTracker;
-  std::unique_ptr<tgc::TapeGc> mTapeGc; ///< Tape aware garbage collector
+  //! Multi-space tape-aware garbage collector
+  std::unique_ptr<tgc::MultiSpaceTapeGc> mTapeGc;
 
   //----------------------------------------------------------------------------
   //! Return string representation of prepare options

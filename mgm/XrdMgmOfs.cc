@@ -72,7 +72,7 @@
 #include "mgm/WFE.hh"
 #include "mgm/fsck/Fsck.hh"
 #include "mgm/Master.hh"
-#include "mgm/tgc/TapeGc.hh"
+#include "mgm/tgc/MultiSpaceTapeGc.hh"
 #include "mgm/tracker/ReplicationTracker.hh"
 #include "mgm/inspector/FileInspector.hh"
 #include "mgm/XrdMgmOfs/fsctl/CommitHelper.hh"
