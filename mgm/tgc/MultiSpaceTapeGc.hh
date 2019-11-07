@@ -129,7 +129,7 @@ public:
 private:
 
   //----------------------------------------------------------------------------
-  //! Map from EOS space name to tape aware garbage collector
+  //! Thread safe map from EOS space name to tape aware garbage collector
   //----------------------------------------------------------------------------
   SpaceToTapeGcMap m_gcs;
 };
