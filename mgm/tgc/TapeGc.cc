@@ -281,7 +281,7 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
 }
 
 //------------------------------------------------------------------------------
-// Returns the configured min free bytes for default space and logs if changed
+// Returns min free bytes for the EOS space worked on by this garbage collector
 //------------------------------------------------------------------------------
 uint64_t TapeGc::getMinFreeBytesAndLogIfChanged() {
   const auto minFreeBytes = m_minFreeBytes.get();
