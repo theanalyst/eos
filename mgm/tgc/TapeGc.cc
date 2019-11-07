@@ -46,7 +46,7 @@ TapeGc::TapeGc():
   m_cachedDefaultSpaceMinFreeBytes(
     std::bind(getSpaceConfigMinFreeBytes, "default"), // Value getter
     10), // Maximum age of cached value in seconds
-  m_freeSpaceInDefault("default", TAPEGC_DEFAULT_SPACE_QUERY_PERIOD_SECS),
+  m_freeSpace("default", TGC_SPACE_QUERY_PERIOD_SECS),
   m_nbStagerrms(0)
 {
 }
@@ -216,7 +216,7 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
 
     try {
       // Return no file was garbage collected if there is still enough free space
-      const auto actualDefaultSpaceNbFreeBytes = m_freeSpaceInDefault.getFreeBytes();
+      const auto actualDefaultSpaceNbFreeBytes = m_freeSpace.getFreeBytes();
       if(actualDefaultSpaceNbFreeBytes >= defaultSpaceMinFreeBytes) return false;
     } catch(SpaceNotFound &) {
       // Return no file was garbage collected if the space was not found
@@ -238,7 +238,7 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
     preamble << "fxid=" << std::hex << fid;
 
     if(0 == result.retc()) {
-      m_freeSpaceInDefault.fileQueuedForDeletion(fileToBeDeletedSizeBytes);
+      m_freeSpace.fileQueuedForDeletion(fileToBeDeletedSizeBytes);
       std::ostringstream msg;
       msg << preamble.str() << " msg=\"Garbage collected file using stagerrm\"";
       eos_static_info(msg.str().c_str());
@@ -357,7 +357,7 @@ TapeGc::createLogPreamble(const std::string &path, const IFileMD::id_t fid)
 // Return the number of files successfully stagerrm'ed since boot
 //----------------------------------------------------------------------------
 uint64_t
-TapeGc::getNbStagerrms() const
+TapeGc::getNbStagerrms() const noexcept
 {
   return m_nbStagerrms;
 }
@@ -366,26 +366,54 @@ TapeGc::getNbStagerrms() const
 // Return the size of the LRUE queue
 //----------------------------------------------------------------------------
 Lru::FidQueue::size_type
-TapeGc::getLruQueueSize()
+TapeGc::getLruQueueSize() const noexcept
 {
-  std::lock_guard<std::mutex> lruQueueLock(m_lruQueueMutex);
-  return m_lruQueue.size();
+  const char *const msgFormat = "TapeGc::getLruQueueSize() failed: %s";
+  try {
+    std::lock_guard<std::mutex> lruQueueLock(m_lruQueueMutex);
+    return m_lruQueue.size();
+  } catch(std::exception &ex) {
+    eos_static_err(msgFormat, ex.what());
+  } catch(...) {
+    eos_static_err(msgFormat, "Caught an unknown exception");
+  }
+
+  return 0;
 }
 
 //----------------------------------------------------------------------------
-// Return the amount of free bytes in the EOS space named default
+// Return free bytes in the EOS space worked on by this garbage collector
 //----------------------------------------------------------------------------
 uint64_t
-TapeGc::getDefaultSpaceFreeBytes() {
-  return m_freeSpaceInDefault.getFreeBytes();
+TapeGc::getFreeBytes() const noexcept {
+  const char *const msgFormat = "TapeGc::getSpaceFreeBytes() failed: %s";
+  try {
+    return m_freeSpace.getFreeBytes();
+  } catch(std::exception &ex) {
+    eos_static_err(msgFormat, ex.what());
+  } catch(...) {
+    eos_static_err(msgFormat, "Caught an unknown exception");
+  }
+
+  return 0;
 }
 
 //----------------------------------------------------------------------------
-// Return the amount of free bytes in the EOS space named default
+// Return query timestamp for this garbage collector's  EOS space
 //----------------------------------------------------------------------------
 time_t
-TapeGc::getDefaultSpaceFreeSpaceQueryTimestamp() {
-  return m_freeSpaceInDefault.getFreeSpaceQueryTimestamp();
+TapeGc::getFreeSpaceQueryTimestamp() const noexcept {
+  const char *const msgFormat =
+    "TapeGc::getFreeSpaceQueryTimestamp() failed: %s";
+  try {
+    return m_freeSpace.getFreeSpaceQueryTimestamp();
+  } catch(std::exception &ex) {
+    eos_static_err(msgFormat, ex.what());
+  } catch(...) {
+    eos_static_err(msgFormat, "Caught an unknown exception");
+  }
+
+  return 0;
 }
 
 EOSTGCNAMESPACE_END

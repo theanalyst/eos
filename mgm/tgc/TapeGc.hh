@@ -103,25 +103,27 @@ public:
     noexcept;
 
   //----------------------------------------------------------------------------
-  //! @return the number of files successfully stagerrm'ed since boot
+  //! @return the number of files successfully stagerrm'ed since boot.  Zero is
+  //! returned in the case of error.
   //----------------------------------------------------------------------------
-  uint64_t getNbStagerrms() const;
+  uint64_t getNbStagerrms() const noexcept;
 
   //----------------------------------------------------------------------------
-  //! @return the size of teh LRU queue
+  //! @return the size of the LRU queue.  Zero is returned in the case of error.
   //----------------------------------------------------------------------------
-  Lru::FidQueue::size_type getLruQueueSize();
+  Lru::FidQueue::size_type getLruQueueSize() const noexcept;
 
   //----------------------------------------------------------------------------
-  //! @return the amount of free bytes in the EOS space named default
+  //! @return the amount of free bytes in the EOS space worked on by this
+  //! garbage collector.  Zero is in the case of error.
   //----------------------------------------------------------------------------
-  uint64_t getDefaultSpaceFreeBytes();
+  uint64_t getFreeBytes() const noexcept;
 
   //----------------------------------------------------------------------------
-  //! @return the timestamp at which the EOS space named default eas queried for
-  //! free space
+  //! @return the timestamp at which the EOS space named default was queried for
+  //! free space.  Zero is returned in the case of error.
   //----------------------------------------------------------------------------
-  time_t getDefaultSpaceFreeSpaceQueryTimestamp();
+  time_t getFreeSpaceQueryTimestamp() const noexcept;
 
 protected:
 
@@ -291,9 +293,9 @@ protected:
 
   //----------------------------------------------------------------------------
   //! Object responsible for determining the number of free bytes in the EOS
-  //! space named "default".
+  //! space worked on by this garbage collector
   //----------------------------------------------------------------------------
-  FreeSpace m_freeSpaceInDefault;
+  mutable FreeSpace m_freeSpace;
 
   //----------------------------------------------------------------------------
   //! Counter that is incremented each time a file is successfully stagerrm'ed

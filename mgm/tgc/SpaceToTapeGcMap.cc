@@ -40,13 +40,16 @@ EOSTGCNAMESPACE_BEGIN
 //----------------------------------------------------------------------------
 //! Constructor
 //----------------------------------------------------------------------------
-SpaceToTapeGcMap::SpaceToTapeGcMap() {
+SpaceToTapeGcMap::SpaceToTapeGcMap()
+{
 }
 
 //----------------------------------------------------------------------------
 //! Create a tape aware garbage collector for the specified EOS space.
 //----------------------------------------------------------------------------
-void SpaceToTapeGcMap::createGc(const std::string &space) {
+void
+SpaceToTapeGcMap::createGc(const std::string &space)
+{
   if(space.empty()) {
     std::ostringstream msg;
     msg << "EOS space passed to " << __FUNCTION__ << " is an empty string";
@@ -68,7 +71,9 @@ void SpaceToTapeGcMap::createGc(const std::string &space) {
 //----------------------------------------------------------------------------
 //! Returns the garbage collector associated with the specified EOS space.
 //----------------------------------------------------------------------------
-TapeGc &SpaceToTapeGcMap::getGc(const std::string &space) {
+TapeGc
+&SpaceToTapeGcMap::getGc(const std::string &space) const
+{
   if(space.empty()) {
     std::ostringstream msg;
     msg << "EOS space passed to " << __FUNCTION__ << " is an empty string";

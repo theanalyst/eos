@@ -94,7 +94,7 @@ public:
   //! space.
   //! @throw UnknownEOSSpace If the specified EOS space is unknown.
   //----------------------------------------------------------------------------
-  TapeGc &getGc(const std::string &space);
+  TapeGc &getGc(const std::string &space) const;
 
 private:
 

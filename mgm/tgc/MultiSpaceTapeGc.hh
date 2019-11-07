@@ -66,7 +66,7 @@ public:
   MultiSpaceTapeGc &operator=(const MultiSpaceTapeGc &) = delete;
 
   //----------------------------------------------------------------------------
-  //! Enable the garbage collection for the specified EOS space
+  //! Enable garbage collection for the specified EOS space
   //!
   //! @param space The name of the EOs space
   //----------------------------------------------------------------------------
@@ -98,33 +98,37 @@ public:
 
   //----------------------------------------------------------------------------
   //! @return the number of files successfully stagerrm'ed since boot for the
-  //! specified EOS space
+  //! specified EOS space.  Zero is returned in the case of an error.
   //!
   //! @param space the name of the EOS space
   //----------------------------------------------------------------------------
-  uint64_t getNbStagerrms(const std::string &space) const;
+  uint64_t getNbStagerrms(const std::string &space) const noexcept;
 
   //----------------------------------------------------------------------------
-  //! @return the size of the LRU queue for the specified EOS space
+  //! @return the size of the LRU queue for the specified EOS space.  Zero is
+  //! returned in the case of an error.
   //!
   //! @param space the name of the EOS space
   //----------------------------------------------------------------------------
-  Lru::FidQueue::size_type getLruQueueSize(const std::string &space);
+  Lru::FidQueue::size_type getLruQueueSize(const std::string &space) const
+    noexcept;
 
   //----------------------------------------------------------------------------
-  //! @return the amount of free bytes in the specified EOS space
+  //! @return the amount of free bytes in the specified EOS space.  Zero is
+  //! returned in the case of an error.
   //!
   //! @param space the name of the EOS space
   //----------------------------------------------------------------------------
-  uint64_t getSpaceFreeBytes(const std::string &space);
+  uint64_t getFreeBytes(const std::string &space) const noexcept;
 
   //----------------------------------------------------------------------------
   //! @return the timestamp at which the specified EOS space was queried for
-  //! free space
+  //! free space.  Zero is returned in the case of error.
   //!
   //! @param space the name of the EOS space
   //----------------------------------------------------------------------------
-  time_t getSpaceFreeSpaceQueryTimestamp(const std::string &space);
+  time_t getFreeSpaceQueryTimestamp(const std::string &space) const
+    noexcept;
 
 private:
 
