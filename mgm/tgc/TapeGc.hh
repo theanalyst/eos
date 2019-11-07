@@ -58,8 +58,11 @@ class TapeGc
 public:
   //----------------------------------------------------------------------------
   //! Constructor
+  //!
+  //! @param space the name of EOS space that this garbage collector will work
+  //! on
   //----------------------------------------------------------------------------
-  TapeGc();
+  TapeGc(const std::string &space);
 
   //----------------------------------------------------------------------------
   //! Destructor
@@ -126,6 +129,9 @@ public:
   time_t getFreeSpaceQueryTimestamp() const noexcept;
 
 protected:
+
+  /// The name of the EOS sapce being worked on by this garbage collector
+  std::string m_space;
 
   /// Used to ensure the enable() method only starts the worker thread once
   std::atomic_flag m_enabledMethodCalled = ATOMIC_FLAG_INIT;
@@ -198,11 +204,12 @@ protected:
   //----------------------------------------------------------------------------
   //! Return the preamble to be placed at the beginning of every log message
   //!
+  //! @param space The name of the EOS space
   //! @param path The file path
   //! @param fid The file identifier
   //----------------------------------------------------------------------------
-  static std::string createLogPreamble(const std::string &path,
-    const IFileMD::id_t fid);
+  static std::string createLogPreamble(const std::string &space,
+    const std::string &path, const IFileMD::id_t fid);
 
   /// Thrown when a string is not a valid unsigned 64-bit integer
   struct InvalidUint64: public std::runtime_error {
@@ -216,11 +223,11 @@ protected:
 
   //----------------------------------------------------------------------------
   //! Cached value for the minimum number of free bytes to be available in the
-  //! default EOS space.  If the actual number of free bytes is less than this
-  //! value then the garbage collector will try to free up space by garbage
-  //! collecting disk replicas.
+  //! EOS space worked on by this garnage collector.  If the actual number of
+  //! free bytes is less than this value then the garbage collector will try to
+  //! free up space by garbage collecting disk replicas.
   //----------------------------------------------------------------------------
-  CachedValue<uint64_t> m_cachedDefaultSpaceMinFreeBytes;
+  CachedValue<uint64_t> m_minFreeBytes;
 
   //----------------------------------------------------------------------------
   //! Object responsible for determining the number of free bytes in the EOS
@@ -236,7 +243,7 @@ protected:
   //----------------------------------------------------------------------------
   //! @return the configured min free bytes for default space and log if changed
   //----------------------------------------------------------------------------
-  uint64_t getDefaultSpaceMinFreeBytesAndLogIfChanged();
+  uint64_t getMinFreeBytesAndLogIfChanged();
 };
 
 EOSTGCNAMESPACE_END

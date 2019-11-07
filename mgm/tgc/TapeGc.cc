@@ -41,12 +41,13 @@ EOSTGCNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 // Constructor
 //------------------------------------------------------------------------------
-TapeGc::TapeGc():
+TapeGc::TapeGc(const std::string &space):
+  m_space(space),
   m_enabled(false),
-  m_cachedDefaultSpaceMinFreeBytes(
-    std::bind(getSpaceConfigMinFreeBytes, "default"), // Value getter
+  m_minFreeBytes(
+    std::bind(getSpaceConfigMinFreeBytes, space), // Value getter
     10), // Maximum age of cached value in seconds
-  m_freeSpace("default", TGC_SPACE_QUERY_PERIOD_SECS),
+  m_freeSpace(space, TGC_SPACE_QUERY_PERIOD_SECS),
   m_nbStagerrms(0)
 {
 }
@@ -117,7 +118,7 @@ TapeGc::fileOpened(const std::string &path, const IFileMD &fmd) noexcept
 
   try {
     const auto fid = fmd.getId();
-    const std::string preamble = createLogPreamble(path, fid);
+    const std::string preamble = createLogPreamble(m_space, path, fid);
     eos_static_debug(preamble.c_str());
 
     // Only consider files that have a CTA archive ID as only these can be
@@ -151,7 +152,7 @@ TapeGc::fileReplicaCommitted(const std::string &path, const IFileMD &fmd) noexce
 
   try {
     const auto fid = fmd.getId();
-    const std::string preamble = createLogPreamble(path, fid);
+    const std::string preamble = createLogPreamble(m_space, path, fid);
     eos_static_debug(preamble.c_str());
 
     // Only consider files that have a CTA archive ID as only these can be
@@ -212,12 +213,12 @@ bool
 TapeGc::tryToGarbageCollectASingleFile() noexcept
 {
   try {
-    const auto defaultSpaceMinFreeBytes = getDefaultSpaceMinFreeBytesAndLogIfChanged();
+    const auto minFreeBytes = getMinFreeBytesAndLogIfChanged();
 
     try {
       // Return no file was garbage collected if there is still enough free space
-      const auto actualDefaultSpaceNbFreeBytes = m_freeSpace.getFreeBytes();
-      if(actualDefaultSpaceNbFreeBytes >= defaultSpaceMinFreeBytes) return false;
+      const auto actualFreeBytes = m_freeSpace.getFreeBytes();
+      if(actualFreeBytes >= minFreeBytes) return false;
     } catch(SpaceNotFound &) {
       // Return no file was garbage collected if the space was not found
       return false;
@@ -282,11 +283,11 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
 //------------------------------------------------------------------------------
 // Returns the configured min free bytes for default space and logs if changed
 //------------------------------------------------------------------------------
-uint64_t TapeGc::getDefaultSpaceMinFreeBytesAndLogIfChanged() {
-  const auto minFreeBytes = m_cachedDefaultSpaceMinFreeBytes.get();
+uint64_t TapeGc::getMinFreeBytesAndLogIfChanged() {
+  const auto minFreeBytes = m_minFreeBytes.get();
   if(minFreeBytes.prev != minFreeBytes.current) {
     std::ostringstream msg;
-    msg << "msg=\"defaultSpaceMinFreeBytes has been changed from " << minFreeBytes.prev << "to " <<
+    msg << "msg=\"minFreeBytes has been changed from " << minFreeBytes.prev << "to " <<
       minFreeBytes.current << "\"";
     eos_static_info(msg.str().c_str());
   }
@@ -344,11 +345,13 @@ TapeGc::stagerrmAsRoot(const IFileMD::id_t fid)
 // Return the preamble to be placed at the beginning of every log message
 //----------------------------------------------------------------------------
 std::string
-TapeGc::createLogPreamble(const std::string &path, const IFileMD::id_t fid)
+TapeGc::createLogPreamble(const std::string &space, const std::string &path,
+  const IFileMD::id_t fid)
 {
   std::ostringstream preamble;
 
-  preamble << "fxid=" << std::hex << fid << " path=\"" << path << "\"";
+  preamble << "space=\"" << space << "\" fxid=" << std::hex << fid <<
+    " path=\"" << path << "\"";
 
   return preamble.str();
 }
@@ -368,14 +371,15 @@ TapeGc::getNbStagerrms() const noexcept
 Lru::FidQueue::size_type
 TapeGc::getLruQueueSize() const noexcept
 {
-  const char *const msgFormat = "TapeGc::getLruQueueSize() failed: %s";
+  const char *const msgFormat =
+    "TapeGc::getLruQueueSize() failed space=%s: %s";
   try {
     std::lock_guard<std::mutex> lruQueueLock(m_lruQueueMutex);
     return m_lruQueue.size();
   } catch(std::exception &ex) {
-    eos_static_err(msgFormat, ex.what());
+    eos_static_err(msgFormat, m_space.c_str(), ex.what());
   } catch(...) {
-    eos_static_err(msgFormat, "Caught an unknown exception");
+    eos_static_err(msgFormat, m_space.c_str(), "Caught an unknown exception");
   }
 
   return 0;
@@ -386,13 +390,14 @@ TapeGc::getLruQueueSize() const noexcept
 //----------------------------------------------------------------------------
 uint64_t
 TapeGc::getFreeBytes() const noexcept {
-  const char *const msgFormat = "TapeGc::getSpaceFreeBytes() failed: %s";
+  const char *const msgFormat =
+    "TapeGc::getSpaceFreeBytes() failed space=%s: %s";
   try {
     return m_freeSpace.getFreeBytes();
   } catch(std::exception &ex) {
-    eos_static_err(msgFormat, ex.what());
+    eos_static_err(msgFormat, m_space.c_str(), ex.what());
   } catch(...) {
-    eos_static_err(msgFormat, "Caught an unknown exception");
+    eos_static_err(msgFormat, m_space.c_str(), "Caught an unknown exception");
   }
 
   return 0;
@@ -404,13 +409,13 @@ TapeGc::getFreeBytes() const noexcept {
 time_t
 TapeGc::getFreeSpaceQueryTimestamp() const noexcept {
   const char *const msgFormat =
-    "TapeGc::getFreeSpaceQueryTimestamp() failed: %s";
+    "TapeGc::getFreeSpaceQueryTimestamp() failed space=%s: %s";
   try {
     return m_freeSpace.getFreeSpaceQueryTimestamp();
   } catch(std::exception &ex) {
-    eos_static_err(msgFormat, ex.what());
+    eos_static_err(msgFormat, m_space.c_str(), ex.what());
   } catch(...) {
-    eos_static_err(msgFormat, "Caught an unknown exception");
+    eos_static_err(msgFormat, m_space.c_str(), "Caught an unknown exception");
   }
 
   return 0;

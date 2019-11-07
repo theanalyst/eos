@@ -65,7 +65,7 @@ SpaceToTapeGcMap::createGc(const std::string &space)
     throw GcAlreadyExists(msg.str());
   }
 
-  m_gcs.emplace(space, std::make_unique<TapeGc>());
+  m_gcs.emplace(space, std::make_unique<TapeGc>(space));
 }
 
 //----------------------------------------------------------------------------
