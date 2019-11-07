@@ -123,8 +123,9 @@ public:
   uint64_t getFreeBytes() const noexcept;
 
   //----------------------------------------------------------------------------
-  //! @return the timestamp at which the EOS space named default was queried for
-  //! free space.  Zero is returned in the case of error.
+  //! @return the timestamp at which the EOS space worked on by this garbage
+  //! collector was queried for free space.  Zero is returned in the case of
+  //! error.
   //----------------------------------------------------------------------------
   time_t getFreeSpaceQueryTimestamp() const noexcept;
 
@@ -241,7 +242,8 @@ protected:
   std::atomic<uint64_t> m_nbStagerrms;
 
   //----------------------------------------------------------------------------
-  //! @return the configured min free bytes for default space and log if changed
+  //! @return the configured min free bytes for the EOS space worked on by this
+  //! garbage collector and log if changed
   //----------------------------------------------------------------------------
   uint64_t getMinFreeBytesAndLogIfChanged();
 };
