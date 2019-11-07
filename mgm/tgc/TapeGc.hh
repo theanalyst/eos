@@ -26,6 +26,7 @@
 
 #include "common/Logging.hh"
 #include "mgm/Namespace.hh"
+#include "mgm/tgc/BlockingFlag.hh"
 #include "mgm/tgc/FreeSpace.hh"
 #include "mgm/tgc/Lru.hh"
 #include "namespace/interface/IFileMD.hh"
@@ -33,7 +34,6 @@
 #include "proto/ConsoleRequest.pb.h"
 
 #include <atomic>
-#include <condition_variable>
 #include <mutex>
 #include <stdexcept>
 #include <stdint.h>
@@ -126,75 +126,6 @@ public:
   time_t getFreeSpaceQueryTimestamp() const noexcept;
 
 protected:
-
-  //----------------------------------------------------------------------------
-  //! Boolean flag that starts with a value of false and can have timed waits on
-  //! its value becoming true.
-  //----------------------------------------------------------------------------
-  class BlockingFlag {
-  public:
-
-    //--------------------------------------------------------------------------
-    //! Constructor
-    //--------------------------------------------------------------------------
-    BlockingFlag(): m_flag(false) {
-    }
-
-    //--------------------------------------------------------------------------
-    //! Boolean operator
-    //--------------------------------------------------------------------------
-    operator bool() const {
-      std::unique_lock<std::mutex> lock(m_mutex);
-      return m_flag;
-    }
-
-    //--------------------------------------------------------------------------
-    //! Waits the specified duration for the flag to become true
-    //!
-    //! @param duration The amount of time to wait
-    //! @return True if the flag has been set to true, else false if a timeout
-    //! has occurred
-    //--------------------------------------------------------------------------
-    template<class Duration> bool waitForTrue(Duration duration) noexcept {
-      try {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        return m_cond.wait_for(lock, duration, [&]{return m_flag;});
-      } catch(std::exception &ex) {
-        eos_static_err("msg=\"%s\"", ex.what());
-      } catch(...) {
-        eos_static_err("msg=\"Caught an unknown exception\"");
-      }
-      return false;
-    }
-
-    //--------------------------------------------------------------------------
-    //! Sets the flag to true and wakes all threads waiting on waitForTrue()
-    //--------------------------------------------------------------------------
-    void setToTrue() {
-      std::unique_lock<std::mutex> lock(m_mutex);
-      m_flag = true;
-      m_cond.notify_all();
-    }
-
-  private:
-
-    //--------------------------------------------------------------------------
-    //! Mutex protecting the flag
-    //--------------------------------------------------------------------------
-    mutable std::mutex m_mutex;
-
-    //--------------------------------------------------------------------------
-    //! The condition variable of the flag
-    //--------------------------------------------------------------------------
-    std::condition_variable m_cond;
-
-    //--------------------------------------------------------------------------
-    //! The flag
-    //--------------------------------------------------------------------------
-    bool m_flag;
-
-  }; // class BlockingFlag
-
 
   /// Used to ensure the enable() method only starts the worker thread once
   std::atomic_flag m_enabledMethodCalled = ATOMIC_FLAG_INIT;
