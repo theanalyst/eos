@@ -50,6 +50,7 @@
 #include "mgm/Master.hh"
 #include "mgm/QdbMaster.hh"
 #include "mgm/Messaging.hh"
+#include "mgm/tgc/MultiSpaceTapeGc.hh"
 #include "mgm/tracker/ReplicationTracker.hh"
 #include "mgm/inspector/FileInspector.hh"
 #include "common/StacktraceHere.hh"
@@ -691,6 +692,13 @@ XrdMgmOfs::Configure(XrdSysError& Eroute)
           } else {
             mPrepareDestSpace = val;
             Eroute.Say("=====> mgmofs.prepare.dest.space : ", mPrepareDestSpace.c_str());
+          }
+        }
+
+        if (!strcmp("tgc.enablespace", var)) {
+          while ((val = Config.GetWord())) {
+            mTapeGc->enable(val);
+            Eroute.Say("=====> mgmofs.tgc.enablespace : ", val);
           }
         }
 
