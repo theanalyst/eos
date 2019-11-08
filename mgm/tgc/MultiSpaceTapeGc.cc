@@ -90,27 +90,6 @@ MultiSpaceTapeGc::fileOpened(const std::string &space, const std::string &path,
 }
 
 //------------------------------------------------------------------------------
-//! Notify GC a replica of the specified file has been committed
-//------------------------------------------------------------------------------
-void
-MultiSpaceTapeGc::fileReplicaCommitted(const std::string &space,
-  const std::string &path, const IFileMD &fmd) noexcept
-{
-  const char *const msgFormat =
-    "Error handling 'file replica committed' event space=%s path=%s: %s";
-
-  try {
-    auto &gc = m_gcs.getGc(space);
-    gc.fileReplicaCommitted(path, fmd);
-  } catch (std::exception &ex) {
-    eos_static_err(msgFormat, space.c_str(), path.c_str(), ex.what());
-  } catch (...) {
-    eos_static_err(msgFormat, space.c_str(), path.c_str(),
-      "Caught an unknown exception");
-  }
-}
-
-//------------------------------------------------------------------------------
 //! Return the number of files successfully stagerrm'ed since boot
 //------------------------------------------------------------------------------
 uint64_t

@@ -85,18 +85,6 @@ public:
     const IFileMD &fmd) noexcept;
 
   //----------------------------------------------------------------------------
-  //! Notify GC a replica of the specified file has been committed
-  //! @note This method does nothing and returns immediately if the GC has not
-  //! been enabled
-  //!
-  //! @param space the name of the EOS space where the file resides
-  //! @param path file path
-  //! @param fmd file metadata
-  //----------------------------------------------------------------------------
-  void fileReplicaCommitted(const std::string &space, const std::string &path,
-    const IFileMD &fmd) noexcept;
-
-  //----------------------------------------------------------------------------
   //! @return the number of files successfully stagerrm'ed since boot for the
   //! specified EOS space.  Zero is returned in the case of an error.
   //!

@@ -95,17 +95,6 @@ public:
   void fileOpened(const std::string &path, const IFileMD &fmd) noexcept;
 
   //----------------------------------------------------------------------------
-  //! Notify GC a replica of the specified file has been committed
-  //! @note This method does nothing and returns immediately if the GC has not
-  //! been enabled
-  //!
-  //! @param path file path
-  //! @param fmd file metadata
-  //----------------------------------------------------------------------------
-  void fileReplicaCommitted(const std::string &path, const IFileMD &fmd)
-    noexcept;
-
-  //----------------------------------------------------------------------------
   //! @return the number of files successfully stagerrm'ed since boot.  Zero is
   //! returned in the case of error.
   //----------------------------------------------------------------------------

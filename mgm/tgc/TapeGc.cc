@@ -143,40 +143,6 @@ TapeGc::fileOpened(const std::string &path, const IFileMD &fmd) noexcept
 }
 
 //------------------------------------------------------------------------------
-// Notify GC a replica of the specified file has been committed
-//------------------------------------------------------------------------------
-void
-TapeGc::fileReplicaCommitted(const std::string &path, const IFileMD &fmd) noexcept
-{
-  if(!m_enabled) return;
-
-  try {
-    const auto fid = fmd.getId();
-    const std::string preamble = createLogPreamble(m_space, path, fid);
-    eos_static_debug(preamble.c_str());
-
-    // Only consider files that have a CTA archive ID as only these can be
-    // guaranteed to have been successfully closed, committed and intended for
-    // tape storage
-    if(!fmd.hasAttribute("CTA_ArchiveFileId")) return;
-
-    std::lock_guard<std::mutex> lruQueueLock(m_lruQueueMutex);
-    const bool exceededBefore = m_lruQueue.maxQueueSizeExceeded();
-    m_lruQueue.fileAccessed(fid);
-
-    // Only log crossing the max queue size threshold - don't log each access
-    if(!exceededBefore && m_lruQueue.maxQueueSizeExceeded()) {
-      eos_static_warning("%s msg=\"Tape aware max queue size has been passed - "
-        "new files will be ignored\"", preamble.c_str());
-    }
-  } catch(std::exception &ex) {
-    eos_static_err("msg=\"%s\"", ex.what());
-  } catch(...) {
-    eos_static_err("msg=\"Caught an unknown exception\"");
-  }
-}
-
-//------------------------------------------------------------------------------
 // Return the minimum number of free bytes the specified space should have
 // as set in the configuration variables of the space.  If the minimum
 // number of free bytes cannot be determined for whatever reason then 0 is
