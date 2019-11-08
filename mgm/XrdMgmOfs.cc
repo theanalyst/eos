@@ -306,6 +306,8 @@ XrdMgmOfs::XrdMgmOfs(XrdSysError* ep):
 
   EgroupRefresh.reset(new eos::mgm::Egroup());
   Recycler.reset(new eos::mgm::Recycle());
+
+  mTapeGc.reset(new tgc::MultiSpaceTapeGc());
 }
 
 //------------------------------------------------------------------------------
