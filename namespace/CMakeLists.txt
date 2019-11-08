@@ -27,7 +27,6 @@
 include_directories(
   ${CMAKE_BINARY_DIR}
   ${CMAKE_SOURCE_DIR}
-  ${FOLLY_INCLUDE_DIRS}
   ${CMAKE_SOURCE_DIR}/namespace/ns_quarkdb/qclient/include)
 
 add_library(
@@ -106,7 +105,8 @@ add_library(
 
 target_link_libraries(EosNsCommon-Objects PUBLIC
   EosCliProto-Objects
-  XROOTD::UTILS)
+  XROOTD::UTILS
+  FOLLY::FOLLY)
 
 set_target_properties(EosNsCommon-Objects
   PROPERTIES POSITION_INDEPENDENT_CODE True)
@@ -120,13 +120,13 @@ target_include_directories(
   $<INSTALL_INTERFACE:include>)
 
 target_link_libraries(EosNsCommon PUBLIC
+  EosNsCommon-Objects
   EosCliProto-Objects
   EosCrc32c-Objects
   EosCommon
   qclient
   rocksdb
-  ${FOLLY_LIBRARIES}
-  ${Z_LIBRARY} fmt)
+  fmt)
 
 set_target_properties(
   EosNsCommon
@@ -143,28 +143,22 @@ install(
 # EosNsCommon-Static library
 #-------------------------------------------------------------------------------
 if (Linux)
-  add_library(EosNsCommon-Static STATIC
-    $<TARGET_OBJECTS:EosNsCommon-Objects>
-    $<TARGET_OBJECTS:EosCrc32c-Objects>)
+  add_library(EosNsCommon-Static STATIC $<TARGET_OBJECTS:EosNsCommon-Objects>)
 
-  target_include_directories(
-    EosNsCommon-Static PUBLIC
+  target_include_directories(EosNsCommon-Static PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utils/fmt>
     $<INSTALL_INTERFACE:include>)
 
-  target_link_libraries(
-    EosNsCommon-Static PUBLIC
+  target_link_libraries(EosNsCommon-Static PUBLIC
+    EosNsCommon-Objects
+    EosCrc32c-Objects
     EosCommon-Static
     fmt
     qclient
-    rocksdb
-    ${FOLLY_LIBRARIES}
-    ${Z_LIBRARY_STATIC})
+    rocksdb)
 
-  set_target_properties(
-    EosNsCommon-Static
-    PROPERTIES
+  set_target_properties(EosNsCommon-Static PROPERTIES
     POSITION_INDEPENDENT_CODE True)
 endif ()
 

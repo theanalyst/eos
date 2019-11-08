@@ -25,7 +25,12 @@
 #include "mgm/Namespace.hh"
 #include "IProcCommand.hh"
 #include <iomanip>
-#include <json/json.h>
+
+//! Forward declaration
+namespace Json
+{
+class Value;
+}
 
 EOSMGMNAMESPACE_BEGIN
 

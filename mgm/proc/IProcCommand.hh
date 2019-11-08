@@ -28,12 +28,16 @@
 #include "proto/ConsoleReply.pb.h"
 #include "proto/ConsoleRequest.pb.h"
 #include "XrdSfs/XrdSfsInterface.hh"
-#include "json/json.h"
 #include <future>
 #include <sstream>
 
 //! Forward declarations
 class XrdOucErrInfo;
+
+namespace Json
+{
+class Value;
+}
 
 EOSMGMNAMESPACE_BEGIN
 
@@ -212,7 +216,8 @@ protected:
   //! @return retc return code
   //----------------------------------------------------------------------------
   void GetPathFromFid(XrdOucString& path, unsigned long long fid,
-                     const std::string& err_msg_prefix); // drop when we drop non-proto commands using it
+                      const std::string&
+                      err_msg_prefix); // drop when we drop non-proto commands using it
 
   int GetPathFromFid(std::string& path, unsigned long long fid,
                      std::string& err_msg);
@@ -226,7 +231,8 @@ protected:
   //! @param err_msg_prefix error message to be displayed in case of exception
   //----------------------------------------------------------------------------
   void GetPathFromCid(XrdOucString& path, unsigned long long cid,
-                      const std::string& err_msg_prefix); // drop when we drop non-proto commands using it
+                      const std::string&
+                      err_msg_prefix); // drop when we drop non-proto commands using it
 
   int GetPathFromCid(std::string& path, unsigned long long cid,
                      std::string& err_msg);
