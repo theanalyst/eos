@@ -127,7 +127,6 @@ endif ()
 #-------------------------------------------------------------------------------
 # Build qclient static library
 #-------------------------------------------------------------------------------
-include_directories(${FOLLY_INCLUDE_DIRS})
 add_subdirectory(namespace/ns_quarkdb/qclient)
 
 add_subdirectory(common)

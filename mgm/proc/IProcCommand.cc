@@ -28,6 +28,7 @@
 #include "mgm/proc/ProcInterface.hh"
 #include "mgm/Macros.hh"
 #include "namespace/interface/IView.hh"
+#include "json/json.h"
 #include <google/protobuf/util/json_util.h>
 
 EOSMGMNAMESPACE_BEGIN
@@ -80,7 +81,6 @@ IProcCommand::open(const char* path, const char* info,
       if (mRoutingInfo.stall_timeout) {
         // Force re-execution of the command upon return from stall
         mExecRequest = false;
-
         std::string stall_msg = "No master MGM available";
         return gOFS->Stall(*error, mRoutingInfo.stall_timeout,
                            stall_msg.c_str());
@@ -303,41 +303,40 @@ IProcCommand::ConvertOutputToJsonFormat(const std::string& stdOut)
     XrdOucString sline = line.c_str();
 
     while (sline.replace("<n>", "n")) {}
+
     while (sline.replace("?configstatus@rw", "_rw")) {}
 
     line = sline.c_str();
     std::map <std::string, std::string> map;
     StringConversion::GetKeyValueMap(line.c_str(), map, "=", " ");
-
     // These values violate the JSON hierarchy and have to be rewritten
     StringConversion::ReplaceMapKey(map, "cfg.balancer",
-        "cfg.balancer.status");
+                                    "cfg.balancer.status");
     StringConversion::ReplaceMapKey(map, "cfg.geotagbalancer",
-        "cfg.geotagbalancer.status");
+                                    "cfg.geotagbalancer.status");
     StringConversion::ReplaceMapKey(map, "cfg.geobalancer",
-        "cfg.geobalancer.status");
+                                    "cfg.geobalancer.status");
     StringConversion::ReplaceMapKey(map, "cfg.groupbalancer",
-        "cfg.groupbalancer.status");
+                                    "cfg.groupbalancer.status");
     StringConversion::ReplaceMapKey(map, "geotagbalancer",
-        "geotagbalancer.status");
+                                    "geotagbalancer.status");
     StringConversion::ReplaceMapKey(map, "geobalancer",
-        "geobalancer.status");
+                                    "geobalancer.status");
     StringConversion::ReplaceMapKey(map, "groupbalancer",
-        "groupbalancer.status");
+                                    "groupbalancer.status");
     StringConversion::ReplaceMapKey(map, "cfg.wfe", "cfg.wfe.status");
     StringConversion::ReplaceMapKey(map, "cfg.lru", "cfg.lru.status");
     StringConversion::ReplaceMapKey(map, "stat.drain", "stat.drain.status");
-    StringConversion::ReplaceMapKey(map, "stat.health","stat.health.status");
+    StringConversion::ReplaceMapKey(map, "stat.health", "stat.health.status");
     StringConversion::ReplaceMapKey(map, "wfe", "wfe.status");
     StringConversion::ReplaceMapKey(map, "lru", "lru.status");
     StringConversion::ReplaceMapKey(map, "balancer", "balancer.status");
     StringConversion::ReplaceMapKey(map, "converter", "converter.status");
 
-    for (auto & it : map) {
+    for (auto& it : map) {
       std::vector<std::string> token;
       char* conv;
       errno = 0;
-
       StringConversion::Tokenize(it.first, token, ".");
       double val = strtod(it.second.c_str(), &conv);
       std::string value;
@@ -432,16 +431,19 @@ IProcCommand::GetPathFromFid(std::string& path, unsigned long long fid,
 
     try {
       eos::common::RWMutexReadLock vlock(gOFS->eosViewRWMutex);
-      std::string temp = gOFS->eosView->getUri(gOFS->eosFileService->getFileMD(fid).get());
+      std::string temp = gOFS->eosView->getUri(gOFS->eosFileService->getFileMD(
+                           fid).get());
       path = temp;
       return 0;
     } catch (eos::MDException& e) {
       errno = e.getErrno();
-      eos_debug("caught exception %d %s\n", e.getErrno(), e.getMessage().str().c_str());
+      eos_debug("caught exception %d %s\n", e.getErrno(),
+                e.getMessage().str().c_str());
       err_msg = "error: " + e.getMessage().str() + '\n';
       return errno;
     }
   }
+
   return EINVAL;
 }
 
@@ -472,16 +474,19 @@ IProcCommand::GetPathFromCid(std::string& path, unsigned long long cid,
 
     try {
       eos::common::RWMutexReadLock vlock(gOFS->eosViewRWMutex);
-      std::string temp = gOFS->eosView->getUri(gOFS->eosDirectoryService->getContainerMD(cid).get());
+      std::string temp = gOFS->eosView->getUri(
+                           gOFS->eosDirectoryService->getContainerMD(cid).get());
       path = temp;
       return 0;
     } catch (eos::MDException& e) {
       errno = e.getErrno();
-      eos_debug("caught exception %d %s\n", e.getErrno(), e.getMessage().str().c_str());
+      eos_debug("caught exception %d %s\n", e.getErrno(),
+                e.getMessage().str().c_str());
       err_msg = "error: " + e.getMessage().str() + '\n';
       return errno;
     }
   }
+
   return EINVAL;
 }
 
@@ -540,7 +545,7 @@ IProcCommand::HasSlot()
     init = true;
 
     for (const auto& type : {
-        eos::console::RequestProto::kAcl,
+    eos::console::RequestProto::kAcl,
         eos::console::RequestProto::kNs,
         eos::console::RequestProto::kDrain,
         eos::console::RequestProto::kFind,
