@@ -46,6 +46,7 @@
 #include "mgm/Macros.hh"
 #include "mgm/ZMQ.hh"
 #include "mgm/Master.hh"
+#include "mgm/tgc/MultiSpaceTapeGc.hh"
 #include "namespace/Prefetcher.hh"
 #include "namespace/Resolver.hh"
 #include "authz/XrdCapability.hh"
@@ -2449,6 +2450,10 @@ XrdMgmOfsFile::open(const char* inpath,
       } catch (eos::MDException& ex) {
       }
     }
+  }
+
+  if (nullptr != fmd && nullptr != space.c_str()) {
+    gOFS->mTapeGc->fileOpened(space.c_str(), path, *fmd);
   }
 
   // Also trigger synchronous create workflow event if it's defined
