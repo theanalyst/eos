@@ -159,7 +159,7 @@ TapeGc::getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept
       if (FsView::gFsView.mSpaceView.end() == spaceItor) return 0;
       if (nullptr == spaceItor->second) return 0;
       const auto &space = *(spaceItor->second);
-      valueStr = space.GetConfigMember("tapeawaregc.minfreebytes");
+      valueStr = space.GetConfigMember("tgc.minfreebytes");
     }
 
     if(valueStr.empty()) {
