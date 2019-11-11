@@ -69,14 +69,15 @@ public:
   };
 
   //----------------------------------------------------------------------------
-  //! Thread safe method that creates a tape aware garbage collector for the
+  //! Thread safe method that creates a tape-aware garbage collector for the
   //! specified EOS space.
   //!
   //! @param space The name of the EOS space.
-  //! @throw GcAlreadyExists If a tape aware garbage collector altready exists
+  //! @preturn A reference to the newly created tape-aware garbage collector.
+  //! @throw GcAlreadyExists If a tape aware garbage collector already exists
   //! for the specified EOS space.
   //----------------------------------------------------------------------------
-  void createGc(const std::string &space);
+  TapeGc &createGc(const std::string &space);
 
   //----------------------------------------------------------------------------
   //! Exception thrown when an unknown EOS space is encountered.

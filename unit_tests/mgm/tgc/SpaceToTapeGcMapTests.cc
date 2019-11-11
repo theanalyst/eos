@@ -69,9 +69,11 @@ TEST_F(TgcSpaceToTapeGcMapTest, createGc)
   const std::string space = "space";
   SpaceToTapeGcMap map;
 
-  map.createGc(space);
+  TapeGc &gc1 = map.createGc(space);
 
-  map.getGc(space);
+  TapeGc &gc2 = map.getGc(space);
+
+  ASSERT_EQ(&gc1, &gc2);
 }
 
 //------------------------------------------------------------------------------

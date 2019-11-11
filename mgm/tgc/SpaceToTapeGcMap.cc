@@ -47,7 +47,7 @@ SpaceToTapeGcMap::SpaceToTapeGcMap()
 //----------------------------------------------------------------------------
 //! Create a tape aware garbage collector for the specified EOS space.
 //----------------------------------------------------------------------------
-void
+TapeGc&
 SpaceToTapeGcMap::createGc(const std::string &space)
 {
   if(space.empty()) {
@@ -65,7 +65,13 @@ SpaceToTapeGcMap::createGc(const std::string &space)
     throw GcAlreadyExists(msg.str());
   }
 
-  m_gcs.emplace(space, std::make_unique<TapeGc>(space));
+  const auto result = m_gcs.emplace(space, std::make_unique<TapeGc>(space));
+  if(!result.second) {
+    std::ostringstream msg;
+    msg << "Failed to insert new TapeGC for EOS space " << space << " into internal map";
+    throw std::runtime_error(msg.str());
+  }
+  return *(result.first->second);
 }
 
 //----------------------------------------------------------------------------

@@ -58,7 +58,7 @@ MultiSpaceTapeGc::enable(const std::string &space) noexcept
     "Unable to enable tape-aware garbage collection space=%s: %s";
 
   try {
-    auto &gc = m_gcs.getGc(space);
+    auto &gc = m_gcs.createGc(space);
     gc.enable();
   } catch (std::exception &ex) {
     eos_static_err(msgFormat, space.c_str(), ex.what());
