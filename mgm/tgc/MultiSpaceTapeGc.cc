@@ -80,6 +80,8 @@ MultiSpaceTapeGc::fileOpened(const std::string &space, const std::string &path,
   try {
     auto &gc = m_gcs.getGc(space);
     gc.fileOpened(path, fmd);
+  } catch (SpaceToTapeGcMap::UnknownEOSSpace&) {
+    // Ignore events for EOS spaces that do not have an enabled tape-aware GC
   } catch (std::exception &ex) {
     eos_static_err(msgFormat, space.c_str(), fmd.getId(), path.c_str(),
       ex.what());
