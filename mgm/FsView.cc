@@ -976,6 +976,11 @@ FsSpace::FsSpace(const char* name)
     if (GetConfigMember("filearchivedgc").empty()) {
       SetConfigMember("filearchivedgc", "off");
     }
+
+    // Set the default minimum number of free bytes for the tape aware GC
+    if (GetConfigMember("tgc.minfreebytes").empty()) {
+      SetConfigMember("tgc.minfreebytes", "0");
+    }
   }
 
   if (mName == std::string("default")) {

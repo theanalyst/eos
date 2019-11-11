@@ -564,6 +564,8 @@ com_space_usage:
   fprintf(stdout,
           "       space config <space-name> space.filearchivedgc=on|off         : enable/disable the 'file archived' garbage collector [ default=off ]\n");
   fprintf(stdout,
+          "       space config <space-name> space.tgc.minfreebytes=<#>          : configure the minimum number of free bytes the space should have before the tape-aware GC kicks in [ default=0 ] \n");
+  fprintf(stdout,
           "       space config <space-name> space.tracker=on|off                : enable/disable the space layout creation tracker [default=off]\n");
   fprintf(stdout,
           "       space config <space-name> space.inspector=on|off                : enable/disable the file inspector [default=off]\n");
