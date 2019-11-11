@@ -23,7 +23,6 @@
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
-  ${ZMQ_INCLUDE_DIRS}
   ${LDAP_INCLUDE_DIRS}
   ${CMAKE_SOURCE_DIR}/namespace/ns_quarkdb/qclient/include
   ${CMAKE_SOURCE_DIR}/namespace/ns_quarkdb/qclient/src
@@ -244,6 +243,7 @@ target_link_libraries(XrdEosMgm-Objects PUBLIC
   XROOTD::UTILS
   XROOTD::PRIVATE
   FOLLY::FOLLY
+  ZMQ::ZMQ
   GOOGLE::SPARSEHASH)
 
 if (GRPC_FOUND)
@@ -280,7 +280,6 @@ target_link_libraries(XrdEosMgm PUBLIC
   EosNsCommon
   eosCapability-Static
   bfd
-  ${ZMQ_LIBRARIES}
   ${LDAP_LIBRARIES}
   ${GLIBC_DL_LIBRARY}
   ${OPENSSL_CRYPTO_LIBRARY}
@@ -338,7 +337,6 @@ if(Linux)
     EosNsCommon-Static
     EosCommonServer-Static
     eosCapability-Static
-    ${ZMQ_LIBRARIES}
     ${LDAP_LIBRARIES}
     ${GLIBC_DL_LIBRARY}
     ${OPENSSL_CRYPTO_LIBRARY}
