@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_TAPEGCLRU_HH__
-#define __EOSMGM_TAPEGCLRU_HH__
+#ifndef __EOSMGMTGCLRU_HH__
+#define __EOSMGMTGCLRU_HH__
 
 #include "common/Murmur3.hh"
 #include "common/hopscotch_map.hh"
