@@ -282,7 +282,6 @@ target_link_libraries(XrdEosMgm PUBLIC
   bfd
   ${LDAP_LIBRARIES}
   ${GLIBC_DL_LIBRARY}
-  ${OPENSSL_CRYPTO_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
   ${CMAKE_THREAD_LIBS_INIT})
 
@@ -339,8 +338,6 @@ if(Linux)
     eosCapability-Static
     ${LDAP_LIBRARIES}
     ${GLIBC_DL_LIBRARY}
-    ${OPENSSL_CRYPTO_LIBRARY}
-    ${CMAKE_THREAD_LIBS_INIT}
     ${CMAKE_THREAD_LIBS_INIT})
 
   if (GRPC_FOUND)
