@@ -35,7 +35,7 @@
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file TapeGcLru.hh
+ * @file Lru.hh
  *
  * @brief Class implementing a Least Recenting Used (LRU) queue
  *
