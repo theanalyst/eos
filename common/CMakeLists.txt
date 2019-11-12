@@ -187,7 +187,8 @@ if (Linux)
   target_link_libraries(EosCommonServer-Objects PUBLIC
     XROOTD::UTILS
     XROOTD::PRIVATE
-    PROTOBUF::PROTOBUF)
+    PROTOBUF::PROTOBUF
+    LIBMICROHTTPD::LIBMICROHTTPD)
 
   target_include_directories(EosCommonServer-Objects
     PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>)
@@ -204,14 +205,11 @@ if (Linux)
     ${LEVELDB_LIBRARIES}
     ${GLIBC_RT_LIBRARY})
 
-  if(MICROHTTPD_FOUND)
-    LIST(APPEND EOSCOMMONSERVER_LIBS "${MICROHTTPD_LIBRARIES}")
-  endif()
-
   add_library(EosCommonServer SHARED
     $<TARGET_OBJECTS:EosCommonServer-Objects>)
 
   target_link_libraries(EosCommonServer PUBLIC
+    EosCommonServer-Objects
     XrdMqClient
     UUID::UUID
     XROOTD::CL
@@ -233,6 +231,7 @@ if (Linux)
     $<TARGET_OBJECTS:EosCommonServer-Objects>)
 
   target_link_libraries(EosCommonServer-Static PUBLIC
+    EosCommonServer-Objects
     UUID::UUID
     XROOTD::CL
     XROOTD::UTILS
