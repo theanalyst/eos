@@ -121,7 +121,6 @@ target_include_directories(
 
 target_link_libraries(EosNsCommon PUBLIC
   EosNsCommon-Objects
-  EosCliProto-Objects
   EosCrc32c-Objects
   EosCommon
   qclient

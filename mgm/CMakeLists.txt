@@ -229,6 +229,7 @@ target_link_libraries(XrdEosMgm-Objects PUBLIC
   EosCliProto-Objects
   EosAuthProto-Objects
   XrdSsiPbEosCta-Objects
+  EosGrpcProto-Objects
   LIBMICROHTTPD::LIBMICROHTTPD
   GOOGLE::SPARSEHASH
   JSONCPP::JSONCPP
@@ -237,11 +238,6 @@ target_link_libraries(XrdEosMgm-Objects PUBLIC
   FOLLY::FOLLY
   LDAP::LDAP
   ZMQ::ZMQ)
-
-if (GRPC_FOUND)
-  target_link_libaries(XrdEosMgm-Objects PUBLIC
-    EosGrpcProto-Objects)
-endif ()
 
 target_compile_definitions(XrdEosMgm-Objects PUBLIC
   -DDAEMONUID=${DAEMONUID} -DDAEMONGID=${DAEMONGID})
@@ -253,9 +249,8 @@ add_library(XrdEosMgm MODULE $<TARGET_OBJECTS:XrdEosMgm-Objects>)
 
 target_link_libraries(XrdEosMgm PUBLIC
   XrdEosMgm-Objects
-  EosCliProto-Objects
   EosAuthProto-Objects
-  XrdSsiPbEosCta-Objects
+  EosGrpcProto-Objects
   ZLIB::ZLIB
   XROOTD::CL
   XROOTD::SSI
@@ -271,14 +266,12 @@ target_link_libraries(XrdEosMgm PUBLIC
   ${CMAKE_THREAD_LIBS_INIT}
   ${CMAKE_THREAD_LIBS_INIT})
 
-install(
-  TARGETS XrdEosMgm
+install(TARGETS XrdEosMgm
   LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
   RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR})
 
-install(
-  PROGRAMS eos-repair-tool
+install(PROGRAMS eos-repair-tool
   DESTINATION ${CMAKE_INSTALL_FULL_SBINDIR}
   PERMISSIONS OWNER_READ OWNER_EXECUTE
               GROUP_READ GROUP_EXECUTE
@@ -313,7 +306,7 @@ if(Linux)
   target_link_libraries(XrdEosMgm-Static PUBLIC
     XrdEosMgm-Objects
     EosAuthProto-Objects
-    XrdSsiPbEosCta-Objects
+    EosGrpcProto-Objects
     ZLIB::ZLIB
     XROOTD::SSI
     XROOTD::PRIVATE
@@ -322,11 +315,4 @@ if(Linux)
     eosCapability-Static
     ${GLIBC_DL_LIBRARY}
     ${CMAKE_THREAD_LIBS_INIT})
-
-  if (GRPC_FOUND)
-    target_link_libraries(
-      XrdEosMgm-Static PUBLIC
-      ${GRPC_LIBRARY}
-      ${GRPC_GRPC++_LIBRARY})
-  endif()
 endif()
