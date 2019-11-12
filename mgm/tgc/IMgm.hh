@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: MgmWrapper.hh
+// File: IMgm.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGMTGC_MGMWRAPPER_HH__
-#define __EOSMGMTGC_MGMWRAPPER_HH__
+#ifndef __EOSMGMTGC_IMGM_HH__
+#define __EOSMGMTGC_IMGM_HH__
 
 #include "mgm/Namespace.hh"
 #include "namespace/interface/IFileMD.hh"
@@ -32,7 +32,7 @@
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file MgmWrapper.hh
+ * @file IMgm.hh
  *
  * @brief Specifies the tape-aware garbage collector's interface to the EOS MGM
  *
@@ -43,7 +43,7 @@ EOSTGCNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 //! Specifies the tape-aware garbage collector's interface to the EOS MGM
 //------------------------------------------------------------------------------
-class MgmWrapper {
+class IMgm {
 public:
   //----------------------------------------------------------------------------
   //! @return The minimum number of free bytes the specified space should have
