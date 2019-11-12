@@ -100,7 +100,7 @@ TapeGc::workerThreadEntryPoint() noexcept
   do {
     while(!m_stop && tryToGarbageCollectASingleFile()) {
     };
-  } while(!m_stop.waitForTrue(std::chrono::seconds(10)));
+  } while(!m_stop.waitForTrue(std::chrono::seconds(5)));
 }
 
 //------------------------------------------------------------------------------
