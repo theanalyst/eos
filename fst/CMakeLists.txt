@@ -34,7 +34,6 @@ endif()
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
-  ${XFS_INCLUDE_DIRS}
   ${DAVIX_INCLUDE_DIRS}
   ${CMAKE_SOURCE_DIR}/namespace/ns_quarkdb/qclient/include
   ${CMAKE_SOURCE_DIR}/common/xrootd-ssi-protobuf-interface/include)
@@ -333,7 +332,8 @@ target_link_libraries(XrdEosFst-Objects PUBLIC
   EosConsoleHelpers-Objects
   XROOTD::UTILS
   XROOTD::PRIVATE
-  FOLLY::FOLLY)
+  FOLLY::FOLLY
+  XFS::XFS)
 
 set_target_properties(XrdEosFst-Objects PROPERTIES
   POSITION_INDEPENDENT_CODE TRUE)

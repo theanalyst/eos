@@ -21,39 +21,35 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-/*----------------------------------------------------------------------------*/
 #include "common/TransferQueue.hh"
 #include "common/StringTokenizer.hh"
-#include <qclient/shared/SharedDeque.hh>
-#include <qclient/shared/SharedManager.hh>
-/*----------------------------------------------------------------------------*/
-/*----------------------------------------------------------------------------*/
-
-/*----------------------------------------------------------------------------*/
-
+#include "qclient/shared/SharedDeque.hh"
+#include "qclient/shared/SharedManager.hh"
 
 EOSCOMMONNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
 // Constructor
 //------------------------------------------------------------------------------
-TransferQueueLocator::TransferQueueLocator(const FileSystemLocator &fsLocator, const std::string &tag)
-: mLocator(fsLocator), mTag(tag) {}
+TransferQueueLocator::TransferQueueLocator(const FileSystemLocator& fsLocator,
+    const std::string& tag)
+  : mLocator(fsLocator), mTag(tag) {}
 
 //------------------------------------------------------------------------------
 // Constructor: Queue tied to an FST
 //------------------------------------------------------------------------------
-TransferQueueLocator::TransferQueueLocator(const std::string &fstQueue, const std::string &tag)
-: mFstQueue(fstQueue), mTag(tag) {}
+TransferQueueLocator::TransferQueueLocator(const std::string& fstQueue,
+    const std::string& tag)
+  : mFstQueue(fstQueue), mTag(tag) {}
 
 //------------------------------------------------------------------------------
 // Get "queue"
 //------------------------------------------------------------------------------
-std::string TransferQueueLocator::getQueue() const {
-  if(!mFstQueue.empty()) {
+std::string TransferQueueLocator::getQueue() const
+{
+  if (!mFstQueue.empty()) {
     return mFstQueue;
-  }
-  else {
+  } else {
     return mLocator.getFSTQueue();
   }
 }
@@ -61,11 +57,11 @@ std::string TransferQueueLocator::getQueue() const {
 //------------------------------------------------------------------------------
 // Get "queuepath"
 //------------------------------------------------------------------------------
-std::string TransferQueueLocator::getQueuePath() const {
-  if(!mFstQueue.empty()) {
+std::string TransferQueueLocator::getQueuePath() const
+{
+  if (!mFstQueue.empty()) {
     return SSTR(mFstQueue << "/gw/txqueue/" << mTag);
-  }
-  else {
+  } else {
     return SSTR(mLocator.getQueuePath() << "/txqueue/" << mTag);
   }
 }
@@ -73,14 +69,16 @@ std::string TransferQueueLocator::getQueuePath() const {
 //------------------------------------------------------------------------------
 // Get QDB key for this queue
 //------------------------------------------------------------------------------
-std::string TransferQueueLocator::getQDBKey() const {
-  if(!mFstQueue.empty()) {
+std::string TransferQueueLocator::getQDBKey() const
+{
+  if (!mFstQueue.empty()) {
     std::vector<std::string> parts;
-    parts = eos::common::StringTokenizer::split<std::vector<std::string>>(mFstQueue, '/');
+    parts = eos::common::StringTokenizer::split<std::vector<std::string>>(mFstQueue,
+            '/');
     return SSTR("txqueue-fst||" << parts[1] << "||" << mTag);
-  }
-  else {
-    return SSTR("txqueue-filesystem||" << mLocator.getHostPort() << "||" << mLocator.getStoragePath() << "||" << mTag);
+  } else {
+    return SSTR("txqueue-filesystem||" << mLocator.getHostPort() << "||" <<
+                mLocator.getStoragePath() << "||" << mTag);
   }
 }
 
@@ -96,50 +94,50 @@ std::string TransferQueueLocator::getQDBKey() const {
  * @param bc2mgm broadcast-to-manager flag indicating if changes are broadcasted to manager nodes
  */
 /*----------------------------------------------------------------------------*/
-TransferQueue::TransferQueue(const TransferQueueLocator &locator, XrdMqSharedObjectManager* som, qclient::SharedManager* qsom, bool bc2mgm)
+TransferQueue::TransferQueue(const TransferQueueLocator& locator,
+                             XrdMqSharedObjectManager* som, qclient::SharedManager* qsom, bool bc2mgm)
 {
   mQueue = locator.getQueue();
   mFullQueue = locator.getQueuePath();
   mJobGetCount = 0;
 
-  if (bc2mgm)
-  {
+  if (bc2mgm) {
     // the fst has to reply to the mgm and set up the right broadcast queue
     mQueue = "/eos/*/mgm";
     mSlave = true;
-  }
-  else
-  {
+  } else {
     mSlave = false;
   }
-
 
   mSom = som;
   mQsom = qsom;
 
-  if(mQsom) {
+  if (mQsom) {
     mSharedDeque.reset(new qclient::SharedDeque(mQsom, locator.getQDBKey()));
-    if(!mSlave) {
+
+    if (!mSlave) {
       mSharedDeque->clear();
     }
-  }
-  else if (mSom) {
+  } else if (mSom) {
     mSom->HashMutex.LockRead();
-    XrdMqSharedQueue* hashQueue = (XrdMqSharedQueue*) mSom->GetObject(mFullQueue.c_str(), "queue");
-    if(!hashQueue) {
+    XrdMqSharedQueue* hashQueue = (XrdMqSharedQueue*) mSom->GetObject(
+                                    mFullQueue.c_str(), "queue");
+
+    if (!hashQueue) {
       mSom->HashMutex.UnLockRead();
+
       // create the hash object
       if (mSom->CreateSharedQueue(mFullQueue.c_str(), mQueue.c_str(), som)) {
         mSom->HashMutex.LockRead();
         hashQueue = (XrdMqSharedQueue*) mSom->GetObject(mFullQueue.c_str(), "queue");
         mSom->HashMutex.UnLockRead();
       }
-    }
-    else {
+    } else {
       // remove all scheduled objects
       if (!mSlave) {
         hashQueue->Clear();
       }
+
       mSom->HashMutex.UnLockRead();
     }
   }
@@ -148,14 +146,15 @@ TransferQueue::TransferQueue(const TransferQueueLocator &locator, XrdMqSharedObj
 //------------------------------------------------------------------------------
 //! Get queue path
 //------------------------------------------------------------------------------
-std::string TransferQueue::getQueuePath() const {
+std::string TransferQueue::getQueuePath() const
+{
   return mFullQueue;
 }
 
 /*----------------------------------------------------------------------------*/
 //! Destructor
 /*----------------------------------------------------------------------------*/
-TransferQueue::~TransferQueue ()
+TransferQueue::~TransferQueue()
 {
   if (!mSlave) {
     Clear();
@@ -173,24 +172,26 @@ TransferQueue::~TransferQueue ()
 
 /*----------------------------------------------------------------------------*/
 bool
-TransferQueue::Add (eos::common::TransferJob* job)
+TransferQueue::Add(eos::common::TransferJob* job)
 {
   bool retc = false;
-  if(mQsom) {
+
+  if (mQsom) {
     return mSharedDeque->push_back(job->GetSealed());
-  }
-  else if (mSom)
-  {
+  } else if (mSom) {
     mSom->HashMutex.LockRead();
-    XrdMqSharedQueue* hashQueue = (XrdMqSharedQueue*) mSom->GetQueue(mFullQueue.c_str());
-    if(hashQueue) {
+    XrdMqSharedQueue* hashQueue = (XrdMqSharedQueue*) mSom->GetQueue(
+                                    mFullQueue.c_str());
+
+    if (hashQueue) {
       retc = hashQueue->PushBack("", job->GetSealed());
-    }
-    else {
+    } else {
       fprintf(stderr, "error: couldn't get queue %s!\n", mFullQueue.c_str());
     }
+
     mSom->HashMutex.UnLockRead();
   }
+
   return retc;
 }
 
@@ -204,23 +205,24 @@ TransferQueue::Add (eos::common::TransferJob* job)
 
 /*----------------------------------------------------------------------------*/
 std::unique_ptr<TransferJob>
-TransferQueue::Get ()
+TransferQueue::Get()
 {
-  if(mQsom) {
+  if (mQsom) {
     std::string sealed;
-    if(!mSharedDeque->pop_front(sealed)) {
+
+    if (!mSharedDeque->pop_front(sealed)) {
       return {};
     }
 
     std::unique_ptr<TransferJob> job = TransferJob::Create(sealed.c_str());
     IncGetJobCount();
     return job;
-  }
-  else if (mSom) {
+  } else if (mSom) {
     mSom->HashMutex.LockRead();
+    XrdMqSharedQueue* hashQueue = (XrdMqSharedQueue*) mSom->GetQueue(
+                                    mFullQueue.c_str());
 
-    XrdMqSharedQueue* hashQueue = (XrdMqSharedQueue*) mSom->GetQueue(mFullQueue.c_str());
-    if(hashQueue) {
+    if (hashQueue) {
       std::string value = hashQueue->PopFront();
       mSom->HashMutex.UnLockRead();
 
@@ -237,6 +239,7 @@ TransferQueue::Get ()
 
     mSom->HashMutex.UnLockRead();
   }
+
   return 0;
 }
 
@@ -245,13 +248,12 @@ TransferQueue::Get ()
 // ---------------------------------------------------------------------------
 bool TransferQueue::Clear()
 {
-  if(mQsom) {
+  if (mQsom) {
     return mSharedDeque->clear();
-  }
-  else if (mSom) {
+  } else if (mSom) {
     RWMutexReadLock lock(mSom->HashMutex);
     XrdMqSharedQueue* hashQueue = (XrdMqSharedQueue*) mSom->GetQueue(
-                                  mFullQueue.c_str());
+                                    mFullQueue.c_str());
 
     if (hashQueue) {
       hashQueue->Clear();
@@ -267,15 +269,14 @@ bool TransferQueue::Clear()
 //------------------------------------------------------------------------------
 size_t TransferQueue::Size()
 {
-  if(mQsom) {
+  if (mQsom) {
     size_t output = 0;
     mSharedDeque->size(output);
     return output;
-  }
-  else if (mSom) {
+  } else if (mSom) {
     RWMutexReadLock lock(mSom->HashMutex);
     XrdMqSharedQueue* hashQueue = (XrdMqSharedQueue*) mSom->GetQueue(
-                                  mFullQueue.c_str());
+                                    mFullQueue.c_str());
 
     if (hashQueue) {
       return hashQueue->GetSize();
