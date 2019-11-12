@@ -97,11 +97,6 @@ TapeGc::enable() noexcept
 void
 TapeGc::workerThreadEntryPoint() noexcept
 {
-  try {
-    eos_static_info("msg=\"TapeGc worker thread started for EOS space %s\"", m_space.c_str());
-  } catch(...) {
-  }
-
   do {
     while(!m_stop && tryToGarbageCollectASingleFile()) {
     };
