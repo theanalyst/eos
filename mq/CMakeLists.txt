@@ -23,8 +23,6 @@
 
 include_directories(
   ${CMAKE_SOURCE_DIR}
-  ${NCURSES_INCLUDE_DIRS}
-  ${OPENSSL_INCLUDE_DIRS}
   ${CMAKE_SOURCE_DIR}/namespace/ns_quarkdb/qclient/include
   ${CMAKE_SOURCE_DIR}/namespace/ns_quarkdb/qclient/src
   ${CMAKE_BINARY_DIR})
@@ -43,7 +41,8 @@ add_library(XrdMqClient-Objects OBJECT
   XrdMqSharedObject.cc     XrdMqSharedObject.hh)
 
 target_link_libraries(XrdMqClient-Objects PUBLIC
-  XROOTD::UTILS)
+  XROOTD::UTILS
+  OPENSSL::OPENSSL)
 
 set_target_properties(XrdMqClient-Objects PROPERTIES
   POSITION_INDEPENDENT_CODE TRUE)
@@ -56,9 +55,7 @@ add_library(XrdMqClient SHARED
 
 target_link_libraries(XrdMqClient PUBLIC
   XrdMqClient-Objects
-  EosCommon
-  ${NCURSES_LIBRARIES}
-  ${OPENSSL_CRYPTO_LIBRARY})
+  EosCommon)
 
 set_target_properties(
   XrdMqClient PROPERTIES
@@ -71,9 +68,8 @@ add_library(XrdMqClient-Static STATIC
 
 target_link_libraries(XrdMqClient-Static PUBLIC
   XrdMqClient-Objects
-  ${NCURSES_LIBRARIES}
-  ${OPENSSL_CRYPTO_LIBRARY}
-  EosCommon-Static)
+  EosCommon-Static
+  OPENSSL::OPENSSL_STATIC)
 
 set_target_properties(XrdMqClient-Static PROPERTIES
   POSITION_INDEPENDENT_CODE TRUE)
@@ -88,13 +84,10 @@ add_library(XrdMqOfs MODULE
   ${CMAKE_SOURCE_DIR}/namespace/ns_quarkdb/BackendClient.cc)
 
 target_link_libraries(XrdMqOfs PUBLIC
-  EosCommon
   qclient
-  ${NCURSES_LIBRARIES}
-  ${OPENSSL_CRYPTO_LIBRARY})
+  EosCommon)
 
-install(
-  TARGETS XrdMqOfs
+install(TARGETS XrdMqOfs
   LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
   RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR})

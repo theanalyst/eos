@@ -21,12 +21,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSAUTHZ_CAPABILITY_HH__
-#define __EOSAUTHZ_CAPABILITY_HH__
-/*----------------------------------------------------------------------------*/
+#pragma once
 #include "mq/XrdMqMessage.hh"
 #include "common/SymKeys.hh"
-/*----------------------------------------------------------------------------*/
 #include "XrdAcc/XrdAccAuthorize.hh"
 #include "XrdAcc/XrdAccPrivs.hh"
 #include "XrdOuc/XrdOucString.hh"
@@ -34,17 +31,15 @@
 #include "XrdOuc/XrdOucTList.hh"
 #include "XrdSys/XrdSysLogger.hh"
 #include "XrdSys/XrdSysPthread.hh"
-/*----------------------------------------------------------------------------*/
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
 #include <openssl/objects.h>
 #include <openssl/x509.h>
 #include <openssl/err.h>
 #include <openssl/pem.h>
-/*----------------------------------------------------------------------------*/
+
 class XrdOucEnv;
 class XrdSecEntity;
-/*----------------------------------------------------------------------------*/
 
 extern "C" XrdAccAuthorize* XrdAccAuthorizeObject(XrdSysLogger* lp,
     const char*   cfn,
@@ -112,5 +107,3 @@ private:
 /*----------------------------------------------------------------------------*/
 extern XrdCapability gCapabilityEngine;
 /*----------------------------------------------------------------------------*/
-
-#endif
