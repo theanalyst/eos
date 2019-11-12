@@ -174,6 +174,7 @@ add_library(
   tgc/TapeGc.cc
   tgc/FreeSpace.cc
   tgc/Lru.cc
+  tgc/RealMgm.cc
   tgc/SpaceNotFound.cc
   tgc/Utils.cc
   Vid.cc
