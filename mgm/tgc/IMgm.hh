@@ -26,6 +26,7 @@
 
 #include "mgm/Namespace.hh"
 #include "namespace/interface/IFileMD.hh"
+#include "proto/ConsoleReply.pb.h"
 
 #include <stdint.h>
 #include <string>

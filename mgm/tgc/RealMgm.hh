@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGMTGC_IMGM_HH__
-#define __EOSMGMTGC_IMGM_HH__
+#ifndef __EOSMGMTGC_REALMGM_HH__
+#define __EOSMGMTGC_REALMGM_HH__
 
 #include "mgm/Namespace.hh"
 #include "mgm/tgc/IMgm.hh"

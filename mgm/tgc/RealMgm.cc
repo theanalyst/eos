@@ -21,7 +21,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
+#include "mgm/proc/admin/StagerRmCmd.hh"
+#include "mgm/FsView.hh"
 #include "mgm/tgc/RealMgm.hh"
+#include "mgm/tgc/Utils.hh"
+#include "namespace/interface/IFileMDSvc.hh"
+#include "namespace/Prefetcher.hh"
 
 EOSTGCNAMESPACE_BEGIN
 
@@ -66,9 +71,9 @@ RealMgm::getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept
 //----------------------------------------------------------------------------
 bool RealMgm::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t fid) {
   // Prefetch before taking lock because metadata may not be in memory
-  Prefetcher::prefetchFileMDAndWait(m_ofs->eosView, fid);
-  common::RWMutexReadLock lock(m_ofs->eosViewRWMutex);
-  const auto fmd = m_ofs->eosFileService->getFileMD(fid);
+  Prefetcher::prefetchFileMDAndWait(m_ofs.eosView, fid);
+  common::RWMutexReadLock lock(m_ofs.eosViewRWMutex);
+  const auto fmd = m_ofs.eosFileService->getFileMD(fid);
 
   // A file scheduled for deletion has a container ID of 0
   return nullptr != fmd && 0 != fmd->getContainerId();
@@ -79,9 +84,9 @@ bool RealMgm::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t fid)
 //----------------------------------------------------------------------------
 uint64_t RealMgm::getFileSizeBytes(const IFileMD::id_t fid) {
   // Prefetch before taking lock because metadata may not be in memory
-  Prefetcher::prefetchFileMDAndWait(m_ofs->eosView, fid);
-  common::RWMutexReadLock lock(m_ofs->eosViewRWMutex);
-  const auto fmd = m_ofs->eosFileService->getFileMD(fid);
+  Prefetcher::prefetchFileMDAndWait(m_ofs.eosView, fid);
+  common::RWMutexReadLock lock(m_ofs.eosViewRWMutex);
+  const auto fmd = m_ofs.eosFileService->getFileMD(fid);
 
   if(nullptr != fmd) {
     return fmd->getSize();
