@@ -29,9 +29,6 @@
 #include "mgm/XrdMgmOfs.hh"
 #include "namespace/interface/IFileMD.hh"
 
-#include <stdint.h>
-#include <string>
-
 /*----------------------------------------------------------------------------*/
 /**
  * @file RealTapeGcMgm.hh

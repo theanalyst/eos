@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: SpaceToTapeGcMap.hh
+// File: DummyTapeGcMgm.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,101 +21,82 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_SPACETOTAPEAGCMAP_HH__
-#define __EOSMGM_SPACETOTAPEAGCMAP_HH__
+#ifndef __EOSMGMTGC_DUMMYTAPEGCMGM_HH__
+#define __EOSMGMTGC_DUMMYTAPEGCMGM_HH__
 
 #include "mgm/tgc/ITapeGcMgm.hh"
-#include "mgm/tgc/TapeGc.hh"
-
-#include <map>
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file SpaceToTapeGcMap.hh
+ * @file DummyTapeGcMgm.hh
  *
- * @brief Class implementing a thread safe map from EOS space name to tape aware
- * garbage collector
+ * @brief A dummy implementation of access to the EOS MGM.  The main purpose of
+ * this class is to facilitate unit testing.
  *
  */
 /*----------------------------------------------------------------------------*/
 EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
-//! Class implementing a thread safe map from EOS space name to tape aware
-//! garbage collector
+//! A dummy implementation of access to the EOS MGM.  The main purpose of this
+//! class is to facilitate unit testing.
 //------------------------------------------------------------------------------
-class SpaceToTapeGcMap {
+class DummyTapeGcMgm: public ITapeGcMgm {
 public:
 
   //----------------------------------------------------------------------------
-  //! Constructor.
+  //! Constructor
+  //----------------------------------------------------------------------------
+  DummyTapeGcMgm();
+
+  //----------------------------------------------------------------------------
+  //! Delete copy constructor
+  //----------------------------------------------------------------------------
+  DummyTapeGcMgm(const DummyTapeGcMgm &) = delete;
+
+  //----------------------------------------------------------------------------
+  //! Delete move constructor
+  //----------------------------------------------------------------------------
+  DummyTapeGcMgm(const DummyTapeGcMgm &&) = delete;
+
+  //----------------------------------------------------------------------------
+  //! Delete assignment operator
+  //----------------------------------------------------------------------------
+  DummyTapeGcMgm &operator=(const DummyTapeGcMgm &) = delete;
+
+  //----------------------------------------------------------------------------
+  //! @return The minimum number of free bytes the specified space should have
+  //! as set in the configuration variables of the space.  If the minimum
+  //! number of free bytes cannot be determined for whatever reason then 0 is
+  //! returned.
   //!
-  //! @param mgm the interface to the EOS MGM
+  //! @param spaceName The name of the space
   //----------------------------------------------------------------------------
-  SpaceToTapeGcMap(ITapeGcMgm &mgm);
+  uint64_t getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept override;
 
   //----------------------------------------------------------------------------
-  //! Deletion of copy constructor.
+  //! @param fid The file identifier
+  //! @return The size of the specified file in bytes.  If the file cannot be
+  //! found in the EOS namespace then a file size of 0 is returned.
   //----------------------------------------------------------------------------
-  SpaceToTapeGcMap(const SpaceToTapeGcMap &) = delete;
+  uint64_t getFileSizeBytes(const IFileMD::id_t fid) override;
 
   //----------------------------------------------------------------------------
-  //! Deletion of move constructor.
-  //----------------------------------------------------------------------------
-  SpaceToTapeGcMap(const SpaceToTapeGcMap &&) = delete;
-
-  //----------------------------------------------------------------------------
-  //! Exception thrown when a tape aware garbage collector already exists.
-  //----------------------------------------------------------------------------
-  struct GcAlreadyExists: public std::runtime_error {
-    GcAlreadyExists(const std::string &msg): std::runtime_error(msg) {}
-  };
-
-  //----------------------------------------------------------------------------
-  //! Thread safe method that creates a tape-aware garbage collector for the
-  //! specified EOS space.
+  //! Determine if the specified file exists and is not scheduled for deletion
   //!
-  //! @param space The name of the EOS space.
-  //! @preturn A reference to the newly created tape-aware garbage collector.
-  //! @throw GcAlreadyExists If a tape aware garbage collector already exists
-  //! for the specified EOS space.
+  //! @param fid The file identifier
+  //! @return True if the file exists in the EOS namespace and is not scheduled
+  //! for deletion
   //----------------------------------------------------------------------------
-  TapeGc &createGc(const std::string &space);
+  bool fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t fid) override;
 
   //----------------------------------------------------------------------------
-  //! Exception thrown when an unknown EOS space is encountered.
-  //----------------------------------------------------------------------------
-  struct UnknownEOSSpace: public std::runtime_error {
-    UnknownEOSSpace(const std::string &msg): std::runtime_error(msg) {}
-  };
-
-  //----------------------------------------------------------------------------
-  //! Thread safe method that returns the garbage collector associated with the
-  //! specified EOS space.
+  //! Execute stagerrm as user root
   //!
-  //! @param space The name of the EOS space.
-  //! @return The tape aware garbage collector associated with the specified EOS
-  //! space.
-  //! @throw UnknownEOSSpace If the specified EOS space is unknown.
+  //! \param fid The file identifier
+  //! \return stagerrm result
   //----------------------------------------------------------------------------
-  TapeGc &getGc(const std::string &space) const;
-
-private:
-
-  //--------------------------------------------------------------------------
-  //! The interface to the EOS MGM
-  //--------------------------------------------------------------------------
-  ITapeGcMgm &m_mgm;
-
-  //--------------------------------------------------------------------------
-  //! Mutex protecting the map
-  //--------------------------------------------------------------------------
-  mutable std::mutex m_mutex;
-
-  //----------------------------------------------------------------------------
-  //! Map from space name to tape aware garbage collector
-  //----------------------------------------------------------------------------
-  std::map<std::string, std::unique_ptr<TapeGc> > m_gcs;
+  console::ReplyProto stagerrmAsRoot(const IFileMD::id_t fid) override;
 };
 
 EOSTGCNAMESPACE_END

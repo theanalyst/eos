@@ -40,7 +40,7 @@ EOSTGCNAMESPACE_BEGIN
 //----------------------------------------------------------------------------
 //! Constructor
 //----------------------------------------------------------------------------
-SpaceToTapeGcMap::SpaceToTapeGcMap()
+SpaceToTapeGcMap::SpaceToTapeGcMap(ITapeGcMgm &mgm): m_mgm(mgm)
 {
 }
 
@@ -65,7 +65,7 @@ SpaceToTapeGcMap::createGc(const std::string &space)
     throw GcAlreadyExists(msg.str());
   }
 
-  const auto result = m_gcs.emplace(space, std::make_unique<TapeGc>(space));
+  const auto result = m_gcs.emplace(space, std::make_unique<TapeGc>(m_mgm, space));
   if(!result.second) {
     std::ostringstream msg;
     msg << "Failed to insert new TapeGC for EOS space " << space << " into internal map";

@@ -25,6 +25,7 @@
 #define __EOSMGM_MULTISPACETAPEGC_HH__
 
 #include "mgm/Namespace.hh"
+#include "mgm/tgc/ITapeGcMgm.hh"
 #include "mgm/tgc/SpaceToTapeGcMap.hh"
 #include "mgm/tgc/Lru.hh"
 
@@ -47,8 +48,10 @@ class MultiSpaceTapeGc
 public:
   //----------------------------------------------------------------------------
   //! Constructor
+  //!
+  //! @param mgm the interface to the EOS MGM
   //----------------------------------------------------------------------------
-  MultiSpaceTapeGc();
+  MultiSpaceTapeGc(ITapeGcMgm &mgm);
 
   //----------------------------------------------------------------------------
   //! Destructor

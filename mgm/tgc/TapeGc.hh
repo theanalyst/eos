@@ -64,7 +64,7 @@ public:
   //! @param space the name of EOS space that this garbage collector will work
   //! on
   //----------------------------------------------------------------------------
-  TapeGc(/*ITapeGcMgm &mgm,*/ const std::string &space);
+  TapeGc(ITapeGcMgm &mgm, const std::string &space);
 
   //----------------------------------------------------------------------------
   //! Destructor
@@ -127,6 +127,9 @@ public:
 
 protected:
 
+  /// The interface to the EOS MGM
+  ITapeGcMgm &m_mgm;
+
   /// The name of the EOS sapce being worked on by this garbage collector
   std::string m_space;
 
@@ -154,16 +157,6 @@ protected:
   void workerThreadEntryPoint() noexcept;
 
   //----------------------------------------------------------------------------
-  //! @return The minimum number of free bytes the specified space should have
-  //! as set in the configuration variables of the space.  If the minimum
-  //! number of free bytes cannot be determined for whatever reason then 0 is
-  //! returned.
-  //!
-  //! @param spaceName The name of the space
-  //----------------------------------------------------------------------------
-  static uint64_t getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept;
-
-  //----------------------------------------------------------------------------
   //! Try to garbage collect a single file if necessary and possible.
   //!
   //! Please note that a file is considered successfully garbage collected if
@@ -173,30 +166,6 @@ protected:
   //! @return True if a file was garbage collected
   //----------------------------------------------------------------------------
   bool tryToGarbageCollectASingleFile() noexcept;
-
-  //----------------------------------------------------------------------------
-  //! Execute stagerrm as user root
-  //!
-  //! \param fid The file identifier
-  //! \return stagerrm result
-  //----------------------------------------------------------------------------
-  console::ReplyProto stagerrmAsRoot(const IFileMD::id_t fid);
-
-  //----------------------------------------------------------------------------
-  //! @param fid The file identifier
-  //! @return The size of the specified file in bytes.  If the file cannot be
-  //! found in the EOS namespace then a file size of 0 is returned.
-  //----------------------------------------------------------------------------
-  uint64_t getFileSizeBytes(const IFileMD::id_t fid);
-
-  //----------------------------------------------------------------------------
-  //! Determine if the specified file exists and is not scheduled for deletion
-  //!
-  //! @param fid The file identifier
-  //! @return True if the file exists in the EOS namespace and is not scheduled
-  //! for deletion
-  //----------------------------------------------------------------------------
-  bool fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t fid);
 
   //----------------------------------------------------------------------------
   //! Return the preamble to be placed at the beginning of every log message

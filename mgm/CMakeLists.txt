@@ -171,11 +171,12 @@ add_library(
   Scheduler.cc
   tgc/MultiSpaceTapeGc.cc
   tgc/SpaceToTapeGcMap.cc
-  tgc/TapeGc.cc
+  tgc/DummyTapeGcMgm.cc
   tgc/FreeSpace.cc
   tgc/Lru.cc
   tgc/RealTapeGcMgm.cc
   tgc/SpaceNotFound.cc
+  tgc/TapeGc.cc
   tgc/Utils.cc
   Vid.cc
   FsView.cc

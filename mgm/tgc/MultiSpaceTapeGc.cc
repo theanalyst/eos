@@ -38,7 +38,7 @@ EOSTGCNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 //! Constructor
 //------------------------------------------------------------------------------
-MultiSpaceTapeGc::MultiSpaceTapeGc()
+MultiSpaceTapeGc::MultiSpaceTapeGc(ITapeGcMgm &mgm): m_gcs(mgm)
 {
 }
 

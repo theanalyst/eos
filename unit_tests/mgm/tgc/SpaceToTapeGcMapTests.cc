@@ -21,6 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
+#include "mgm/tgc/DummyTapeGcMgm.hh"
 #include "mgm/tgc/SpaceToTapeGcMap.hh"
 
 #include <gtest/gtest.h>
@@ -42,8 +43,8 @@ TEST_F(TgcSpaceToTapeGcMapTest, Constructor)
 {
   using namespace eos::mgm::tgc;
 
-  const std::string space = "space";
-  SpaceToTapeGcMap map();
+  DummyTapeGcMgm mgm;
+  SpaceToTapeGcMap map(mgm);
 }
 
 //------------------------------------------------------------------------------
@@ -53,8 +54,9 @@ TEST_F(TgcSpaceToTapeGcMapTest, getGc_unknown_eos_space)
 {
   using namespace eos::mgm::tgc;
 
+  DummyTapeGcMgm mgm;
+  SpaceToTapeGcMap map(mgm);
   const std::string space = "space";
-  SpaceToTapeGcMap map;
 
   ASSERT_THROW(map.getGc(space), SpaceToTapeGcMap::UnknownEOSSpace);
 }
@@ -66,8 +68,9 @@ TEST_F(TgcSpaceToTapeGcMapTest, createGc)
 {
   using namespace eos::mgm::tgc;
 
+  DummyTapeGcMgm mgm;
+  SpaceToTapeGcMap map(mgm);
   const std::string space = "space";
-  SpaceToTapeGcMap map;
 
   TapeGc &gc1 = map.createGc(space);
 
@@ -83,8 +86,9 @@ TEST_F(TgcSpaceToTapeGcMapTest, createGc_already_exists)
 {
   using namespace eos::mgm::tgc;
 
+  DummyTapeGcMgm mgm;
+  SpaceToTapeGcMap map(mgm);
   const std::string space = "space";
-  SpaceToTapeGcMap map;
 
   map.createGc(space);
 

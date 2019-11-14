@@ -21,15 +21,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/FsView.hh"
-#include "mgm/proc/admin/StagerRmCmd.hh"
 #include "mgm/tgc/Constants.hh"
 #include "mgm/tgc/TapeGc.hh"
 #include "mgm/tgc/SpaceNotFound.hh"
 #include "mgm/tgc/Utils.hh"
-#include "mgm/XrdMgmOfs.hh"
-#include "namespace/interface/IFileMDSvc.hh"
-#include "namespace/Prefetcher.hh"
 
 #include <functional>
 #include <ios>
@@ -41,11 +36,12 @@ EOSTGCNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 // Constructor
 //------------------------------------------------------------------------------
-TapeGc::TapeGc(const std::string &space):
+TapeGc::TapeGc(ITapeGcMgm &mgm, const std::string &space):
+  m_mgm(mgm),
   m_space(space),
   m_enabled(false),
   m_minFreeBytes(
-    std::bind(getSpaceConfigMinFreeBytes, space), // Value getter
+    std::bind(&ITapeGcMgm::getSpaceConfigMinFreeBytes, &m_mgm, space), // Value getter
     10), // Maximum age of cached value in seconds
   m_freeSpace(space, TGC_SPACE_QUERY_PERIOD_SECS),
   m_nbStagerrms(0)
@@ -138,36 +134,6 @@ TapeGc::fileOpened(const std::string &path, const IFileMD &fmd) noexcept
 }
 
 //------------------------------------------------------------------------------
-// Return the minimum number of free bytes the specified space should have
-// as set in the configuration variables of the space.  If the minimum
-// number of free bytes cannot be determined for whatever reason then 0 is
-// returned.
-//------------------------------------------------------------------------------
-uint64_t
-TapeGc::getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept
-{
-  try {
-    std::string valueStr;
-    {
-      eos::common::RWMutexReadLock lock(FsView::gFsView.ViewMutex);
-      const auto spaceItor = FsView::gFsView.mSpaceView.find(spaceName);
-      if (FsView::gFsView.mSpaceView.end() == spaceItor) return 0;
-      if (nullptr == spaceItor->second) return 0;
-      const auto &space = *(spaceItor->second);
-      valueStr = space.GetConfigMember("tgc.minfreebytes");
-    }
-
-    if(valueStr.empty()) {
-     return 0;
-    } else {
-      return Utils::toUint64(valueStr);
-    }
-  } catch(...) {
-    return 0;
-  }
-}
-
-//------------------------------------------------------------------------------
 // Try to garage collect a single file if necessary and possible
 //------------------------------------------------------------------------------
 bool
@@ -193,8 +159,8 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
       fid = m_lruQueue.getAndPopFidOfLeastUsedFile();
     }
 
-    const uint64_t fileToBeDeletedSizeBytes = getFileSizeBytes(fid);
-    const auto result = stagerrmAsRoot(fid);
+    const uint64_t fileToBeDeletedSizeBytes = m_mgm.getFileSizeBytes(fid);
+    const auto result = m_mgm.stagerrmAsRoot(fid);
 
     std::ostringstream preamble;
     preamble << "fxid=" << std::hex << fid;
@@ -209,7 +175,7 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
 
       return true; // A file was garbage collected
     } else {
-      if(fileInNamespaceAndNotScheduledForDeletion(fid)) {
+      if(m_mgm.fileInNamespaceAndNotScheduledForDeletion(fid)) {
         {
           std::ostringstream msg;
           msg << preamble.str() << " msg=\"Unable to stagerrm file at this time: "
@@ -254,52 +220,6 @@ uint64_t TapeGc::getMinFreeBytesAndLogIfChanged() {
   }
 
   return minFreeBytes.current;
-}
-
-//----------------------------------------------------------------------------
-// Determine if the specified file exists and is not scheduled for deletion
-//----------------------------------------------------------------------------
-bool TapeGc::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t fid) {
-  // Prefetch before taking lock because metadata may not be in memory
-  Prefetcher::prefetchFileMDAndWait(gOFS->eosView, fid);
-  common::RWMutexReadLock lock(gOFS->eosViewRWMutex);
-  const auto fmd = gOFS->eosFileService->getFileMD(fid);
-
-  // A file scheduled for deletion has a container ID of 0
-  return nullptr != fmd && 0 != fmd->getContainerId();
-}
-
-//----------------------------------------------------------------------------
-// Return size of the specified file
-//----------------------------------------------------------------------------
-uint64_t TapeGc::getFileSizeBytes(const IFileMD::id_t fid) {
-  // Prefetch before taking lock because metadata may not be in memory
-  Prefetcher::prefetchFileMDAndWait(gOFS->eosView, fid);
-  common::RWMutexReadLock lock(gOFS->eosViewRWMutex);
-  const auto fmd = gOFS->eosFileService->getFileMD(fid);
-
-  if(nullptr != fmd) {
-    return fmd->getSize();
-  } else {
-    return 0;
-  }
-}
-
-//----------------------------------------------------------------------------
-// Execute stagerrm as user root
-//----------------------------------------------------------------------------
-console::ReplyProto
-TapeGc::stagerrmAsRoot(const IFileMD::id_t fid)
-{
-  eos::common::VirtualIdentity rootVid = eos::common::VirtualIdentity::Root();
-
-  eos::console::RequestProto req;
-  eos::console::StagerRmProto* stagerRm = req.mutable_stagerrm();
-  auto file = stagerRm->add_file();
-  file->set_fid(fid);
-
-  StagerRmCmd cmd(std::move(req), rootVid);
-  return cmd.ProcessRequest();
 }
 
 //----------------------------------------------------------------------------
