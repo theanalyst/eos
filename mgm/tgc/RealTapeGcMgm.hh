@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: RealMgm.hh
+// File: RealTapeGcMgm.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,11 +21,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGMTGC_REALMGM_HH__
-#define __EOSMGMTGC_REALMGM_HH__
+#ifndef __EOSMGMTGC_REALTAPEGCMGM_HH__
+#define __EOSMGMTGC_REALTAPEGCMGM_HH__
 
 #include "mgm/Namespace.hh"
-#include "mgm/tgc/IMgm.hh"
+#include "mgm/tgc/ITapeGcMgm.hh"
 #include "mgm/XrdMgmOfs.hh"
 #include "namespace/interface/IFileMD.hh"
 
@@ -34,7 +34,7 @@
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file RealMgm.hh
+ * @file RealTapeGcMgm.hh
  *
  * @brief Implements access to the real EOS MGM
  *
@@ -45,7 +45,7 @@ EOSTGCNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 //! Implements access to the real EOS MGM
 //------------------------------------------------------------------------------
-class RealMgm: public IMgm {
+class RealTapeGcMgm: public ITapeGcMgm {
 public:
 
   //----------------------------------------------------------------------------
@@ -53,22 +53,22 @@ public:
   //!
   //! @param ofs The XRootD OFS plugin implementing the metadata handling of EOS
   //----------------------------------------------------------------------------
-  RealMgm(XrdMgmOfs &ofs);
+  RealTapeGcMgm(XrdMgmOfs &ofs);
 
   //----------------------------------------------------------------------------
   //! Delete copy constructor
   //----------------------------------------------------------------------------
-  RealMgm(const RealMgm &) = delete;
+  RealTapeGcMgm(const RealTapeGcMgm &) = delete;
 
   //----------------------------------------------------------------------------
   //! Delete move constructor
   //----------------------------------------------------------------------------
-  RealMgm(const RealMgm &&) = delete;
+  RealTapeGcMgm(const RealTapeGcMgm &&) = delete;
 
   //----------------------------------------------------------------------------
   //! Delete assignment operator
   //----------------------------------------------------------------------------
-  RealMgm &operator=(const RealMgm &) = delete;
+  RealTapeGcMgm &operator=(const RealTapeGcMgm &) = delete;
 
   //----------------------------------------------------------------------------
   //! @return The minimum number of free bytes the specified space should have

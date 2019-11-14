@@ -23,7 +23,7 @@
 
 #include "mgm/proc/admin/StagerRmCmd.hh"
 #include "mgm/FsView.hh"
-#include "mgm/tgc/RealMgm.hh"
+#include "mgm/tgc/RealTapeGcMgm.hh"
 #include "mgm/tgc/Utils.hh"
 #include "namespace/interface/IFileMDSvc.hh"
 #include "namespace/Prefetcher.hh"
@@ -33,7 +33,7 @@ EOSTGCNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 // Constructor
 //------------------------------------------------------------------------------
-RealMgm::RealMgm(XrdMgmOfs &ofs): m_ofs(ofs) {
+RealTapeGcMgm::RealTapeGcMgm(XrdMgmOfs &ofs): m_ofs(ofs) {
 }
 
 //------------------------------------------------------------------------------
@@ -43,7 +43,7 @@ RealMgm::RealMgm(XrdMgmOfs &ofs): m_ofs(ofs) {
 // returned.
 //------------------------------------------------------------------------------
 uint64_t
-RealMgm::getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept
+RealTapeGcMgm::getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept
 {
   try {
     std::string valueStr;
@@ -69,7 +69,7 @@ RealMgm::getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept
 //----------------------------------------------------------------------------
 // Determine if the specified file exists and is not scheduled for deletion
 //----------------------------------------------------------------------------
-bool RealMgm::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t fid) {
+bool RealTapeGcMgm::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t fid) {
   // Prefetch before taking lock because metadata may not be in memory
   Prefetcher::prefetchFileMDAndWait(m_ofs.eosView, fid);
   common::RWMutexReadLock lock(m_ofs.eosViewRWMutex);
@@ -82,7 +82,7 @@ bool RealMgm::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t fid)
 //----------------------------------------------------------------------------
 // Return size of the specified file
 //----------------------------------------------------------------------------
-uint64_t RealMgm::getFileSizeBytes(const IFileMD::id_t fid) {
+uint64_t RealTapeGcMgm::getFileSizeBytes(const IFileMD::id_t fid) {
   // Prefetch before taking lock because metadata may not be in memory
   Prefetcher::prefetchFileMDAndWait(m_ofs.eosView, fid);
   common::RWMutexReadLock lock(m_ofs.eosViewRWMutex);
@@ -99,7 +99,7 @@ uint64_t RealMgm::getFileSizeBytes(const IFileMD::id_t fid) {
 // Execute stagerrm as user root
 //----------------------------------------------------------------------------
 console::ReplyProto
-RealMgm::stagerrmAsRoot(const IFileMD::id_t fid)
+RealTapeGcMgm::stagerrmAsRoot(const IFileMD::id_t fid)
 {
   eos::common::VirtualIdentity rootVid = eos::common::VirtualIdentity::Root();
 

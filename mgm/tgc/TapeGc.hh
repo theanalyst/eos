@@ -28,6 +28,7 @@
 #include "mgm/Namespace.hh"
 #include "mgm/tgc/BlockingFlag.hh"
 #include "mgm/tgc/FreeSpace.hh"
+#include "mgm/tgc/ITapeGcMgm.hh"
 #include "mgm/tgc/Lru.hh"
 #include "namespace/interface/IFileMD.hh"
 #include "proto/ConsoleReply.pb.h"
@@ -59,10 +60,11 @@ public:
   //----------------------------------------------------------------------------
   //! Constructor
   //!
+  //! @param mgm the interface to the EOS MGM
   //! @param space the name of EOS space that this garbage collector will work
   //! on
   //----------------------------------------------------------------------------
-  TapeGc(const std::string &space);
+  TapeGc(/*ITapeGcMgm &mgm,*/ const std::string &space);
 
   //----------------------------------------------------------------------------
   //! Destructor
