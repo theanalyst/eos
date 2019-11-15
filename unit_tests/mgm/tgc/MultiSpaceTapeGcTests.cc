@@ -39,7 +39,7 @@ protected:
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TgcMultiSpaceTapeGcTest, Constructor)
+TEST_F(TgcMultiSpaceTapeGcTest, constructor)
 {
   using namespace eos::mgm::tgc;
 
