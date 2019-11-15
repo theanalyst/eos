@@ -66,6 +66,7 @@ set(MGM_UT_SRCS
   mgm/FsckEntryTests.cc
   mgm/tgc/CachedValueTests.cc
   mgm/tgc/LruTests.cc
+  mgm/tgc/MultiSpaceTapeGcTests.cc
   mgm/tgc/SpaceToTapeGcMapTests.cc
   mgm/tgc/UtilsTests.cc
   mgm/XrdMgmOfsTests.cc)
