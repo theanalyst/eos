@@ -46,3 +46,17 @@ TEST_F(TgcMultiSpaceTapeGcTest, constructor)
   DummyTapeGcMgm mgm;
   MultiSpaceTapeGc gc(mgm);
 }
+
+//------------------------------------------------------------------------------
+// Test
+//------------------------------------------------------------------------------
+TEST_F(TgcMultiSpaceTapeGcTest, enable)
+{
+  using namespace eos::mgm::tgc;
+
+  DummyTapeGcMgm mgm;
+  MultiSpaceTapeGc gc(mgm);
+
+  const std::string space = "space";
+  gc.enable(space);
+}
