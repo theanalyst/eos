@@ -60,11 +60,9 @@ uint64_t DummyTapeGcMgm::getFileSizeBytes(const IFileMD::id_t fid) {
 //----------------------------------------------------------------------------
 // Execute stagerrm as user root
 //----------------------------------------------------------------------------
-console::ReplyProto
-DummyTapeGcMgm::stagerrmAsRoot(const IFileMD::id_t fid)
-{
-  console::ReplyProto reply;
-  return reply;
+void
+DummyTapeGcMgm::stagerrmAsRoot(const IFileMD::id_t fid) {
+  // Do nothing
 }
 
 EOSTGCNAMESPACE_END

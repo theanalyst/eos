@@ -160,28 +160,21 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
     }
 
     const uint64_t fileToBeDeletedSizeBytes = m_mgm.getFileSizeBytes(fid);
-    const auto result = m_mgm.stagerrmAsRoot(fid);
 
     std::ostringstream preamble;
     preamble << "fxid=" << std::hex << fid;
 
-    if(0 == result.retc()) {
-      m_freeSpace.fileQueuedForDeletion(fileToBeDeletedSizeBytes);
-      std::ostringstream msg;
-      msg << preamble.str() << " msg=\"Garbage collected file using stagerrm\"";
-      eos_static_info(msg.str().c_str());
+    try {
+      m_mgm.stagerrmAsRoot(fid);
+    } catch(std::exception &ex) {
+      {
+        std::ostringstream msg;
+        msg << preamble.str() << " msg=\"Unable to stagerrm file at this time: "
+          << ex.what() << "\"";
+        eos_static_info(msg.str().c_str());
+      }
 
-      m_nbStagerrms++;
-
-      return true; // A file was garbage collected
-    } else {
       if(m_mgm.fileInNamespaceAndNotScheduledForDeletion(fid)) {
-        {
-          std::ostringstream msg;
-          msg << preamble.str() << " msg=\"Unable to stagerrm file at this time: "
-            << result.std_err() << "\"";
-          eos_static_info(msg.str().c_str());
-        }
         {
           std::ostringstream msg;
           msg << preamble.str() << " msg=\"Putting file back in GC queue"
@@ -191,6 +184,7 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
 
         std::lock_guard<std::mutex> lruQueueLock(m_lruQueueMutex);
         m_lruQueue.fileAccessed(fid);
+        return false; // No file was garbage collected
       } else {
         // Please note that a file is considered successfully garbage collected
         // if it does not exists in the EOS namespace when it is popped from the
@@ -198,6 +192,15 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
         return true;
       }
     }
+
+    m_freeSpace.fileQueuedForDeletion(fileToBeDeletedSizeBytes);
+    std::ostringstream msg;
+    msg << preamble.str() << " msg=\"Garbage collected file using stagerrm\"";
+    eos_static_info(msg.str().c_str());
+
+    m_nbStagerrms++;
+
+    return true; // A file was garbage collected
   } catch(std::exception &ex) {
     eos_static_err("msg=\"%s\"", ex.what());
   } catch(...) {

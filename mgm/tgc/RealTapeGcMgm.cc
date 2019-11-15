@@ -98,7 +98,7 @@ uint64_t RealTapeGcMgm::getFileSizeBytes(const IFileMD::id_t fid) {
 //----------------------------------------------------------------------------
 // Execute stagerrm as user root
 //----------------------------------------------------------------------------
-console::ReplyProto
+void
 RealTapeGcMgm::stagerrmAsRoot(const IFileMD::id_t fid)
 {
   eos::common::VirtualIdentity rootVid = eos::common::VirtualIdentity::Root();
@@ -109,7 +109,10 @@ RealTapeGcMgm::stagerrmAsRoot(const IFileMD::id_t fid)
   file->set_fid(fid);
 
   StagerRmCmd cmd(std::move(req), rootVid);
-  return cmd.ProcessRequest();
+  auto const result = cmd.ProcessRequest();
+  if(result.retc()) {
+    throw std::runtime_error(result.std_err());
+  }
 }
 
 EOSTGCNAMESPACE_END

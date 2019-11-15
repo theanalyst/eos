@@ -96,10 +96,9 @@ public:
   //----------------------------------------------------------------------------
   //! Execute stagerrm as user root
   //!
-  //! \param fid The file identifier
-  //! \return stagerrm result
+  //! @param fid The file identifier
   //----------------------------------------------------------------------------
-  console::ReplyProto stagerrmAsRoot(const IFileMD::id_t fid) override;
+  void stagerrmAsRoot(const IFileMD::id_t fid) override;
 
 private:
 
