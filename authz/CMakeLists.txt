@@ -31,6 +31,7 @@ add_library(eosCapability-Static STATIC
 
 target_link_libraries(eosCapability-Static PUBLIC
   PROTOBUF::PROTOBUF
+  OPENSSL::OPENSSL
   XROOTD::UTILS)
 
 set_target_properties(eosCapability-Static
