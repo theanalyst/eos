@@ -110,7 +110,6 @@ target_link_libraries(EosCommon PUBLIC
   EosFstProto-Objects
   EosCliProto-Objects
   EosNsQuarkdbProto-Objects
-  ATTR::ATTR
   NCURSES::NCURSES
   ZLIB::ZLIB
   UUID::UUID
@@ -133,7 +132,6 @@ target_link_libraries(EosCommon-Static PUBLIC
   EosFstProto-Objects
   EosCliProto-Objects
   EosNsQuarkdbProto-Objects
-  ATTR::ATTR
   XROOTD::CL
   XROOTD::UTILS
   UUID::UUID
