@@ -39,8 +39,11 @@
 /*----------------------------------------------------------------------------*/
 EOSTGCNAMESPACE_BEGIN
 
-/// Default delay in seconds between free space queries
-const uint64_t TGC_SPACE_QUERY_PERIOD_SECS=310;
+/// Default delay in seconds between free space queries for the tape-aware GC
+const uint64_t TGC_DEFAULT_FREE_SPACE_QUERY_PERIOD_SECS = 310;
+
+/// Default minimum number of free bytes within an EOS space for the tape-aware GC
+const uint64_t TGC_DEFAULT_MIN_FREE_BYTES = 0;
 
 EOSTGCNAMESPACE_END
 

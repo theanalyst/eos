@@ -32,6 +32,7 @@
 #include "mgm/Converter.hh"
 #include "mgm/GeoTreeEngine.hh"
 #include "mgm/config/ConfigParsing.hh"
+#include "mgm/tgc/Constants.hh"
 #include "common/table_formatter/TableFormatterBase.hh"
 #include "common/StringConversion.hh"
 #include "common/Assert.hh"
@@ -977,9 +978,14 @@ FsSpace::FsSpace(const char* name)
       SetConfigMember("filearchivedgc", "off");
     }
 
+    // Set the default delay in seconds between free space queries
+    if (GetConfigMember("tgc.freespacequeryperiodsecs").empty()) {
+      SetConfigMember("tgc.freespacequeryperiodsecs", std::to_string(tgc::TGC_DEFAULT_FREE_SPACE_QUERY_PERIOD_SECS));
+    }
+
     // Set the default minimum number of free bytes for the tape aware GC
     if (GetConfigMember("tgc.minfreebytes").empty()) {
-      SetConfigMember("tgc.minfreebytes", "0");
+      SetConfigMember("tgc.minfreebytes", std::to_string(tgc::TGC_DEFAULT_MIN_FREE_BYTES));
     }
   }
 
