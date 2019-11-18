@@ -9,14 +9,14 @@
 #
 # eos-backup backup -B /BackupPrefix [-F catalogFile] [-P <parentId>] /eos/pathName
 #   - unless specified with '-F' uses "clone" to produce a clone and catalogFile
-#     and then backs up files into /BackupPrefix.cloneId and deletes the clone.
+#     and then backs up files into /BackupPrefix/cloneId and deletes the clone.
 #     Outputs "cloneId <cloneId> backup media <backupDir>" followed by whatever
 #     the deletion of the clone says.
 #
 # eos-backup restore -F /inputCatalog1[,/inputCatalog2[,...]] /outputDirectory
 #   - performs a restore into outputDirectory based on 1 or more catalogFiles
 
-# for clone/backup the data are stored in /BackupPrefix.cloneId and /BackupPrefix.cloneId.catalog
+# for clone/backup the data are stored in /BackupPrefix/cloneId and /BackupPrefix/cloneId.catalog
 # the /eos pathnames are as seen by the MGM, not necessarily fuse-mounted paths in the local file system
 
 # environment:
@@ -251,7 +251,7 @@ def do_backup():
     cloneId = jj['c']
     rootPath = jj['n']
 
-    backupDir = "%s.%s/" % (opt['-B'], cloneId)
+    backupDir = "%s/%s/" % (opt['-B'].rstrip('/'), cloneId)
     if b_Xroot:
         b_fs = client.FileSystem(backupDir)
         b_fs.mkdir(backupDir, MkDirFlags.MAKEPATH)
