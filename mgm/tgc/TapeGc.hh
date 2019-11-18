@@ -30,6 +30,7 @@
 #include "mgm/tgc/FreeSpace.hh"
 #include "mgm/tgc/ITapeGcMgm.hh"
 #include "mgm/tgc/Lru.hh"
+#include "mgm/tgc/TapeGcStats.hh"
 #include "namespace/interface/IFileMD.hh"
 #include "proto/ConsoleReply.pb.h"
 #include "proto/ConsoleRequest.pb.h"
@@ -100,6 +101,11 @@ public:
   //! @param fmd file metadata
   //----------------------------------------------------------------------------
   void fileOpened(const std::string &path, const IFileMD &fmd) noexcept;
+
+  //----------------------------------------------------------------------------
+  //! @return statistics
+  //----------------------------------------------------------------------------
+  TapeGcStats getStats() const noexcept;
 
   //----------------------------------------------------------------------------
   //! @return the number of files successfully stagerrm'ed since boot.  Zero is

@@ -241,6 +241,22 @@ TapeGc::createLogPreamble(const std::string &space, const std::string &path,
 }
 
 //----------------------------------------------------------------------------
+// Return statistics
+//----------------------------------------------------------------------------
+TapeGcStats
+TapeGc::getStats() const noexcept
+{
+  TapeGcStats stats;
+
+  stats.nbStagerrms = getNbStagerrms();
+  stats.lruQueueSize = getLruQueueSize();
+  stats.freeBytes = getFreeBytes();
+  stats.freeSpaceQueryTimestamp = getFreeSpaceQueryTimestamp();
+
+  return stats;
+}
+
+//----------------------------------------------------------------------------
 // Return the number of files successfully stagerrm'ed since boot
 //----------------------------------------------------------------------------
 uint64_t
