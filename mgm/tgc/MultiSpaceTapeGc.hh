@@ -26,8 +26,12 @@
 
 #include "mgm/Namespace.hh"
 #include "mgm/tgc/ITapeGcMgm.hh"
-#include "mgm/tgc/SpaceToTapeGcMap.hh"
 #include "mgm/tgc/Lru.hh"
+#include "mgm/tgc/SpaceToTapeGcMap.hh"
+#include "mgm/tgc/TapeGcStats.hh"
+
+#include <map>
+#include <string>
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -86,6 +90,11 @@ public:
   //----------------------------------------------------------------------------
   void fileOpened(const std::string &space, const std::string &path,
     const IFileMD &fmd) noexcept;
+
+  //----------------------------------------------------------------------------
+  //! @return map from EOS space name to tape-aware GC statistics
+  //----------------------------------------------------------------------------
+  std::map<std::string, TapeGcStats> getStats() const;
 
   //----------------------------------------------------------------------------
   //! @return the number of files successfully stagerrm'ed since boot for the

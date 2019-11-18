@@ -105,4 +105,23 @@ TapeGc
   return *gc;
 }
 
+//----------------------------------------------------------------------------
+//! @return map from EOS space name to tape-aware GC statistics
+//----------------------------------------------------------------------------
+std::map<std::string, TapeGcStats>
+SpaceToTapeGcMap::getStats() const
+{
+  std::map<std::string, TapeGcStats> stats;
+
+  std::lock_guard<std::mutex> lock(m_mutex);
+
+  for(auto itor = m_gcs.begin(); itor != m_gcs.end(); itor++) {
+    if(nullptr != itor->second) {
+      stats[itor->first] = itor->second->getStats();
+    }
+  }
+
+  return stats;
+}
+
 EOSTGCNAMESPACE_END

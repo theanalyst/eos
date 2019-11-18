@@ -92,6 +92,14 @@ MultiSpaceTapeGc::fileOpened(const std::string &space, const std::string &path,
 }
 
 //------------------------------------------------------------------------------
+//! Return map from EOS space name to tape-aware GC statistics
+//------------------------------------------------------------------------------
+std::map<std::string, TapeGcStats> MultiSpaceTapeGc::getStats() const
+{
+  return m_gcs.getStats();
+}
+
+//------------------------------------------------------------------------------
 //! Return the number of files successfully stagerrm'ed since boot
 //------------------------------------------------------------------------------
 uint64_t

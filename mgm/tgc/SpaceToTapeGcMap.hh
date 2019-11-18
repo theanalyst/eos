@@ -26,6 +26,7 @@
 
 #include "mgm/tgc/ITapeGcMgm.hh"
 #include "mgm/tgc/TapeGc.hh"
+#include "mgm/tgc/TapeGcStats.hh"
 
 #include <map>
 
@@ -99,6 +100,11 @@ public:
   //! @throw UnknownEOSSpace If the specified EOS space is unknown.
   //----------------------------------------------------------------------------
   TapeGc &getGc(const std::string &space) const;
+
+  //----------------------------------------------------------------------------
+  //! @return map from EOS space name to tape-aware GC statistics
+  //----------------------------------------------------------------------------
+  std::map<std::string, TapeGcStats> getStats() const;
 
 private:
 
