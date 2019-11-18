@@ -44,6 +44,7 @@
 #include "mgm/Stat.hh"
 #include "mgm/Master.hh"
 #include "mgm/ZMQ.hh"
+#include "mgm/tgc/MultiSpaceTapeGc.hh"
 #include <sstream>
 
 EOSMGMNAMESPACE_BEGIN
