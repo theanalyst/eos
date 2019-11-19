@@ -378,6 +378,7 @@ NsCmd::StatSubcmd(const eos::console::NsProto_StatProto& stat,
     if (gOFS->mTapeEnabled) {
       oss << "uid=all gid=all ns.tapeenabled=true" << std::endl;
 
+      // Tape GC stats are only displayed if enabled for at least one EOS space
       const auto tgcStats = gOFS->mTapeGc->getStats();
       for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
         const std::string &tgcSpace = itor->first;
@@ -517,6 +518,22 @@ NsCmd::StatSubcmd(const eos::console::NsProto_StatProto& stat,
     // simplify the disk-only use of EOS
     if (gOFS->mTapeEnabled) {
       oss << "ALL      tapeenabled                      true" << std::endl;
+
+      // Tape GC stats are only displayed if enabled for at least one EOS space
+      const auto tgcStats = gOFS->mTapeGc->getStats();
+      for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
+        const std::string &tgcSpace = itor->first;
+        const tgc::TapeGcStats &tgcSpaceStats = itor->second;
+
+        oss << "ALL      tgc.stagerrms." << tgcSpace << " "
+            << tgcSpaceStats.nbStagerrms << std::endl
+            << "ALL      tgc.queuesize." << tgcSpace << " "
+            << tgcSpaceStats.lruQueueSize << std::endl
+            << "ALL      tgc.freebytes." << tgcSpace << " "
+            << tgcSpaceStats.freeBytes << std::endl
+            << "ALL      tgc.freespacequerytimestamp." << tgcSpace << " "
+            << tgcSpaceStats.freeSpaceQueryTimestamp << std::endl;
+      }
     }
   }
 
