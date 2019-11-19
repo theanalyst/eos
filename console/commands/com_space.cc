@@ -565,7 +565,7 @@ com_space_usage:
   fprintf(stdout,
           "       space config <space-name> space.filearchivedgc=on|off         : enable/disable the 'file archived' garbage collector [ default=off ]\n");
   fprintf(stdout,
-          "       space config <space-name> space.tgc.freespacequeryperiod=<#>  : delay in seconds between free space queries for the tape-aware GC [ default=%lu ]\n", eos::mgm::tgc::TGC_DEFAULT_FREE_SPACE_QUERY_PERIOD_SECS);
+          "       space config <space-name> space.tgc.freespaceqryperiod=<#>    : delay in seconds between free space queries for the tape-aware GC [ default=%lu ]\n", eos::mgm::tgc::TGC_DEFAULT_FREE_SPACE_QUERY_PERIOD_SECS);
   fprintf(stdout,
           "       space config <space-name> space.tgc.minfreebytes=<#>          : configure the minimum number of free bytes the space should have before the tape-aware GC kicks in [ default=%lu ] \n", eos::mgm::tgc::TGC_DEFAULT_MIN_FREE_BYTES);
   fprintf(stdout,

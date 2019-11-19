@@ -546,7 +546,7 @@ ProcCommand::Space()
                   (key == "geo.access.policy.read.exact") ||
                   (key == "geo.access.policy.write.exact") ||
                   (key == "filearchivedgc") ||
-                  (key == "tgc.freespacequeryperiodsecs") ||
+                  (key == "tgc.freespaceqryperiodsecs") ||
                   (key == "tgc.minfreebytes") ||
 		  (key == "balancer.threshold") ||
 		  (key == "token.generation") ||
