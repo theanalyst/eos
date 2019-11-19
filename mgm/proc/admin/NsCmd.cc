@@ -377,6 +377,25 @@ NsCmd::StatSubcmd(const eos::console::NsProto_StatProto& stat,
     // simplify the disk-only use of EOS
     if (gOFS->mTapeEnabled) {
       oss << "uid=all gid=all ns.tapeenabled=true" << std::endl;
+
+      try {
+        const auto tgcStats = gOFS->mTapeGc->getStats();
+        for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
+          const std::string &tgcSpace = itor->first;
+          const tgc::TapeGcStats &tgcSpaceStats = itor->second;
+
+          oss << "uid=all gid=all tgc.stagerrms." << tgcSpace << "="
+              << tgcSpaceStats.nbStagerrms << std::endl
+              << "uid=all gid=all tgc.queuesize." << tgcSpace << "="
+              << tgcSpaceStats.lruQueueSize << std::endl
+              << "uid=all gid=all tgc.freebytes." << tgcSpace << "="
+              << tgcSpaceStats.freeBytes << std::endl
+              << "uid=all gid=all tgc.freespacequerytimestamp." << tgcSpace << "="
+              << tgcSpaceStats.freeSpaceQueryTimestamp << std::endl;
+        }
+      } catch(...) {
+        // Ignore any exceptions thrown when display the tape-aware GC statistics
+      }
     }
   } else {
     std::string line = "# ------------------------------------------------------"
