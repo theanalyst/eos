@@ -390,7 +390,7 @@ NsCmd::StatSubcmd(const eos::console::NsProto_StatProto& stat,
             << tgcSpaceStats.lruQueueSize << std::endl
             << "uid=all gid=all tgc.freebytes." << tgcSpace << "="
             << tgcSpaceStats.freeBytes << std::endl
-            << "uid=all gid=all tgc.freespacequerytimestamp." << tgcSpace << "="
+            << "uid=all gid=all tgc.qrytimestamp." << tgcSpace << "="
             << tgcSpaceStats.freeSpaceQueryTimestamp << std::endl;
       }
     }
@@ -521,19 +521,37 @@ NsCmd::StatSubcmd(const eos::console::NsProto_StatProto& stat,
 
       // Tape GC stats are only displayed if enabled for at least one EOS space
       const auto tgcStats = gOFS->mTapeGc->getStats();
-      for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
-        const std::string &tgcSpace = itor->first;
-        const tgc::TapeGcStats &tgcSpaceStats = itor->second;
-
-        oss << "ALL      tgc.stagerrms." << tgcSpace << " "
-            << tgcSpaceStats.nbStagerrms << std::endl
-            << "ALL      tgc.queuesize." << tgcSpace << " "
-            << tgcSpaceStats.lruQueueSize << std::endl
-            << "ALL      tgc.freebytes." << tgcSpace << " "
-            << tgcSpaceStats.freeBytes << std::endl
-            << "ALL      tgc.freespacequerytimestamp." << tgcSpace << " "
-            << tgcSpaceStats.freeSpaceQueryTimestamp << std::endl;
+      if(!tgcStats.empty()) {
+        oss << "ALL      tgc.stagerrms                   ";
+        for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
+          const std::string &tgcSpace = itor->first;
+          const tgc::TapeGcStats &tgcSpaceStats = itor->second;
+          oss << " " << tgcSpace << "=" << tgcSpaceStats.nbStagerrms;
+        }
+        oss << std::endl;
+        oss << "ALL      tgc.queuesize                   ";
+        for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
+          const std::string &tgcSpace = itor->first;
+          const tgc::TapeGcStats &tgcSpaceStats = itor->second;
+          oss << " " << tgcSpace << "=" << tgcSpaceStats.lruQueueSize;
+        }
+        oss << std::endl;
+        oss << "ALL      tgc.freebytes                   ";
+        for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
+          const std::string &tgcSpace = itor->first;
+          const tgc::TapeGcStats &tgcSpaceStats = itor->second;
+          oss << " " << tgcSpace << "=" << tgcSpaceStats.freeBytes;
+        }
+        oss << std::endl;
+        oss << "ALL      tgc.qrytimestamp                ";
+        for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
+          const std::string &tgcSpace = itor->first;
+          const tgc::TapeGcStats &tgcSpaceStats = itor->second;
+          oss << " " << tgcSpace << "=" << tgcSpaceStats.freeSpaceQueryTimestamp;
+        }
+        oss << std::endl;
       }
+      oss << line << std::endl;
     }
   }
 
