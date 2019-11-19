@@ -45,6 +45,9 @@ TEST_F(TgcMultiSpaceTapeGcTest, constructor)
 
   DummyTapeGcMgm mgm;
   MultiSpaceTapeGc gc(mgm);
+
+  const auto stats = gc.getStats();
+  ASSERT_TRUE(stats.empty());
 }
 
 //------------------------------------------------------------------------------
@@ -59,4 +62,12 @@ TEST_F(TgcMultiSpaceTapeGcTest, enable)
 
   const std::string space = "space";
   gc.enable(space);
+
+  const auto stats = gc.getStats();
+  ASSERT_EQ(1, stats.size());
+
+  auto itor = stats.begin();
+  ASSERT_EQ(space, itor->first);
+  ASSERT_EQ(0, itor->second.nbStagerrms);
+  ASSERT_EQ(0, itor->second.lruQueueSize);
 }
