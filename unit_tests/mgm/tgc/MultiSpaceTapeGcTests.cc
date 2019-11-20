@@ -53,7 +53,7 @@ TEST_F(TgcMultiSpaceTapeGcTest, constructor)
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
-TEST_F(TgcMultiSpaceTapeGcTest, enable)
+TEST_F(TgcMultiSpaceTapeGcTest, enable_one_space)
 {
   using namespace eos::mgm::tgc;
 
@@ -68,6 +68,35 @@ TEST_F(TgcMultiSpaceTapeGcTest, enable)
 
   auto itor = stats.begin();
   ASSERT_EQ(space, itor->first);
+  ASSERT_EQ(0, itor->second.nbStagerrms);
+  ASSERT_EQ(0, itor->second.lruQueueSize);
+}
+
+//------------------------------------------------------------------------------
+// Test
+//------------------------------------------------------------------------------
+TEST_F(TgcMultiSpaceTapeGcTest, enable_two_spaces)
+{
+  using namespace eos::mgm::tgc;
+
+  DummyTapeGcMgm mgm;
+  MultiSpaceTapeGc gc(mgm);
+
+  const std::string space1 = "space1";
+  const std::string space2 = "space2";
+  gc.enable(space1);
+  gc.enable(space2);
+
+  const auto stats = gc.getStats();
+  ASSERT_EQ(2, stats.size());
+
+  auto itor = stats.begin();
+  ASSERT_EQ(space1, itor->first);
+  ASSERT_EQ(0, itor->second.nbStagerrms);
+  ASSERT_EQ(0, itor->second.lruQueueSize);
+
+  itor++;
+  ASSERT_EQ(space2, itor->first);
   ASSERT_EQ(0, itor->second.nbStagerrms);
   ASSERT_EQ(0, itor->second.lruQueueSize);
 }
