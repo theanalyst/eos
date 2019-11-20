@@ -195,13 +195,6 @@ public:
   //----------------------------------------------------------------------------
   virtual bool KillJob() final;
 
-  //----------------------------------------------------------------------------
-  //! Return the result 
-  //----------------------------------------------------------------------------
-  virtual const char* GetResult(size_t& size) { return "bla";}
-  
-
-
 protected:
   virtual bool OpenTemporaryOutputFiles();
   virtual bool CloseTemporaryOutputFiles();
