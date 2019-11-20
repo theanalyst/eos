@@ -25,7 +25,6 @@
 # Search for dependencies
 #-------------------------------------------------------------------------------
 option(PACKAGEONLY "Build without dependencies" OFF)
-option(FUSEXCLIENT "Build FUSEX client" OFF)
 option(CLIENT "Build only client packages" OFF)
 option(BUILD_XRDCL_RAIN_PLUGIN "Enable XrdCl RAIN plugin" OFF)
 
@@ -70,7 +69,7 @@ if(NOT PACKAGEONLY)
     get_filename_component(EOS_PROTOBUF_RPATH ${PROTOBUF_LIBRARY} DIRECTORY)
     get_filename_component(EOS_XROOTD_RPATH ${XROOTD_UTILS_LIBRARY} DIRECTORY)
     set(CMAKE_INSTALL_RPATH "${EOS_PROTOBUF_RPATH};${EOS_XROOTD_RPATH}")
-    message(STATUS "Info CMAKE_INTALL_RPATH=${CMAKE_INSTALL_RPATH}")
+    message(STATUS "Info CMAKE_INSTALL_RPATH=${CMAKE_INSTALL_RPATH}")
   else ()
     find_package(Protobuf REQUIRED)
 
@@ -89,17 +88,12 @@ if(NOT PACKAGEONLY)
 
   # The server build also requires
   if (NOT CLIENT)
-    find_package(davix)
     find_package(eosfolly REQUIRED)
     find_package(ldap REQUIRED)
     # @TODO (esindril): Completely drop cppunit once everything is moved to gtest
     find_package(CPPUnit REQUIRED)
     find_package(GRPC)
-    if (NOT GRPC_FOUND)
-      message ("Notice: gRPC not found, no gRPC access available")
-    else ()
-      set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DEOS_GRPC=1")
-    endif ()
+    find_package(davix)
   endif()
 else()
   message(STATUS "Running CMake in package only mode.")
