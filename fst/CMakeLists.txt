@@ -449,7 +449,7 @@ add_executable(eos-adler32
 add_executable(eos-ioping tools/IoPing.c)
 target_compile_options(eos-ioping PRIVATE -std=gnu99)
 
-target_link_libraries(eos-ioping PRIVATE ${GLIBC_M_LIBRARY})
+target_link_libraries(eos-ioping PRIVATE ${GLIBC_M_LIBRARY} ${GLIBC_RT_LIBRARY})
 
 target_link_libraries(eos-check-blockxs PRIVATE EosFstIo)
 
