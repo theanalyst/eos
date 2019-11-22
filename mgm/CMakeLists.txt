@@ -56,6 +56,10 @@ target_link_libraries(EosMgmHttp PUBLIC
   XROOTD::PRIVATE
   FOLLY::FOLLY)
 
+# @todo(esindril) EosMgmHttp is very hacky and actually requires that all proto
+# buffer files used the XrdEosMgm are properly generated before it can build.
+add_dependencies(EosMgmHttp XrdEosMgm)
+
 install(TARGETS EosMgmHttp
   LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
   RUNTIME DESTINATION ${CMAKE_INSTALL_FULL_BINDIR}

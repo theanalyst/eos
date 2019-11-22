@@ -22,7 +22,6 @@
  ************************************************************************/
 
 #include <cfloat>
-#include <curl/curl.h>
 #include "mgm/XrdMgmOfs.hh"
 #include "mgm/IMaster.hh"
 #include "mgm/FsView.hh"
