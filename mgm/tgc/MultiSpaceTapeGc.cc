@@ -43,12 +43,6 @@ MultiSpaceTapeGc::MultiSpaceTapeGc(ITapeGcMgm &mgm): m_gcs(mgm)
 }
 
 //------------------------------------------------------------------------------
-//! Destructor
-//------------------------------------------------------------------------------
-MultiSpaceTapeGc::~MultiSpaceTapeGc() {
-}
-
-//------------------------------------------------------------------------------
 //! Enable garbage collection for the specified EOS space
 //------------------------------------------------------------------------------
 void
@@ -97,91 +91,6 @@ MultiSpaceTapeGc::fileOpened(const std::string &space, const std::string &path,
 std::map<std::string, TapeGcStats> MultiSpaceTapeGc::getStats() const
 {
   return m_gcs.getStats();
-}
-
-//------------------------------------------------------------------------------
-//! Return the number of files successfully stagerrm'ed since boot
-//------------------------------------------------------------------------------
-uint64_t
-MultiSpaceTapeGc::getNbStagerrms(const std::string &space) const noexcept
-{
-  const char * const msgFormat =
-    "Error getting number of stagerrms space=%s: %s";
-
-  try {
-    auto &gc = m_gcs.getGc(space);
-    return gc.getNbStagerrms();
-  } catch (std::exception &ex) {
-    eos_static_err(msgFormat, space.c_str(), ex.what());
-  } catch (...) {
-    eos_static_err(msgFormat, space.c_str(), "Caught an unknown exception");
-  }
-
-  return 0;
-}
-
-//------------------------------------------------------------------------------
-//! Return the size of the LRU queue for the specified EOS space
-//------------------------------------------------------------------------------
-Lru::FidQueue::size_type
-MultiSpaceTapeGc::getLruQueueSize(const std::string &space) const noexcept
-{
-  const char * const msgFormat =
-    "Error getting size of the LRU queue space=%s: %s";
-
-  try {
-    auto &gc = m_gcs.getGc(space);
-    return gc.getLruQueueSize();
-  } catch (std::exception &ex) {
-    eos_static_err(msgFormat, space.c_str(), ex.what());
-  } catch (...) {
-    eos_static_err(msgFormat, space.c_str(), "Caught an unknown exception");
-  }
-
-  return 0;
-}
-
-//------------------------------------------------------------------------------
-//! Return the amount of free bytes in the specified EOS space
-//------------------------------------------------------------------------------
-uint64_t
-MultiSpaceTapeGc::getFreeBytes(const std::string &space) const noexcept
-{
-  const char * const msgFormat =
-    "Error getting the amount of free bytes in EOS space space=%s: %s";
-
-  try {
-    auto &gc = m_gcs.getGc(space);
-    return gc.getFreeBytes();
-  } catch (std::exception &ex) {
-    eos_static_err(msgFormat, space.c_str(), ex.what());
-  } catch (...) {
-    eos_static_err(msgFormat, space.c_str(), "Caught an unknown exception");
-  }
-
-  return 0;
-}
-
-//------------------------------------------------------------------------------
-//! @return the timestamp at which the specified EOS space was queried
-//------------------------------------------------------------------------------
-time_t
-MultiSpaceTapeGc::getFreeSpaceQueryTimestamp(const std::string &space)
-const noexcept
-{
-  const char * const msgFormat = "Error getting the timestamp at which the "
-    "specified EOS space was queried space=%s: %s";
-
-  try {
-    auto &gc = m_gcs.getGc(space);
-    return gc.getFreeSpaceQueryTimestamp();
-  } catch (std::exception &ex) {
-    eos_static_err(msgFormat, space.c_str(), ex.what());
-  } catch (...) {
-    eos_static_err(msgFormat, space.c_str(), "Caught an unknown exception");
-  }
-
-  return 0;
 }
 
 EOSTGCNAMESPACE_END

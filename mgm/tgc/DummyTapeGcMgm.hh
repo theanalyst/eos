@@ -26,6 +26,8 @@
 
 #include "mgm/tgc/ITapeGcMgm.hh"
 
+#include <mutex>
+
 /*----------------------------------------------------------------------------*/
 /**
  * @file DummyTapeGcMgm.hh
@@ -79,7 +81,7 @@ public:
   //! @return The size of the specified file in bytes.  If the file cannot be
   //! found in the EOS namespace then a file size of 0 is returned.
   //----------------------------------------------------------------------------
-  uint64_t getFileSizeBytes(const IFileMD::id_t fid) override;
+  uint64_t getFileSizeBytes(IFileMD::id_t fid) override;
 
   //----------------------------------------------------------------------------
   //! Determine if the specified file exists and is not scheduled for deletion
@@ -88,14 +90,31 @@ public:
   //! @return True if the file exists in the EOS namespace and is not scheduled
   //! for deletion
   //----------------------------------------------------------------------------
-  bool fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t fid) override;
+  bool fileInNamespaceAndNotScheduledForDeletion(IFileMD::id_t fid) override;
 
   //----------------------------------------------------------------------------
   //! Execute stagerrm as user root
   //!
   //! @param fid The file identifier
   //----------------------------------------------------------------------------
-  void stagerrmAsRoot(const IFileMD::id_t fid) override;
+  void stagerrmAsRoot(IFileMD::id_t fid) override;
+
+  //----------------------------------------------------------------------------
+  //! @return number of times getSpaceConfigMinFreeBytes() has been called
+  //----------------------------------------------------------------------------
+  uint64_t getNbCallsToGetSpaceConfigMinFreeBytes() const;
+
+private:
+
+  //----------------------------------------------------------------------------
+  //! Mutex protecting this dummy object representing access to the MGM
+  //----------------------------------------------------------------------------
+  mutable std::mutex m_mutex;
+
+  //----------------------------------------------------------------------------
+  //! Number of times getSpaceConfigMinFreeBytes() has been called
+  //----------------------------------------------------------------------------
+  uint64_t m_nbCallsToGetSpaceConfigMinFreeBytes;
 };
 
 EOSTGCNAMESPACE_END

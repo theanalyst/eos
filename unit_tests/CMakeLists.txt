@@ -68,6 +68,7 @@ set(MGM_UT_SRCS
   mgm/tgc/LruTests.cc
   mgm/tgc/MultiSpaceTapeGcTests.cc
   mgm/tgc/SpaceToTapeGcMapTests.cc
+  mgm/tgc/TapeGcTests.cc
   mgm/tgc/UtilsTests.cc
   mgm/XrdMgmOfsTests.cc)
 

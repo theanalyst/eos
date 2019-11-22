@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: MultiSpaceTapeGc.hh
+// File: TestingTapeGc.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,87 +21,64 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGM_MULTISPACETAPEGC_HH__
-#define __EOSMGM_MULTISPACETAPEGC_HH__
+#ifndef __EOSMGM_TESTINGTAPEGC_HH__
+#define __EOSMGM_TESTINGTAPEGC_HH__
 
-#include "mgm/Namespace.hh"
-#include "mgm/tgc/ITapeGcMgm.hh"
-#include "mgm/tgc/Lru.hh"
-#include "mgm/tgc/SpaceToTapeGcMap.hh"
-#include "mgm/tgc/TapeGcStats.hh"
+#include "mgm/tgc/TapeGc.hh"
 
-#include <map>
-#include <string>
+#include <atomic>
+#include <mutex>
+#include <stdexcept>
+#include <stdint.h>
+#include <thread>
+#include <time.h>
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file MultiSpaceTapeGc.hh
+ * @file TestingTapeGc.hh
  *
- * @brief Class implementing a tape aware garbage collector that can work over
- * multiple EOS spaces
+ * @brief Facilitates the unit testing of the TapeGc class
  *
  */
 /*----------------------------------------------------------------------------*/
 EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
-//! A tape aware garbage collector that can work over multiple EOS spaces
+//! Facilitates the unit testing of the TapeGc class
 //------------------------------------------------------------------------------
-class MultiSpaceTapeGc
+class TestingTapeGc: public TapeGc
 {
 public:
   //----------------------------------------------------------------------------
   //! Constructor
   //!
   //! @param mgm the interface to the EOS MGM
+  //! @param space the name of EOS space that this garbage collector will work
+  //! on
   //----------------------------------------------------------------------------
-  explicit MultiSpaceTapeGc(ITapeGcMgm &mgm);
-
-  //----------------------------------------------------------------------------
-  //! Destructor
-  //----------------------------------------------------------------------------
-  ~MultiSpaceTapeGc() = default;
+  TestingTapeGc(ITapeGcMgm &mgm, const std::string &space): TapeGc(mgm, space)
+  {
+  }
 
   //----------------------------------------------------------------------------
   //! Delete copy constructor
   //----------------------------------------------------------------------------
-  MultiSpaceTapeGc(const MultiSpaceTapeGc &) = delete;
+  TestingTapeGc(const TapeGc &) = delete;
+
+  //----------------------------------------------------------------------------
+  //! Delete move constructor
+  //----------------------------------------------------------------------------
+  TestingTapeGc(const TapeGc &&) = delete;
 
   //----------------------------------------------------------------------------
   //! Delete assignment operator
   //----------------------------------------------------------------------------
-  MultiSpaceTapeGc &operator=(const MultiSpaceTapeGc &) = delete;
+  TestingTapeGc &operator=(const TapeGc &) = delete;
 
   //----------------------------------------------------------------------------
-  //! Enable garbage collection for the specified EOS space
-  //!
-  //! @param space The name of the EOs space
+  //! Make tryToGarbageCollectASingleFile() public so it can be unit tested
   //----------------------------------------------------------------------------
-  void enable(const std::string &space) noexcept;
-
-  //----------------------------------------------------------------------------
-  //! Notify GC the specified file has been opened
-  //! @note This method does nothing and returns immediately if the GC has not
-  //! been enabled
-  //!
-  //! @param space the name of the EOS space where the file resides
-  //! @param path file path
-  //! @param fmd file metadata
-  //----------------------------------------------------------------------------
-  void fileOpened(const std::string &space, const std::string &path,
-    const IFileMD &fmd) noexcept;
-
-  //----------------------------------------------------------------------------
-  //! @return map from EOS space name to tape-aware GC statistics
-  //----------------------------------------------------------------------------
-  std::map<std::string, TapeGcStats> getStats() const;
-
-private:
-
-  //----------------------------------------------------------------------------
-  //! Thread safe map from EOS space name to tape aware garbage collector
-  //----------------------------------------------------------------------------
-  SpaceToTapeGcMap m_gcs;
+  using TapeGc::tryToGarbageCollectASingleFile;
 };
 
 EOSTGCNAMESPACE_END

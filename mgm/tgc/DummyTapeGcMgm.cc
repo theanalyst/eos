@@ -28,7 +28,9 @@ EOSTGCNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 // Constructor
 //------------------------------------------------------------------------------
-DummyTapeGcMgm::DummyTapeGcMgm() {
+DummyTapeGcMgm::DummyTapeGcMgm():
+m_nbCallsToGetSpaceConfigMinFreeBytes(0)
+{
 }
 
 //------------------------------------------------------------------------------
@@ -40,20 +42,30 @@ DummyTapeGcMgm::DummyTapeGcMgm() {
 uint64_t
 DummyTapeGcMgm::getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept
 {
+  try {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_nbCallsToGetSpaceConfigMinFreeBytes++;
+  } catch(...) {
+    // Do nothing
+  }
   return 0;
 }
 
 //----------------------------------------------------------------------------
 // Determine if the specified file exists and is not scheduled for deletion
 //----------------------------------------------------------------------------
-bool DummyTapeGcMgm::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t fid) {
+bool
+DummyTapeGcMgm::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t /* fid */)
+{
   return true;
 }
 
 //----------------------------------------------------------------------------
 // Return size of the specified file
 //----------------------------------------------------------------------------
-uint64_t DummyTapeGcMgm::getFileSizeBytes(const IFileMD::id_t fid) {
+uint64_t
+DummyTapeGcMgm::getFileSizeBytes(const IFileMD::id_t /* fid */)
+{
   return 1;
 }
 
@@ -61,8 +73,19 @@ uint64_t DummyTapeGcMgm::getFileSizeBytes(const IFileMD::id_t fid) {
 // Execute stagerrm as user root
 //----------------------------------------------------------------------------
 void
-DummyTapeGcMgm::stagerrmAsRoot(const IFileMD::id_t fid) {
+DummyTapeGcMgm::stagerrmAsRoot(const IFileMD::id_t /* fid */)
+{
   // Do nothing
+}
+
+//------------------------------------------------------------------------------
+// Return number of times getSpaceConfigMinFreeBytes() has been called
+//------------------------------------------------------------------------------
+uint64_t
+DummyTapeGcMgm::getNbCallsToGetSpaceConfigMinFreeBytes() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
+  return m_nbCallsToGetSpaceConfigMinFreeBytes;
 }
 
 EOSTGCNAMESPACE_END
