@@ -1139,7 +1139,6 @@ Server::OpGetLs(const std::string& id,
   }
 
   eos::fusex::container cont;
-  eos::common::RWMutexReadLock rd_fs_lock(eos::mgm::FsView::gFsView.ViewMutex);
 
   if (!eos::common::FileId::IsFileInode(md.md_ino())) {
     eos_info("ino=%lx get-dir", (long) md.md_ino());
@@ -1897,10 +1896,10 @@ Server::OpSetFile(const std::string& id,
       // prepare to broadcast the new hardlink around, need to create an md object with the hardlink
       eos::fusex::md g_md;
       uint64_t g_ino = eos::common::FileId::FidToInode(gmd->getId());
+      lock.Release();
       FillFileMD(g_ino, g_md, vid);
 
       // release the namespace lock before serialization/broadcasting
-      lock.Release();
       resp.SerializeToString(response);
       struct timespec pt_mtime;
       pt_mtime.tv_sec = md.mtime();
@@ -2634,8 +2633,6 @@ Server::OpGetCap(const std::string& id,
   cont.set_type(cont.CAP);
   eos::fusex::md lmd;
   {
-    eos::common::RWMutexReadLock rd_fs_lock(eos::mgm::FsView::gFsView.ViewMutex);
-
     // get the meta data
     if (eos::common::FileId::IsFileInode(md.md_ino())) {
       FillFileMD((uint64_t) md.md_ino(), lmd, vid);
