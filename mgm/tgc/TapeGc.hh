@@ -61,11 +61,14 @@ public:
   //----------------------------------------------------------------------------
   //! Constructor
   //!
-  //! @param mgm the interface to the EOS MGM
-  //! @param space the name of EOS space that this garbage collector will work
+  //! @param mgm interface to the EOS MGM
+  //! @param space name of the EOS space that this garbage collector will work
   //! on
+  //! @param minFreeBytesMaxAgeSecs age at which the cached value of
+  //! minFreeBytes for this garabage collector's EOS space should be renewed
   //----------------------------------------------------------------------------
-  TapeGc(ITapeGcMgm &mgm, const std::string &space);
+  TapeGc(ITapeGcMgm &mgm, const std::string &space,
+    time_t minFreeBytesMaxAgeSecs = 10);
 
   //----------------------------------------------------------------------------
   //! Destructor
