@@ -420,7 +420,7 @@ void com_space_help()
       << "space config <space-name> space.drainperiod=<sec>                     : configure the default drain  period if not defined on a filesystem (see fs for details)\n"
       << "space config <space-name> space.graceperiod=<sec>                     : configure the default grace  period if not defined on a filesystem (see fs for details)\n"
       << "space config <space-name> space.filearchivedgc=on|off                 : enable/disable the 'file archived' garbage collector [ default=off ]\n"
-      << "space config <space-name> space.tgc.freespaceqryperiodsecs=<#>        : delay in seconds between free space queries for the tape-aware GC [ default=" << eos::mgm::tgc::TGC_DEFAULT_FREE_SPACE_QUERY_PERIOD_SECS << " ]\n"
+      << "space config <space-name> space.tgc.freespaceqryperiodsecs=<#>        : delay in seconds between free space queries for the tape-aware GC [ default=" << eos::mgm::tgc::TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS << " ]\n"
       << "space config <space-name> space.tgc.minfreebytes=<#>                  : configure the minimum number of free bytes the space should have before the tape-aware GC kicks in [ default=" << eos::mgm::tgc::TGC_DEFAULT_MIN_FREE_BYTES << " ] \n"
       << "space config <space-name> space.tracker=on|off                        : enable/disable the space layout creation tracker [ default=off ]\n"
       << "space config <space-name> space.inspector=on|off                      : enable/disable the file inspector [ default=off ]\n"

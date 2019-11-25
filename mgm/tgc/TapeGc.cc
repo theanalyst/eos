@@ -44,7 +44,7 @@ TapeGc::TapeGc(ITapeGcMgm &mgm, const std::string &space,
   m_minFreeBytes(
     std::bind(&ITapeGcMgm::getSpaceConfigMinFreeBytes, &m_mgm, space), // Value getter
     minFreeBytesMaxAgeSecs),
-  m_freeSpace(space, TGC_DEFAULT_FREE_SPACE_QUERY_PERIOD_SECS),
+  m_freeSpace(space, TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS),
   m_nbStagerrms(0)
 {
 }

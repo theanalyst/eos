@@ -980,7 +980,7 @@ FsSpace::FsSpace(const char* name)
 
     // Set the default delay in seconds between free space queries
     if (GetConfigMember("tgc.freespaceqryperiodsecs").empty()) {
-      SetConfigMember("tgc.freespaceqryperiodsecs", std::to_string(tgc::TGC_DEFAULT_FREE_SPACE_QUERY_PERIOD_SECS));
+      SetConfigMember("tgc.freespaceqryperiodsecs", std::to_string(tgc::TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS));
     }
 
     // Set the default minimum number of free bytes for the tape aware GC
