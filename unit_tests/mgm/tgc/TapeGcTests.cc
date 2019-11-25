@@ -82,9 +82,10 @@ TEST_F(TgcTapeGcTest, tryToGarbageCollectASingleFile)
   using namespace eos::mgm::tgc;
 
   const std::string space = "space";
+  const time_t minFreeBytesMaxAgeSecs = 0; // Always renew cached value
 
   DummyTapeGcMgm mgm;
-  TestingTapeGc gc(mgm, space);
+  TestingTapeGc gc(mgm, space, minFreeBytesMaxAgeSecs);
 
   ASSERT_EQ(0, mgm.getNbCallsToGetSpaceConfigMinFreeBytes());
 
@@ -94,4 +95,24 @@ TEST_F(TgcTapeGcTest, tryToGarbageCollectASingleFile)
   ASSERT_EQ(0, mgm.getNbCallsToFileInNamespaceAndNotScheduledForDeletion());
   ASSERT_EQ(0, mgm.getNbCallsToGetFileSizeBytes());
   ASSERT_EQ(0, mgm.getNbCallsToStagerrmAsRoot());
+
+  const std::string path = "the_file_path";
+  eos::IFileMD::id_t fid = 1;
+  gc.fileOpened(path, fid);
+
+  gc.tryToGarbageCollectASingleFile();
+
+  ASSERT_EQ(2, mgm.getNbCallsToGetSpaceConfigMinFreeBytes());
+  ASSERT_EQ(0, mgm.getNbCallsToFileInNamespaceAndNotScheduledForDeletion());
+  ASSERT_EQ(0, mgm.getNbCallsToGetFileSizeBytes());
+  ASSERT_EQ(0, mgm.getNbCallsToStagerrmAsRoot());
+
+  mgm.setSpaceConfigMinFreeBytes(space, 1);
+
+  gc.tryToGarbageCollectASingleFile();
+
+  ASSERT_EQ(3, mgm.getNbCallsToGetSpaceConfigMinFreeBytes());
+  ASSERT_EQ(1, mgm.getNbCallsToFileInNamespaceAndNotScheduledForDeletion());
+  ASSERT_EQ(1, mgm.getNbCallsToGetFileSizeBytes());
+  ASSERT_EQ(1, mgm.getNbCallsToStagerrmAsRoot());
 }
