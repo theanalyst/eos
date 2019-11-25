@@ -68,6 +68,16 @@ public:
   DummyTapeGcMgm &operator=(const DummyTapeGcMgm &) = delete;
 
   //----------------------------------------------------------------------------
+  //! @return The delay in seconds between free space queries for the specified
+  //! space as set in the configuration variables of the space.  If the delay
+  //! cannot be determined for whatever reason then
+  //! TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS is returned.
+  //!
+  //! @param spaceName The name of the space
+  //----------------------------------------------------------------------------
+  uint64_t getSpaceConfigQryPeriodSecs(const std::string &spaceName) noexcept override;
+
+  //----------------------------------------------------------------------------
   //! @return The minimum number of free bytes the specified space should have
   //! as set in the configuration variables of the space.  If the minimum
   //! number of free bytes cannot be determined for whatever reason then
@@ -101,10 +111,18 @@ public:
   void stagerrmAsRoot(IFileMD::id_t fid) override;
 
   //----------------------------------------------------------------------------
-  //! Set the minimum number of free bytes for the specified space
+  //! Set the period between free space queries for the specified EOS space
   //!
   //! @param space Name of the space.
-  //! @param  nbFreeBytes Number of free bytes.
+  //! @param qryPeriodSecs Query period in seconds.
+  //----------------------------------------------------------------------------
+  void setSpaceConfigQryPeriod(const std::string &space, time_t qryPeriodSecs);
+
+  //----------------------------------------------------------------------------
+  //! Set the minimum number of free bytes for the specified EOS space
+  //!
+  //! @param space Name of the space.
+  //! @param nbFreeBytes Number of free bytes.
   //----------------------------------------------------------------------------
   void setSpaceConfigMinFreeBytes(const std::string &space,
     uint64_t nbFreeBytes);
@@ -138,9 +156,19 @@ private:
   mutable std::mutex m_mutex;
 
   //----------------------------------------------------------------------------
+  //! Map from EOS space name to the delay in seconds between free space queries
+  //----------------------------------------------------------------------------
+  std::map<std::string, uint64_t> m_spaceToQryPeriodSecs;
+
+  //----------------------------------------------------------------------------
   //! Map from EOS space name to the minimum number of free bytes for that space
   //----------------------------------------------------------------------------
   std::map<std::string, uint64_t> m_spaceToMinFreeBytes;
+
+  //----------------------------------------------------------------------------
+  //! Number of times getSpaceConfigQryPeriodSecs() has been called
+  //----------------------------------------------------------------------------
+  uint64_t m_nbCallsToGetSpaceConfigQryPeriodSecs;
 
   //----------------------------------------------------------------------------
   //! Number of times getSpaceConfigMinFreeBytes() has been called
