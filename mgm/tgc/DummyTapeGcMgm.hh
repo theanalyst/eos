@@ -104,6 +104,22 @@ public:
   //----------------------------------------------------------------------------
   uint64_t getNbCallsToGetSpaceConfigMinFreeBytes() const;
 
+  //----------------------------------------------------------------------------
+  //! Return number of times fileInNamespaceAndNotScheduledForDeletion() has
+  //! been called
+  //----------------------------------------------------------------------------
+  uint64_t getNbCallsToFileInNamespaceAndNotScheduledForDeletion() const;
+
+  //----------------------------------------------------------------------------
+  //! Return number of times getFileSizeBytes() has been called
+  //----------------------------------------------------------------------------
+  uint64_t getNbCallsToGetFileSizeBytes() const;
+
+  //------------------------------------------------------------------------------
+  //! Return number of times stagerrmAsRoot() has been called
+  //------------------------------------------------------------------------------
+  uint64_t getNbCallsToStagerrmAsRoot() const;
+
 private:
 
   //----------------------------------------------------------------------------
@@ -115,6 +131,22 @@ private:
   //! Number of times getSpaceConfigMinFreeBytes() has been called
   //----------------------------------------------------------------------------
   uint64_t m_nbCallsToGetSpaceConfigMinFreeBytes;
+
+  //----------------------------------------------------------------------------
+  //! Number of times fileInNamespaceAndNotScheduledForDeletion() has been
+  //! called
+  //----------------------------------------------------------------------------
+  uint64_t m_nbCallsToFileInNamespaceAndNotScheduledForDeletion;
+
+  //----------------------------------------------------------------------------
+  //! Number of times getFileSizeBytes() has been called
+  //----------------------------------------------------------------------------
+  uint64_t m_nbCallsToGetFileSizeBytes;
+
+  //----------------------------------------------------------------------------
+  //! Number of times stagerrmAsRoot() has been called
+  //----------------------------------------------------------------------------
+  uint64_t m_nbCallsToStagerrmAsRoot;
 };
 
 EOSTGCNAMESPACE_END

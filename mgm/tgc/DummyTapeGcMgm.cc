@@ -29,7 +29,10 @@ EOSTGCNAMESPACE_BEGIN
 // Constructor
 //------------------------------------------------------------------------------
 DummyTapeGcMgm::DummyTapeGcMgm():
-m_nbCallsToGetSpaceConfigMinFreeBytes(0)
+m_nbCallsToGetSpaceConfigMinFreeBytes(0),
+m_nbCallsToFileInNamespaceAndNotScheduledForDeletion(0),
+m_nbCallsToGetFileSizeBytes(0),
+m_nbCallsToStagerrmAsRoot(0)
 {
 }
 
@@ -57,6 +60,8 @@ DummyTapeGcMgm::getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcep
 bool
 DummyTapeGcMgm::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t /* fid */)
 {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  m_nbCallsToFileInNamespaceAndNotScheduledForDeletion++;
   return true;
 }
 
@@ -66,6 +71,8 @@ DummyTapeGcMgm::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t /*
 uint64_t
 DummyTapeGcMgm::getFileSizeBytes(const IFileMD::id_t /* fid */)
 {
+  std::lock_guard<std::mutex> lock(m_mutex);
+  m_nbCallsToGetFileSizeBytes++;
   return 1;
 }
 
@@ -75,7 +82,8 @@ DummyTapeGcMgm::getFileSizeBytes(const IFileMD::id_t /* fid */)
 void
 DummyTapeGcMgm::stagerrmAsRoot(const IFileMD::id_t /* fid */)
 {
-  // Do nothing
+  std::lock_guard<std::mutex> lock(m_mutex);
+  m_nbCallsToStagerrmAsRoot++;
 }
 
 //------------------------------------------------------------------------------
@@ -86,6 +94,37 @@ DummyTapeGcMgm::getNbCallsToGetSpaceConfigMinFreeBytes() const {
   std::lock_guard<std::mutex> lock(m_mutex);
 
   return m_nbCallsToGetSpaceConfigMinFreeBytes;
+}
+
+//------------------------------------------------------------------------------
+// Return number of times fileInNamespaceAndNotScheduledForDeletion() has been
+// called
+//------------------------------------------------------------------------------
+uint64_t
+DummyTapeGcMgm::getNbCallsToFileInNamespaceAndNotScheduledForDeletion() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
+  return m_nbCallsToFileInNamespaceAndNotScheduledForDeletion;
+}
+
+//------------------------------------------------------------------------------
+// Return number of times getFileSizeBytes() has been called
+//------------------------------------------------------------------------------
+uint64_t
+DummyTapeGcMgm::getNbCallsToGetFileSizeBytes() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
+  return m_nbCallsToGetFileSizeBytes;
+}
+
+//------------------------------------------------------------------------------
+// Return number of times stagerrmAsRoot() has been called
+//------------------------------------------------------------------------------
+uint64_t
+DummyTapeGcMgm::getNbCallsToStagerrmAsRoot() const {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
+  return m_nbCallsToStagerrmAsRoot;
 }
 
 EOSTGCNAMESPACE_END
