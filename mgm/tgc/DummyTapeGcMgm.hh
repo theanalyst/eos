@@ -26,6 +26,7 @@
 
 #include "mgm/tgc/ITapeGcMgm.hh"
 
+#include <map>
 #include <mutex>
 
 /*----------------------------------------------------------------------------*/
@@ -69,8 +70,8 @@ public:
   //----------------------------------------------------------------------------
   //! @return The minimum number of free bytes the specified space should have
   //! as set in the configuration variables of the space.  If the minimum
-  //! number of free bytes cannot be determined for whatever reason then 0 is
-  //! returned.
+  //! number of free bytes cannot be determined for whatever reason then
+  //! TGC_DEFAULT_MIN_FREE_BYTES is returned.
   //!
   //! @param spaceName The name of the space
   //----------------------------------------------------------------------------
@@ -100,23 +101,32 @@ public:
   void stagerrmAsRoot(IFileMD::id_t fid) override;
 
   //----------------------------------------------------------------------------
+  //! Set the minimum number of free bytes for the specified space
+  //!
+  //! @param space Name of the space.
+  //! @param  nbFreeBytes Number of free bytes.
+  //----------------------------------------------------------------------------
+  void setSpaceConfigMinFreeBytes(const std::string &space,
+    uint64_t nbFreeBytes);
+
+  //----------------------------------------------------------------------------
   //! @return number of times getSpaceConfigMinFreeBytes() has been called
   //----------------------------------------------------------------------------
   uint64_t getNbCallsToGetSpaceConfigMinFreeBytes() const;
 
   //----------------------------------------------------------------------------
-  //! Return number of times fileInNamespaceAndNotScheduledForDeletion() has
+  //! @return number of times fileInNamespaceAndNotScheduledForDeletion() has
   //! been called
   //----------------------------------------------------------------------------
   uint64_t getNbCallsToFileInNamespaceAndNotScheduledForDeletion() const;
 
   //----------------------------------------------------------------------------
-  //! Return number of times getFileSizeBytes() has been called
+  //! @return number of times getFileSizeBytes() has been called
   //----------------------------------------------------------------------------
   uint64_t getNbCallsToGetFileSizeBytes() const;
 
   //------------------------------------------------------------------------------
-  //! Return number of times stagerrmAsRoot() has been called
+  //! @return number of times stagerrmAsRoot() has been called
   //------------------------------------------------------------------------------
   uint64_t getNbCallsToStagerrmAsRoot() const;
 
@@ -126,6 +136,11 @@ private:
   //! Mutex protecting this dummy object representing access to the MGM
   //----------------------------------------------------------------------------
   mutable std::mutex m_mutex;
+
+  //----------------------------------------------------------------------------
+  //! Map from EOS space name to the minimum number of free bytes for that space
+  //----------------------------------------------------------------------------
+  std::map<std::string, uint64_t> m_spaceToMinFreeBytes;
 
   //----------------------------------------------------------------------------
   //! Number of times getSpaceConfigMinFreeBytes() has been called

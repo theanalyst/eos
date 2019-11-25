@@ -21,6 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
+#include "mgm/tgc/Constants.hh"
 #include "mgm/tgc/DummyTapeGcMgm.hh"
 
 EOSTGCNAMESPACE_BEGIN
@@ -39,8 +40,8 @@ m_nbCallsToStagerrmAsRoot(0)
 //------------------------------------------------------------------------------
 // Return the minimum number of free bytes the specified space should have
 // as set in the configuration variables of the space.  If the minimum
-// number of free bytes cannot be determined for whatever reason then 0 is
-// returned.
+// number of free bytes cannot be determined for whatever reason then
+// TGC_DEFAULT_MIN_FREE_BYTES is returned.
 //------------------------------------------------------------------------------
 uint64_t
 DummyTapeGcMgm::getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept
@@ -48,10 +49,17 @@ DummyTapeGcMgm::getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcep
   try {
     std::lock_guard<std::mutex> lock(m_mutex);
     m_nbCallsToGetSpaceConfigMinFreeBytes++;
+
+    auto itor = m_spaceToMinFreeBytes.find(spaceName);
+    if(itor == m_spaceToMinFreeBytes.end()) {
+      return 0;
+    } else {
+      return itor->second;
+    }
   } catch(...) {
     // Do nothing
   }
-  return 0;
+  return TGC_DEFAULT_MIN_FREE_BYTES;
 }
 
 //----------------------------------------------------------------------------
@@ -84,6 +92,17 @@ DummyTapeGcMgm::stagerrmAsRoot(const IFileMD::id_t /* fid */)
 {
   std::lock_guard<std::mutex> lock(m_mutex);
   m_nbCallsToStagerrmAsRoot++;
+}
+
+//----------------------------------------------------------------------------
+// Set the minimum number of free bytes for the specified space
+//----------------------------------------------------------------------------
+void
+DummyTapeGcMgm::setSpaceConfigMinFreeBytes(const std::string &space,
+  const uint64_t nbFreeBytes) {
+  std::lock_guard<std::mutex> lock(m_mutex);
+
+  m_spaceToMinFreeBytes[space] = nbFreeBytes;
 }
 
 //------------------------------------------------------------------------------
