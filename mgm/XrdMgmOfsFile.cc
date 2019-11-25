@@ -2452,8 +2452,8 @@ XrdMgmOfsFile::open(const char* inpath,
     }
   }
 
-  if (nullptr != fmd && nullptr != space.c_str()) {
-    gOFS->mTapeGc->fileOpened(space.c_str(), path, *fmd);
+  if (nullptr != fmd && nullptr != space.c_str() && fmd->hasAttribute("CTA_ArchiveFileId")) {
+    gOFS->mTapeGc->fileOpened(space.c_str(), path, fmd->getId());
   }
 
   // Also trigger synchronous create workflow event if it's defined
