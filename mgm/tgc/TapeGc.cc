@@ -73,7 +73,7 @@ void
 TapeGc::enable() noexcept
 {
   try {
-    // Do nothing if the calling thread is not the first to call start()
+    // Do nothing if the calling thread is not the first to call eable()
     if (m_enabledMethodCalled.test_and_set()) return;
 
     m_enabled = true;
