@@ -76,6 +76,11 @@ public:
   TestingTapeGc &operator=(const TapeGc &) = delete;
 
   //----------------------------------------------------------------------------
+  //! Make enableWithoutStartingWorkerThread public so it can be unit tested
+  //----------------------------------------------------------------------------
+  using TapeGc::enableWithoutStartingWorkerThread;
+
+  //----------------------------------------------------------------------------
   //! Make tryToGarbageCollectASingleFile() public so it can be unit tested
   //----------------------------------------------------------------------------
   using TapeGc::tryToGarbageCollectASingleFile;

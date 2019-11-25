@@ -321,4 +321,16 @@ TapeGc::getFreeSpaceQueryTimestamp() const noexcept {
   return 0;
 }
 
+
+//----------------------------------------------------------------------------
+// Enabling this garbage collector without starting the worker thread
+//----------------------------------------------------------------------------
+void
+TapeGc::enableWithoutStartingWorkerThread() {
+  // Do nothing if the calling thread is not the first to call enable()
+  if (m_enabledMethodCalled.test_and_set()) return;
+
+  m_enabled = true;
+}
+
 EOSTGCNAMESPACE_END

@@ -158,6 +158,12 @@ protected:
   Lru m_lruQueue;
 
   //----------------------------------------------------------------------------
+  //! Facilitate unit-testing by enabling this garbage collector without
+  //! starting the worker thread
+  //----------------------------------------------------------------------------
+  void enableWithoutStartingWorkerThread();
+
+  //----------------------------------------------------------------------------
   //! Entry point for the GC worker thread
   //----------------------------------------------------------------------------
   void workerThreadEntryPoint() noexcept;
