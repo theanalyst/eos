@@ -85,5 +85,13 @@ TEST_F(TgcTapeGcTest, tryToGarbageCollectASingleFile)
 
   DummyTapeGcMgm mgm;
   TestingTapeGc gc(mgm, space);
+
+  ASSERT_EQ(0, mgm.getNbCallsToGetSpaceConfigMinFreeBytes());
+
   gc.tryToGarbageCollectASingleFile();
+
+  ASSERT_EQ(1, mgm.getNbCallsToGetSpaceConfigMinFreeBytes());
+  ASSERT_EQ(0, mgm.getNbCallsToFileInNamespaceAndNotScheduledForDeletion());
+  ASSERT_EQ(0, mgm.getNbCallsToGetFileSizeBytes());
+  ASSERT_EQ(0, mgm.getNbCallsToStagerrmAsRoot());
 }
