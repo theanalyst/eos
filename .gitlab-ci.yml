@@ -988,6 +988,7 @@ publish_koji_cc7:
     - build_cc7
   only:
     - tags
+  when: manual
 
 
 publish_koji_slc6:
@@ -1006,6 +1007,7 @@ publish_koji_slc6:
     - build_slc6
   only:
     - tags
+  when: manual
 
 
 rpm_commit_artifacts:
