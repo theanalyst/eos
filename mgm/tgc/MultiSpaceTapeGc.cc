@@ -66,19 +66,18 @@ MultiSpaceTapeGc::enable(const std::string &space) noexcept
 //------------------------------------------------------------------------------
 void
 MultiSpaceTapeGc::fileOpened(const std::string &space, const std::string &path,
-  const IFileMD &fmd) noexcept
+  const IFileMD::id_t fid) noexcept
 {
   const char *const msgFormat =
     "Error handling 'file opened' event space=%s fxid=%08llx path=%s: %s";
 
   try {
     auto &gc = m_gcs.getGc(space);
-    gc.fileOpened(path, fmd);
+    gc.fileOpened(path, fid);
   } catch (SpaceToTapeGcMap::UnknownEOSSpace&) {
     // Ignore events for EOS spaces that do not have an enabled tape-aware GC
   } catch (std::exception &ex) {
-    eos_static_err(msgFormat, space.c_str(), fmd.getId(), path.c_str(),
-      ex.what());
+    eos_static_err(msgFormat, space.c_str(), fid, path.c_str(), ex.what());
   } catch (...) {
     eos_static_err(msgFormat, space.c_str(), path.c_str(),
       "Caught an unknown exception");

@@ -98,9 +98,9 @@ public:
   //! been enabled
   //!
   //! @param path file path
-  //! @param fmd file metadata
+  //! @param fid file identifier
   //----------------------------------------------------------------------------
-  void fileOpened(const std::string &path, const IFileMD &fmd) noexcept;
+  void fileOpened(const std::string &path, const IFileMD::id_t fid) noexcept;
 
   //----------------------------------------------------------------------------
   //! @return statistics

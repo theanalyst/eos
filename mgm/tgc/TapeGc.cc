@@ -103,12 +103,11 @@ TapeGc::workerThreadEntryPoint() noexcept
 // Notify GC the specified file has been opened
 //------------------------------------------------------------------------------
 void
-TapeGc::fileOpened(const std::string &path, const IFileMD &fmd) noexcept
+TapeGc::fileOpened(const std::string &path, const IFileMD::id_t fid) noexcept
 {
   if(!m_enabled) return;
 
   try {
-    const auto fid = fmd.getId();
     const std::string preamble = createLogPreamble(m_space, path, fid);
     eos_static_debug(preamble.c_str());
 

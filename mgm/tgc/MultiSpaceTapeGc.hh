@@ -86,10 +86,10 @@ public:
   //!
   //! @param space the name of the EOS space where the file resides
   //! @param path file path
-  //! @param fmd file metadata
+  //! @param fid file identifier
   //----------------------------------------------------------------------------
   void fileOpened(const std::string &space, const std::string &path,
-    const IFileMD &fmd) noexcept;
+    const IFileMD::id_t fid) noexcept;
 
   //----------------------------------------------------------------------------
   //! @return map from EOS space name to tape-aware GC statistics
