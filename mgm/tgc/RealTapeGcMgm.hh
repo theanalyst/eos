@@ -68,6 +68,16 @@ public:
   RealTapeGcMgm &operator=(const RealTapeGcMgm &) = delete;
 
   //----------------------------------------------------------------------------
+  //! @return The delay in seconds between free space queries for the specified
+  //! space as set in the configuration variables of the space.  If the delay
+  //! cannot be determined for whatever reason then
+  //! TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS is returned.
+  //!
+  //! @param spaceName The name of the space
+  //----------------------------------------------------------------------------
+  uint64_t getSpaceConfigQryPeriodSecs(const std::string &spaceName) noexcept override;
+
+  //----------------------------------------------------------------------------
   //! @return The minimum number of free bytes the specified space should have
   //! as set in the configuration variables of the space.  If the minimum
   //! number of free bytes cannot be determined for whatever reason then 0 is

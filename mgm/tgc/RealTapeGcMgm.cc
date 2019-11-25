@@ -38,6 +38,33 @@ RealTapeGcMgm::RealTapeGcMgm(XrdMgmOfs &ofs): m_ofs(ofs) {
 }
 
 //------------------------------------------------------------------------------
+// Return The delay in seconds between free space queries for the specified
+// space as set in the configuration variables of the space.  If the delay
+// cannot be determined for whatever reason then
+// TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS is returned.
+//------------------------------------------------------------------------------
+uint64_t
+RealTapeGcMgm::getSpaceConfigQryPeriodSecs(const std::string &spaceName) noexcept
+{
+  try {
+    std::string valueStr;
+    {
+      eos::common::RWMutexReadLock lock(FsView::gFsView.ViewMutex);
+
+      const auto spaceItor = FsView::gFsView.mSpaceView.find(spaceName);
+      if (FsView::gFsView.mSpaceView.end() != spaceItor && nullptr != spaceItor->second) {
+        const auto &space = *(spaceItor->second);
+        valueStr = space.GetConfigMember("tapeawaregc.spacequeryperiodsecs");
+      }
+    }
+
+    return Utils::toUint64(valueStr);
+  } catch(...) {
+    return TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS;
+  }
+}
+
+//------------------------------------------------------------------------------
 // Return the minimum number of free bytes the specified space should have
 // as set in the configuration variables of the space.  If the minimum
 // number of free bytes cannot be determined for whatever reason then

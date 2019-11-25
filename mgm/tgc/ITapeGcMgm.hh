@@ -46,6 +46,16 @@ EOSTGCNAMESPACE_BEGIN
 class ITapeGcMgm {
 public:
   //----------------------------------------------------------------------------
+  //! @return The delay in seconds between free space queries for the specified
+  //! space as set in the configuration variables of the space.  If the delay
+  //! cannot be determined for whatever reason then
+  //! TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS is returned.
+  //!
+  //! @param spaceName The name of the space
+  //----------------------------------------------------------------------------
+  virtual uint64_t getSpaceConfigQryPeriodSecs(const std::string &spaceName) noexcept = 0;
+
+  //----------------------------------------------------------------------------
   //! @return The minimum number of free bytes the specified space should have
   //! as set in the configuration variables of the space.  If the minimum
   //! number of free bytes cannot be determined for whatever reason then
