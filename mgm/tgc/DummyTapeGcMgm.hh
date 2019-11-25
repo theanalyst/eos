@@ -88,6 +88,15 @@ public:
   uint64_t getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept override;
 
   //----------------------------------------------------------------------------
+  //! @return The number of free bytes within the specified space
+  //! @param space The name of the EOS space to be queried
+  //! @return the amount of free space in bytes
+  //! @throw TapeAwareGcSpaceNotFound when the EOS space named m_spaceName
+  //! cannot be found
+  //----------------------------------------------------------------------------
+  uint64_t getSpaceFreeBytes(const std::string &space) override;
+
+  //----------------------------------------------------------------------------
   //! @param fid The file identifier
   //! @return The size of the specified file in bytes.  If the file cannot be
   //! found in the EOS namespace then a file size of 0 is returned.

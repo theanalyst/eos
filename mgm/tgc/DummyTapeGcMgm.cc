@@ -100,6 +100,14 @@ DummyTapeGcMgm::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t /*
 }
 
 //----------------------------------------------------------------------------
+// Return number of free bytes within the specified space
+//----------------------------------------------------------------------------
+uint64_t
+DummyTapeGcMgm::getSpaceFreeBytes(const std::string &space) {
+  return 0;
+}
+
+//----------------------------------------------------------------------------
 // Return size of the specified file
 //----------------------------------------------------------------------------
 uint64_t
