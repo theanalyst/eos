@@ -112,11 +112,6 @@ TapeGc::fileOpened(const std::string &path, const IFileMD &fmd) noexcept
     const std::string preamble = createLogPreamble(m_space, path, fid);
     eos_static_debug(preamble.c_str());
 
-    // Only consider files that have a CTA archive ID as only these can be
-    // guaranteed to have been successfully closed, committed and intended for
-    // tape storage
-    if(!fmd.hasAttribute("CTA_ArchiveFileId")) return;
-
     std::lock_guard<std::mutex> lruQueueLock(m_lruQueueMutex);
     const bool exceededBefore = m_lruQueue.maxQueueSizeExceeded();
     m_lruQueue.fileAccessed(fid);
