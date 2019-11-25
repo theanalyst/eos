@@ -212,8 +212,8 @@ uint64_t TapeGc::getMinFreeBytesAndLogIfChanged() {
   const auto minFreeBytes = m_minFreeBytes.get();
   if(minFreeBytes.prev != minFreeBytes.current) {
     std::ostringstream msg;
-    msg << "msg=\"minFreeBytes has been changed from " << minFreeBytes.prev << "to " <<
-      minFreeBytes.current << "\"";
+    msg << "msg=\"minFreeBytes has been changed from " << minFreeBytes.prev <<
+      " to " << minFreeBytes.current << "\"";
     eos_static_info(msg.str().c_str());
   }
 
