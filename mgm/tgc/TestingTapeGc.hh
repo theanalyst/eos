@@ -56,7 +56,9 @@ public:
   //! @param space the name of EOS space that this garbage collector will work
   //! on
   //----------------------------------------------------------------------------
-  TestingTapeGc(ITapeGcMgm &mgm, const std::string &space): TapeGc(mgm, space)
+  TestingTapeGc(ITapeGcMgm &mgm, const std::string &space,
+    const time_t minFreeBytesMaxAgeSecs = 10):
+    TapeGc(mgm, space, minFreeBytesMaxAgeSecs)
   {
   }
 
