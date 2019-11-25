@@ -23,6 +23,7 @@
 
 #include "mgm/proc/admin/StagerRmCmd.hh"
 #include "mgm/FsView.hh"
+#include "mgm/tgc/Constants.hh"
 #include "mgm/tgc/RealTapeGcMgm.hh"
 #include "mgm/tgc/Utils.hh"
 #include "namespace/interface/IFileMDSvc.hh"
@@ -39,8 +40,8 @@ RealTapeGcMgm::RealTapeGcMgm(XrdMgmOfs &ofs): m_ofs(ofs) {
 //------------------------------------------------------------------------------
 // Return the minimum number of free bytes the specified space should have
 // as set in the configuration variables of the space.  If the minimum
-// number of free bytes cannot be determined for whatever reason then 0 is
-// returned.
+// number of free bytes cannot be determined for whatever reason then
+// TGC_DEFAULT_MIN_FREE_BYTES is returned.
 //------------------------------------------------------------------------------
 uint64_t
 RealTapeGcMgm::getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept
@@ -62,7 +63,7 @@ RealTapeGcMgm::getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept
       return Utils::toUint64(valueStr);
     }
   } catch(...) {
-    return 0;
+    return TGC_DEFAULT_MIN_FREE_BYTES;
   }
 }
 

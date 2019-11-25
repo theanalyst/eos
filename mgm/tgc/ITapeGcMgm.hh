@@ -48,8 +48,8 @@ public:
   //----------------------------------------------------------------------------
   //! @return The minimum number of free bytes the specified space should have
   //! as set in the configuration variables of the space.  If the minimum
-  //! number of free bytes cannot be determined for whatever reason then 0 is
-  //! returned.
+  //! number of free bytes cannot be determined for whatever reason then
+  //! TGC_DEFAULT_MIN_FREE_BYTES is returned.
   //!
   //! @param spaceName The name of the space
   //----------------------------------------------------------------------------
