@@ -135,6 +135,11 @@ public:
   uint64_t getFreeBytes() const noexcept;
 
   //----------------------------------------------------------------------------
+  //! @return the timestamp at which the last free space query was made
+  //----------------------------------------------------------------------------
+  time_t getFreeSpaceQueryTimestamp();
+
+  //----------------------------------------------------------------------------
   //! @return the timestamp at which the EOS space worked on by this garbage
   //! collector was queried for free space.  Zero is returned in the case of
   //! error.
@@ -224,10 +229,18 @@ protected:
   CachedValue<uint64_t> m_minFreeBytes;
 
   //----------------------------------------------------------------------------
-  //! Object responsible for determining the number of free bytes in the EOS
-  //! space worked on by this garbage collector
+  //! Mutex to protect m_freeSpaceBytes
   //----------------------------------------------------------------------------
-  mutable FreeSpace m_freeSpace;
+  mutable std::mutex m_freeSpaceBytesMutex;
+
+  //----------------------------------------------------------------------------
+  //! The number of free bytes in the EOS space worked on by this garbage
+  //! collector
+  //----------------------------------------------------------------------------
+  uint64_t m_freeSpaceBytes;
+
+  /// The timestamp at which the last free space query was made
+  std::atomic<time_t> m_freeSpaceQueryTimestamp;
 
   //----------------------------------------------------------------------------
   //! Counter that is incremented each time a file is successfully stagerrm'ed
@@ -244,6 +257,12 @@ protected:
   //! garbage collector and log if changed
   //----------------------------------------------------------------------------
   uint64_t getMinFreeBytesAndLogIfChanged();
+
+  //----------------------------------------------------------------------------
+  //! Take note of a file queued for deletion so that the amount of free space
+  //! can be updated without having to wait for the next query to the EOS MGM
+  //----------------------------------------------------------------------------
+  void fileQueuedForDeletion(const size_t deletedFileSize);
 };
 
 EOSTGCNAMESPACE_END

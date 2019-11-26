@@ -47,7 +47,8 @@ TapeGc::TapeGc(ITapeGcMgm &mgm, const std::string &space,
   m_minFreeBytes(
     std::bind(&ITapeGcMgm::getSpaceConfigMinFreeBytes, &m_mgm, space),
     minFreeBytesCacheAgeSecs),
-  m_freeSpace(space, TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS),
+  m_freeSpaceBytes(0),
+  m_freeSpaceQueryTimestamp(0),
   m_nbStagerrms(0)
 {
 }
@@ -142,8 +143,8 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
 
     try {
       // Return no file was garbage collected if there is still enough free space
-      const auto actualFreeBytes = m_freeSpace.getFreeBytes();
-      if(actualFreeBytes >= minFreeBytes) return false;
+      std::lock_guard<std::mutex> freeSpaceBytesLock(m_freeSpaceBytesMutex);
+      if(m_freeSpaceBytes >= minFreeBytes) return false;
     } catch(SpaceNotFound &) {
       // Return no file was garbage collected if the space was not found
       return false;
@@ -191,7 +192,7 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
       }
     }
 
-    m_freeSpace.fileQueuedForDeletion(fileToBeDeletedSizeBytes);
+    fileQueuedForDeletion(fileToBeDeletedSizeBytes);
     std::ostringstream msg;
     msg << preamble.str() << " msg=\"Garbage collected file using stagerrm\"";
     eos_static_info(msg.str().c_str());
@@ -310,7 +311,8 @@ TapeGc::getFreeBytes() const noexcept {
   const char *const msgFormat =
     "TapeGc::getSpaceFreeBytes() failed space=%s: %s";
   try {
-    return m_freeSpace.getFreeBytes();
+    std::lock_guard<std::mutex> freeSpaceBytesLock(m_freeSpaceBytesMutex);
+    return m_freeSpaceBytes;
   } catch(std::exception &ex) {
     eos_static_err(msgFormat, m_space.c_str(), ex.what());
   } catch(...) {
@@ -325,17 +327,7 @@ TapeGc::getFreeBytes() const noexcept {
 //----------------------------------------------------------------------------
 time_t
 TapeGc::getFreeSpaceQueryTimestamp() const noexcept {
-  const char *const msgFormat =
-    "TapeGc::getFreeSpaceQueryTimestamp() failed space=%s: %s";
-  try {
-    return m_freeSpace.getFreeSpaceQueryTimestamp();
-  } catch(std::exception &ex) {
-    eos_static_err(msgFormat, m_space.c_str(), ex.what());
-  } catch(...) {
-    eos_static_err(msgFormat, m_space.c_str(), "Caught an unknown exception");
-  }
-
-  return 0;
+  return m_freeSpaceQueryTimestamp;
 }
 
 
@@ -348,6 +340,21 @@ TapeGc::enableWithoutStartingWorkerThread() {
   if (m_enabledMethodCalled.test_and_set()) return;
 
   m_enabled = true;
+}
+
+//------------------------------------------------------------------------------
+// Notify this object that a file has been queued for deletion
+//------------------------------------------------------------------------------
+void
+TapeGc::fileQueuedForDeletion(const size_t deletedFileSize)
+{
+  std::lock_guard<std::mutex> lock(m_freeSpaceBytesMutex);
+
+  if(m_freeSpaceBytes < deletedFileSize) {
+    m_freeSpaceBytes = 0;
+  } else {
+    m_freeSpaceBytes -= deletedFileSize;
+  }
 }
 
 EOSTGCNAMESPACE_END
