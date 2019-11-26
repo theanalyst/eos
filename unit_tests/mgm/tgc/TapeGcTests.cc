@@ -79,6 +79,23 @@ TEST_F(TgcTapeGcTest, enable)
 //------------------------------------------------------------------------------
 // Test
 //------------------------------------------------------------------------------
+TEST_F(TgcTapeGcTest, enableWithoutStartingWorkerThread)
+{
+  using namespace eos::mgm::tgc;
+
+  const std::string space = "space";
+  const std::time_t queryPeriodCacheAgeSecs = 0; // Always renew cached value
+  const std::time_t minFreeBytesCacheAgeSecs = 0; // Always renew cached value
+
+  DummyTapeGcMgm mgm;
+  TestingTapeGc gc(mgm, space, queryPeriodCacheAgeSecs, minFreeBytesCacheAgeSecs);
+
+  gc.enableWithoutStartingWorkerThread();
+}
+
+//------------------------------------------------------------------------------
+// Test
+//------------------------------------------------------------------------------
 TEST_F(TgcTapeGcTest, tryToGarbageCollectASingleFile)
 {
   using namespace eos::mgm::tgc;
@@ -117,7 +134,7 @@ TEST_F(TgcTapeGcTest, tryToGarbageCollectASingleFile)
   gc.tryToGarbageCollectASingleFile();
 
   ASSERT_EQ(3, mgm.getNbCallsToGetSpaceConfigMinFreeBytes());
-  ASSERT_EQ(1, mgm.getNbCallsToFileInNamespaceAndNotScheduledForDeletion());
+  ASSERT_EQ(0, mgm.getNbCallsToFileInNamespaceAndNotScheduledForDeletion());
   ASSERT_EQ(1, mgm.getNbCallsToGetFileSizeBytes());
   ASSERT_EQ(1, mgm.getNbCallsToStagerrmAsRoot());
 }
