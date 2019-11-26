@@ -276,21 +276,12 @@ TapeGc::getStats() const noexcept
 {
   TapeGcStats stats;
 
-  stats.nbStagerrms = getNbStagerrms();
+  stats.nbStagerrms = m_nbStagerrms;
   stats.lruQueueSize = getLruQueueSize();
   stats.freeBytes = getFreeBytes();
-  stats.freeSpaceQueryTimestamp = getFreeSpaceQueryTimestamp();
+  stats.freeSpaceQueryTimestamp = m_freeSpaceQueryTimestamp;
 
   return stats;
-}
-
-//----------------------------------------------------------------------------
-// Return the number of files successfully stagerrm'ed since boot
-//----------------------------------------------------------------------------
-uint64_t
-TapeGc::getNbStagerrms() const noexcept
-{
-  return m_nbStagerrms;
 }
 
 //----------------------------------------------------------------------------
@@ -331,15 +322,6 @@ TapeGc::getFreeBytes() const noexcept {
 
   return 0;
 }
-
-//----------------------------------------------------------------------------
-// Return query timestamp for this garbage collector's  EOS space
-//----------------------------------------------------------------------------
-time_t
-TapeGc::getFreeSpaceQueryTimestamp() const noexcept {
-  return m_freeSpaceQueryTimestamp;
-}
-
 
 //----------------------------------------------------------------------------
 // Enabling this garbage collector without starting the worker thread

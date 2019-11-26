@@ -117,35 +117,6 @@ public:
   //----------------------------------------------------------------------------
   TapeGcStats getStats() const noexcept;
 
-  //----------------------------------------------------------------------------
-  //! @return the number of files successfully stagerrm'ed since boot.  Zero is
-  //! returned in the case of error.
-  //----------------------------------------------------------------------------
-  uint64_t getNbStagerrms() const noexcept;
-
-  //----------------------------------------------------------------------------
-  //! @return the size of the LRU queue.  Zero is returned in the case of error.
-  //----------------------------------------------------------------------------
-  Lru::FidQueue::size_type getLruQueueSize() const noexcept;
-
-  //----------------------------------------------------------------------------
-  //! @return the amount of free bytes in the EOS space worked on by this
-  //! garbage collector.  Zero is in the case of error.
-  //----------------------------------------------------------------------------
-  uint64_t getFreeBytes() const noexcept;
-
-  //----------------------------------------------------------------------------
-  //! @return the timestamp at which the last free space query was made
-  //----------------------------------------------------------------------------
-  time_t getFreeSpaceQueryTimestamp();
-
-  //----------------------------------------------------------------------------
-  //! @return the timestamp at which the EOS space worked on by this garbage
-  //! collector was queried for free space.  Zero is returned in the case of
-  //! error.
-  //----------------------------------------------------------------------------
-  time_t getFreeSpaceQueryTimestamp() const noexcept;
-
 protected:
 
   /// The interface to the EOS MGM
@@ -182,6 +153,17 @@ protected:
   //! Entry point for the GC worker thread
   //----------------------------------------------------------------------------
   void workerThreadEntryPoint() noexcept;
+
+  //----------------------------------------------------------------------------
+  //! @return the size of the LRU queue.  Zero is returned in the case of error.
+  //----------------------------------------------------------------------------
+  Lru::FidQueue::size_type getLruQueueSize() const noexcept;
+
+  //----------------------------------------------------------------------------
+  //! @return the amount of free bytes in the EOS space worked on by this
+  //! garbage collector.  Zero is in the case of error.
+  //----------------------------------------------------------------------------
+  uint64_t getFreeBytes() const noexcept;
 
   //----------------------------------------------------------------------------
   //! Try to garbage collect a single file if necessary and possible.
