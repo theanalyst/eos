@@ -112,7 +112,8 @@ bool RealTapeGcMgm::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_
 // Return number of free bytes within the specified space
 //----------------------------------------------------------------------------
 uint64_t
-RealTapeGcMgm::getSpaceFreeBytes(const std::string &space) {
+RealTapeGcMgm::getSpaceFreeBytes(const std::string &space)
+{
   eos::common::RWMutexReadLock lock(FsView::gFsView.ViewMutex);
 
   const auto spaceItor = FsView::gFsView.mSpaceView.find(space);
