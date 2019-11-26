@@ -115,9 +115,9 @@ SpaceToTapeGcMap::getStats() const
 
   std::lock_guard<std::mutex> lock(m_mutex);
 
-  for(auto itor = m_gcs.begin(); itor != m_gcs.end(); itor++) {
-    if(nullptr != itor->second) {
-      stats[itor->first] = itor->second->getStats();
+  for(auto &spaceAndTapeGc : m_gcs) {
+    if(nullptr != spaceAndTapeGc.second) {
+      stats[spaceAndTapeGc.first] = spaceAndTapeGc.second->getStats();
     }
   }
 
