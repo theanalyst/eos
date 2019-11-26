@@ -90,6 +90,8 @@ TEST_F(TgcTapeGcTest, tryToGarbageCollectASingleFile)
   DummyTapeGcMgm mgm;
   TestingTapeGc gc(mgm, space, queryPeriodCacheAgeSecs, minFreeBytesCacheAgeSecs);
 
+  gc.enableWithoutStartingWorkerThread();
+
   ASSERT_EQ(0, mgm.getNbCallsToGetSpaceConfigMinFreeBytes());
 
   gc.tryToGarbageCollectASingleFile();

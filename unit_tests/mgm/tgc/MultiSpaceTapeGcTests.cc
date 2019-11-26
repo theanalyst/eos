@@ -96,11 +96,9 @@ TEST_F(TgcMultiSpaceTapeGcTest, enable_two_spaces)
   ASSERT_EQ(space1, itor->first);
   ASSERT_EQ(0, itor->second.nbStagerrms);
   ASSERT_EQ(0, itor->second.lruQueueSize);
-  ASSERT_EQ(0, itor->second.freeSpaceQueryTimestamp);
 
   itor++;
   ASSERT_EQ(space2, itor->first);
   ASSERT_EQ(0, itor->second.nbStagerrms);
   ASSERT_EQ(0, itor->second.lruQueueSize);
-  ASSERT_EQ(0, itor->second.freeSpaceQueryTimestamp);
 }
