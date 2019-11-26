@@ -27,6 +27,7 @@
 #include "common/Logging.hh"
 #include "mgm/Namespace.hh"
 #include "mgm/tgc/BlockingFlag.hh"
+#include "mgm/tgc/Constants.hh"
 #include "mgm/tgc/FreeSpace.hh"
 #include "mgm/tgc/ITapeGcMgm.hh"
 #include "mgm/tgc/Lru.hh"
@@ -64,11 +65,17 @@ public:
   //! @param mgm interface to the EOS MGM
   //! @param space name of the EOS space that this garbage collector will work
   //! on
-  //! @param minFreeBytesMaxAgeSecs age at which the cached value of
-  //! minFreeBytes for this garabage collector's EOS space should be renewed
+  //! @param queryPeriodCacheAgeSecs age at which the cached value of
+  //! queryPeriodSecs should be renewed
+  //! @param minFreeBytesCacheAgeSecs age at which the cached value of
+  //! minFreeBytes should be renewed
   //----------------------------------------------------------------------------
-  TapeGc(ITapeGcMgm &mgm, const std::string &space,
-    time_t minFreeBytesMaxAgeSecs = 10);
+  TapeGc(
+    ITapeGcMgm &mgm,
+    const std::string &space,
+    time_t queryPeriodCacheAgeSecs = TGC_DEFAULT_QUERY_PERIOD_CACHED_AGE_SECS,
+    time_t minFreeBytesCacheAgeSecs = TGC_DEFAULT_MIN_FREE_BYTES_CACHE_AGE_SECS
+  );
 
   //----------------------------------------------------------------------------
   //! Destructor
@@ -203,6 +210,12 @@ protected:
   };
 
   //----------------------------------------------------------------------------
+  //! Cached configuration value for the delay in seconds between space queries
+  //! to the EOS MGM
+  //----------------------------------------------------------------------------
+  CachedValue<time_t> m_queryPeriodSecs;
+
+  //----------------------------------------------------------------------------
   //! Cached value for the minimum number of free bytes to be available in the
   //! EOS space worked on by this garnage collector.  If the actual number of
   //! free bytes is less than this value then the garbage collector will try to
@@ -220,6 +233,11 @@ protected:
   //! Counter that is incremented each time a file is successfully stagerrm'ed
   //----------------------------------------------------------------------------
   std::atomic<uint64_t> m_nbStagerrms;
+
+  //----------------------------------------------------------------------------
+  //! @return the configured query period and log if changed
+  //----------------------------------------------------------------------------
+  time_t getQueryPeriodSecsAndLogIfChanged();
 
   //----------------------------------------------------------------------------
   //! @return the configured min free bytes for the EOS space worked on by this

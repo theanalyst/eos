@@ -52,13 +52,20 @@ public:
   //----------------------------------------------------------------------------
   //! Constructor
   //!
-  //! @param mgm the interface to the EOS MGM
-  //! @param space the name of EOS space that this garbage collector will work
+  //! @param mgm interface to the EOS MGM
+  //! @param space name of the EOS space that this garbage collector will work
   //! on
+  //! @param queryPeriodCacheAgeSecs age at which the cached value of
+  //! queryPeriodSecs should be renewed
+  //! @param minFreeBytesCacheAgeSecs age at which the cached value of
+  //! minFreeBytes should be renewed
   //----------------------------------------------------------------------------
-  TestingTapeGc(ITapeGcMgm &mgm, const std::string &space,
-    const time_t minFreeBytesMaxAgeSecs = 10):
-    TapeGc(mgm, space, minFreeBytesMaxAgeSecs)
+  TestingTapeGc(
+    ITapeGcMgm &mgm,
+    const std::string &space,
+    time_t queryPeriodCacheAgeSecs,
+    time_t minFreeBytesCacheAgeSecs
+  ): TapeGc(mgm, space, queryPeriodCacheAgeSecs, minFreeBytesCacheAgeSecs)
   {
   }
 

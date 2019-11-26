@@ -25,7 +25,7 @@
 #include "mgm/tgc/TestingTapeGc.hh"
 
 #include <gtest/gtest.h>
-#include <time.h>
+#include <ctime>
 
 class TgcTapeGcTest : public ::testing::Test {
 protected:
@@ -45,9 +45,11 @@ TEST_F(TgcTapeGcTest, constructor)
   using namespace eos::mgm::tgc;
 
   const std::string space = "space";
+  const std::time_t queryPeriodCacheAgeSecs = 0; // Always renew cached value
+  const std::time_t minFreeBytesCacheAgeSecs = 0; // Always renew cached value
 
   DummyTapeGcMgm mgm;
-  TapeGc gc(mgm, space);
+  TapeGc gc(mgm, space, queryPeriodCacheAgeSecs, minFreeBytesCacheAgeSecs);
 
   const auto now = time(nullptr);
   const auto stats = gc.getStats();
@@ -67,9 +69,11 @@ TEST_F(TgcTapeGcTest, enable)
   using namespace eos::mgm::tgc;
 
   const std::string space = "space";
+  const std::time_t queryPeriodCacheAgeSecs = 0; // Always renew cached value
+  const std::time_t minFreeBytesCacheAgeSecs = 0; // Always renew cached value
 
   DummyTapeGcMgm mgm;
-  TapeGc gc(mgm, space);
+  TapeGc gc(mgm, space, queryPeriodCacheAgeSecs, minFreeBytesCacheAgeSecs);
 
   gc.enable();
 }
@@ -82,10 +86,11 @@ TEST_F(TgcTapeGcTest, tryToGarbageCollectASingleFile)
   using namespace eos::mgm::tgc;
 
   const std::string space = "space";
-  const time_t minFreeBytesMaxAgeSecs = 0; // Always renew cached value
+  const std::time_t queryPeriodCacheAgeSecs = 0; // Always renew cached value
+  const std::time_t minFreeBytesCacheAgeSecs = 0; // Always renew cached value
 
   DummyTapeGcMgm mgm;
-  TestingTapeGc gc(mgm, space, minFreeBytesMaxAgeSecs);
+  TestingTapeGc gc(mgm, space, queryPeriodCacheAgeSecs, minFreeBytesCacheAgeSecs);
 
   ASSERT_EQ(0, mgm.getNbCallsToGetSpaceConfigMinFreeBytes());
 

@@ -39,6 +39,14 @@
 /*----------------------------------------------------------------------------*/
 EOSTGCNAMESPACE_BEGIN
 
+/// Default age at which the cached value of queryPeriodSecs for a garbage
+/// collector should be renewed
+const uint64_t TGC_DEFAULT_QUERY_PERIOD_CACHED_AGE_SECS = 10;
+
+/// Default age at which the cached value of minFreeBytes for a garbage
+/// collector should be renewed
+const uint64_t TGC_DEFAULT_MIN_FREE_BYTES_CACHE_AGE_SECS = 10;
+
 /// Default delay in seconds between free space queries for the tape-aware GC
 const uint64_t TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS = 310;
 

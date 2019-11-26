@@ -37,13 +37,16 @@ EOSTGCNAMESPACE_BEGIN
 // Constructor
 //------------------------------------------------------------------------------
 TapeGc::TapeGc(ITapeGcMgm &mgm, const std::string &space,
-  const time_t minFreeBytesMaxAgeSecs):
+  const time_t queryPeriodCacheAgeSecs, const time_t minFreeBytesCacheAgeSecs):
   m_mgm(mgm),
   m_space(space),
   m_enabled(false),
+  m_queryPeriodSecs(
+    std::bind(&ITapeGcMgm::getSpaceConfigQryPeriodSecs, &m_mgm, space),
+    queryPeriodCacheAgeSecs),
   m_minFreeBytes(
-    std::bind(&ITapeGcMgm::getSpaceConfigMinFreeBytes, &m_mgm, space), // Value getter
-    minFreeBytesMaxAgeSecs),
+    std::bind(&ITapeGcMgm::getSpaceConfigMinFreeBytes, &m_mgm, space),
+    minFreeBytesCacheAgeSecs),
   m_freeSpace(space, TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS),
   m_nbStagerrms(0)
 {
@@ -206,9 +209,28 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
 }
 
 //------------------------------------------------------------------------------
+// Returns the configured query period and logs if changed
+//------------------------------------------------------------------------------
+time_t
+TapeGc::getQueryPeriodSecsAndLogIfChanged()
+{
+  const auto queryPeriodSecs = m_queryPeriodSecs.get();
+  if (queryPeriodSecs.prev != queryPeriodSecs.current) {
+    std::ostringstream msg;
+    msg << "msg=\"spaceQueryPeriodSecs has been changed from " << queryPeriodSecs.prev  << " to " <<
+      queryPeriodSecs.current << "\"";
+    eos_static_info(msg.str().c_str());
+  }
+
+  return queryPeriodSecs.current;
+}
+
+//------------------------------------------------------------------------------
 // Returns min free bytes for the EOS space worked on by this garbage collector
 //------------------------------------------------------------------------------
-uint64_t TapeGc::getMinFreeBytesAndLogIfChanged() {
+uint64_t
+TapeGc::getMinFreeBytesAndLogIfChanged()
+{
   const auto minFreeBytes = m_minFreeBytes.get();
   if(minFreeBytes.prev != minFreeBytes.current) {
     std::ostringstream msg;
