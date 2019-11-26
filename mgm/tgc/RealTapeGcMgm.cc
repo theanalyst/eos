@@ -55,7 +55,7 @@ RealTapeGcMgm::getSpaceConfigQryPeriodSecs(const std::string &spaceName) noexcep
       const auto spaceItor = FsView::gFsView.mSpaceView.find(spaceName);
       if (FsView::gFsView.mSpaceView.end() != spaceItor && nullptr != spaceItor->second) {
         const auto &space = *(spaceItor->second);
-        valueStr = space.GetConfigMember("tapeawaregc.spacequeryperiodsecs");
+        valueStr = space.GetConfigMember("tgc.freespaceqryperiodsecs");
       }
     }
 
