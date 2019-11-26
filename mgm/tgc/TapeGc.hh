@@ -37,11 +37,11 @@
 #include "proto/ConsoleRequest.pb.h"
 
 #include <atomic>
+#include <cstdint>
+#include <ctime>
 #include <mutex>
 #include <stdexcept>
-#include <stdint.h>
 #include <thread>
-#include <time.h>
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -73,8 +73,8 @@ public:
   TapeGc(
     ITapeGcMgm &mgm,
     const std::string &space,
-    time_t queryPeriodCacheAgeSecs = TGC_DEFAULT_QUERY_PERIOD_CACHED_AGE_SECS,
-    time_t minFreeBytesCacheAgeSecs = TGC_DEFAULT_MIN_FREE_BYTES_CACHE_AGE_SECS
+    std::time_t queryPeriodCacheAgeSecs = TGC_DEFAULT_QUERY_PERIOD_CACHED_AGE_SECS,
+    std::time_t minFreeBytesCacheAgeSecs = TGC_DEFAULT_MIN_FREE_BYTES_CACHE_AGE_SECS
   );
 
   //----------------------------------------------------------------------------
@@ -110,7 +110,7 @@ public:
   //! @param path file path
   //! @param fid file identifier
   //----------------------------------------------------------------------------
-  void fileOpened(const std::string &path, const IFileMD::id_t fid) noexcept;
+  void fileOpened(const std::string &path, IFileMD::id_t fid) noexcept;
 
   //----------------------------------------------------------------------------
   //! @return statistics
@@ -163,7 +163,7 @@ protected:
   //! @return the amount of free bytes in the EOS space worked on by this
   //! garbage collector.  Zero is in the case of error.
   //----------------------------------------------------------------------------
-  uint64_t getFreeBytes() const noexcept;
+  std::uint64_t getFreeBytes() const noexcept;
 
   //----------------------------------------------------------------------------
   //! Try to garbage collect a single file if necessary and possible.
@@ -184,23 +184,13 @@ protected:
   //! @param fid The file identifier
   //----------------------------------------------------------------------------
   static std::string createLogPreamble(const std::string &space,
-    const std::string &path, const IFileMD::id_t fid);
-
-  /// Thrown when a string is not a valid unsigned 64-bit integer
-  struct InvalidUint64: public std::runtime_error {
-    InvalidUint64(const std::string &msg): std::runtime_error(msg) {}
-  };
-
-  /// Thrown when a string representing a 64-bit integer is out of range
-  struct OutOfRangeUint64: public InvalidUint64 {
-    OutOfRangeUint64(const std::string &msg): InvalidUint64(msg) {}
-  };
+    const std::string &path, IFileMD::id_t fid);
 
   //----------------------------------------------------------------------------
   //! Cached configuration value for the delay in seconds between space queries
   //! to the EOS MGM
   //----------------------------------------------------------------------------
-  CachedValue<time_t> m_queryPeriodSecs;
+  CachedValue<std::time_t> m_queryPeriodSecs;
 
   //----------------------------------------------------------------------------
   //! Cached value for the minimum number of free bytes to be available in the
@@ -208,7 +198,7 @@ protected:
   //! free bytes is less than this value then the garbage collector will try to
   //! free up space by garbage collecting disk replicas.
   //----------------------------------------------------------------------------
-  CachedValue<uint64_t> m_minFreeBytes;
+  CachedValue<std::uint64_t> m_minFreeBytes;
 
   //----------------------------------------------------------------------------
   //! Mutex to protect m_freeSpaceBytes
@@ -219,32 +209,32 @@ protected:
   //! The number of free bytes in the EOS space worked on by this garbage
   //! collector
   //----------------------------------------------------------------------------
-  uint64_t m_freeSpaceBytes;
+  std::uint64_t m_freeSpaceBytes;
 
   /// The timestamp at which the last free space query was made
-  std::atomic<time_t> m_freeSpaceQueryTimestamp;
+  std::atomic<std::time_t> m_freeSpaceQueryTimestamp;
 
   //----------------------------------------------------------------------------
   //! Counter that is incremented each time a file is successfully stagerrm'ed
   //----------------------------------------------------------------------------
-  std::atomic<uint64_t> m_nbStagerrms;
+  std::atomic<std::uint64_t> m_nbStagerrms;
 
   //----------------------------------------------------------------------------
   //! @return the configured query period and log if changed
   //----------------------------------------------------------------------------
-  time_t getQueryPeriodSecsAndLogIfChanged();
+  std::time_t getQueryPeriodSecsAndLogIfChanged();
 
   //----------------------------------------------------------------------------
   //! @return the configured min free bytes for the EOS space worked on by this
   //! garbage collector and log if changed
   //----------------------------------------------------------------------------
-  uint64_t getMinFreeBytesAndLogIfChanged();
+  std::uint64_t getMinFreeBytesAndLogIfChanged();
 
   //----------------------------------------------------------------------------
   //! Take note of a file queued for deletion so that the amount of free space
   //! can be updated without having to wait for the next query to the EOS MGM
   //----------------------------------------------------------------------------
-  void fileQueuedForDeletion(const size_t deletedFileSize);
+  void fileQueuedForDeletion(size_t deletedFileSize);
 };
 
 EOSTGCNAMESPACE_END

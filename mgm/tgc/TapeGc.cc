@@ -29,7 +29,6 @@
 #include <functional>
 #include <ios>
 #include <sstream>
-#include <time.h>
 
 EOSTGCNAMESPACE_BEGIN
 
@@ -37,7 +36,7 @@ EOSTGCNAMESPACE_BEGIN
 // Constructor
 //------------------------------------------------------------------------------
 TapeGc::TapeGc(ITapeGcMgm &mgm, const std::string &space,
-  const time_t queryPeriodCacheAgeSecs, const time_t minFreeBytesCacheAgeSecs):
+  const std::time_t queryPeriodCacheAgeSecs, const std::time_t minFreeBytesCacheAgeSecs):
   m_mgm(mgm),
   m_space(space),
   m_enabled(false),
@@ -84,7 +83,7 @@ TapeGc::enable() noexcept
     m_enabled = true;
 
     std::function<void()> entryPoint = std::bind(&TapeGc::workerThreadEntryPoint, this);
-    m_worker.reset(new std::thread(entryPoint));
+    m_worker = std::make_unique<std::thread>(entryPoint);
   } catch(std::exception &ex) {
     eos_static_err("msg=\"%s\"", ex.what());
   } catch(...) {
@@ -100,7 +99,7 @@ TapeGc::workerThreadEntryPoint() noexcept
 {
   do {
     while(!m_stop && tryToGarbageCollectASingleFile()) {
-    };
+    }
   } while(!m_stop.waitForTrue(std::chrono::seconds(5)));
 }
 
@@ -142,8 +141,8 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
     const auto minFreeBytes = getMinFreeBytesAndLogIfChanged();
 
     try {
-      const time_t now = time(nullptr);
-      const time_t secsSinceLastQuery = now - m_freeSpaceQueryTimestamp;
+      const std::time_t now = time(nullptr);
+      const std::time_t secsSinceLastQuery = now - m_freeSpaceQueryTimestamp;
 
       const auto queryPeriodSecs = getQueryPeriodSecsAndLogIfChanged();
 
@@ -168,7 +167,7 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
       fid = m_lruQueue.getAndPopFidOfLeastUsedFile();
     }
 
-    const uint64_t fileToBeDeletedSizeBytes = m_mgm.getFileSizeBytes(fid);
+    const std::uint64_t fileToBeDeletedSizeBytes = m_mgm.getFileSizeBytes(fid);
 
     std::ostringstream preamble;
     preamble << "fxid=" << std::hex << fid;
