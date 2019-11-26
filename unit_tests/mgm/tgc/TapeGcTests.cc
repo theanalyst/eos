@@ -51,14 +51,12 @@ TEST_F(TgcTapeGcTest, constructor)
   DummyTapeGcMgm mgm;
   TapeGc gc(mgm, space, queryPeriodCacheAgeSecs, minFreeBytesCacheAgeSecs);
 
-  const auto now = time(nullptr);
   const auto stats = gc.getStats();
 
   ASSERT_EQ(0, stats.nbStagerrms);
   ASSERT_EQ(0, stats.lruQueueSize);
   ASSERT_EQ(0, stats.freeBytes);
-  ASSERT_TRUE((now - 5) < stats.freeSpaceQueryTimestamp &&
-    stats.freeSpaceQueryTimestamp < (now + 5));
+  ASSERT_EQ(0, stats.freeSpaceQueryTimestamp);
 }
 
 //------------------------------------------------------------------------------

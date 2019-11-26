@@ -67,13 +67,11 @@ TEST_F(TgcMultiSpaceTapeGcTest, enable_one_space)
   const auto stats = gc.getStats();
   ASSERT_EQ(1, stats.size());
 
-  const auto now = std::time(nullptr);
   auto itor = stats.begin();
   ASSERT_EQ(space, itor->first);
   ASSERT_EQ(0, itor->second.nbStagerrms);
   ASSERT_EQ(0, itor->second.lruQueueSize);
-  ASSERT_TRUE((now - 5) < itor->second.freeSpaceQueryTimestamp &&
-    itor->second.freeSpaceQueryTimestamp < (now + 5));
+  ASSERT_EQ(0, itor->second.freeSpaceQueryTimestamp);
 }
 
 //------------------------------------------------------------------------------
@@ -91,7 +89,6 @@ TEST_F(TgcMultiSpaceTapeGcTest, enable_two_spaces)
   gc.enable(space1);
   gc.enable(space2);
 
-  const auto now = std::time(nullptr);
   const auto stats = gc.getStats();
   ASSERT_EQ(2, stats.size());
 
@@ -99,13 +96,11 @@ TEST_F(TgcMultiSpaceTapeGcTest, enable_two_spaces)
   ASSERT_EQ(space1, itor->first);
   ASSERT_EQ(0, itor->second.nbStagerrms);
   ASSERT_EQ(0, itor->second.lruQueueSize);
-  ASSERT_TRUE((now - 5) < itor->second.freeSpaceQueryTimestamp &&
-              itor->second.freeSpaceQueryTimestamp < (now + 5));
+  ASSERT_EQ(0, itor->second.freeSpaceQueryTimestamp);
 
   itor++;
   ASSERT_EQ(space2, itor->first);
   ASSERT_EQ(0, itor->second.nbStagerrms);
   ASSERT_EQ(0, itor->second.lruQueueSize);
-  ASSERT_TRUE((now - 5) < itor->second.freeSpaceQueryTimestamp &&
-              itor->second.freeSpaceQueryTimestamp < (now + 5));
+  ASSERT_EQ(0, itor->second.freeSpaceQueryTimestamp);
 }
