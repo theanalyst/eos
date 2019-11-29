@@ -26,7 +26,7 @@ install(DIRECTORY DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/selinux/mls)
 install(DIRECTORY DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/selinux/strict)
 
 add_custom_target(
-  eosfuse-selinux
+  eosfuse-selinux ALL
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/choose_selinux.sh ${CMAKE_CURRENT_BINARY_DIR})
 
 install(
