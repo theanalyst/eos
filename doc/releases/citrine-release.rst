@@ -140,7 +140,7 @@ Bug
 ===================
 
 2019-10-28
-=======
+==========
 
 * [EOS-3792] - eos quota not redirecting to proper home
 
