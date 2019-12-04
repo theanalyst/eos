@@ -317,6 +317,7 @@ build_slc6:
   tags:
     - docker_node
     - slc6
+  allow_failure: true
 
 
 build_cc7:
@@ -426,6 +427,9 @@ build_fedora_stable:
   tags:
     - docker_node
     - fedora_stable
+  only:
+    - schedules
+    - tags
 
 build_fedora_30:
   image: fedora:30
@@ -501,6 +505,7 @@ macosx_dmg:
       - osx_artifacts/
   tags:
     - macosx-shell
+  allow_failure: true
 
 
 clone_docker:
