@@ -632,6 +632,13 @@ public:
   bool VerifyChecksum();
 
   //----------------------------------------------------------------------------
+  //! Queue file for CTA archiving
+  //!
+  //! @return true if ok, otherwise false
+  //----------------------------------------------------------------------------
+  bool QueueForArchiving();
+
+  //----------------------------------------------------------------------------
   //! Notify the workflow protobuf endpoint that the user has closed a file that
   //! they were writing to
   //!
