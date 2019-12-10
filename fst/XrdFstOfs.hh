@@ -366,9 +366,24 @@ public:
                           unsigned long long fid,
                           struct stat& deletion_stat);
 
+  //----------------------------------------------------------------------------
+  //! Information saved for TPC transfers
+  //----------------------------------------------------------------------------
+  struct TpcInfo {
+    std::string path;
+    std::string opaque;
+    std::string capability;
+    std::string key;
+    std::string src;
+    std::string dst;
+    std::string org;
+    std::string lfn;
+    time_t expires;
+  };
+
   XrdSysError* Eroute;
   eos::fst::Messaging* Messaging; ///< messaging interface class
-  eos::fst::Storage* Storage; ///< Meta data & filesytem store object
+  eos::fst::Storage* Storage; ///< Meta data & filesystem store object
   mutable XrdSysMutex OpenFidMutex;
 
   eos::fst::OpenFileTracker openedForWriting;
@@ -406,7 +421,7 @@ public:
   std::shared_ptr<qclient::QClient> mFsckQcl; ///< Qclient used for fsck
   bool mMqOnQdb; ///< Are we using QDB as an MQ?
   int mHttpdPort; ///< listening port of the http server
-  std::unique_ptr<HttpServer> mHttpd; //< Embedded http server if available
+  std::unique_ptr<HttpServer> mHttpd; ///< Embedded http server if available
 
 private:
 #ifdef IN_TEST_HARNESS
@@ -424,21 +439,6 @@ public:
   std::atomic<bool> mSimFmdOpenErr; ///< simulate a fmd mismatch error on open
   std::atomic<uint64_t> mSimErrIoReadOff; ///< Simulate IO error offset on rd
   std::atomic<uint64_t> mSimErrIoWriteOff;///< Simulate IO error offset on wr
-
-  //----------------------------------------------------------------------------
-  //! Information saved for TPC transfers
-  //----------------------------------------------------------------------------
-  struct TpcInfo {
-    std::string path;
-    std::string opaque;
-    std::string capability;
-    std::string key;
-    std::string src;
-    std::string dst;
-    std::string org;
-    std::string lfn;
-    time_t expires;
-  };
 
   //! A vector map pointing from tpc key => tpc information for reads, [0]
   //! are readers [1] are writers
