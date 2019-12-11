@@ -69,7 +69,6 @@ if '-P' in opt:
             print("invalid parent Id")
             sys.exit(22)
 
-
 opt['-S'] = int(opt['-S'])
 
 eos_instance = os.popen("eos version").readlines()[0].split('=')[1].rstrip()
