@@ -26,12 +26,12 @@
 #include "fst/Namespace.hh"
 #include "fst/storage/Storage.hh"
 #include "fst/checksum/CheckSum.hh"
+#include "fst/utils/TpcInfo.hh"
 #include "common/Fmd.hh"
 #include "common/FileId.hh"
 #include "XrdOfs/XrdOfs.hh"
 #include "XrdOfs/XrdOfsTPCInfo.hh"
 #include "XrdOuc/XrdOucString.hh"
-#include "XrdFstOfs.hh"
 #include <numeric>
 
 namespace eos
@@ -359,7 +359,7 @@ public:
   XrdOfsTPCInfo mTpcInfo; ///< TPC info object used for callback
   XrdSysMutex mTpcJobMutex; ///< TPC job mutex
   std::string mTpcKey; ///< TPC key for a tpc file operation
-  XrdFstOfs::TpcInfo mFstTpcInfo; ///< FST TPC info struct
+  TpcInfo mFstTpcInfo; ///< FST TPC info struct
   bool mIsTpcDst; ///< If true this is a TPC destination, otherwise a source
   int mTpcRetc; ///< TPC job return code
   std::atomic<bool> mTpcCancel; ///< Mark TPC cancellation request

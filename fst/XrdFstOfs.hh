@@ -26,8 +26,9 @@
 
 #include "fst/Namespace.hh"
 #include "fst/Config.hh"
-#include "common/Fmd.hh"
 #include "fst/utils/OpenFileTracker.hh"
+#include "fst/utils/TpcInfo.hh"
+#include "common/Fmd.hh"
 #include "common/Logging.hh"
 #include "common/XrdConnPool.hh"
 #include "common/ThreadPool.hh"
@@ -365,21 +366,6 @@ public:
   void MakeDeletionReport(eos::common::FileSystem::fsid_t fsid,
                           unsigned long long fid,
                           struct stat& deletion_stat);
-
-  //----------------------------------------------------------------------------
-  //! Information saved for TPC transfers
-  //----------------------------------------------------------------------------
-  struct TpcInfo {
-    std::string path;
-    std::string opaque;
-    std::string capability;
-    std::string key;
-    std::string src;
-    std::string dst;
-    std::string org;
-    std::string lfn;
-    time_t expires;
-  };
 
   XrdSysError* Eroute;
   eos::fst::Messaging* Messaging; ///< messaging interface class
