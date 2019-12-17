@@ -636,7 +636,7 @@ public:
   //----------------------------------------------------------------------------
   //! Queue file for CTA archiving
   //!
-  //! @return true if ok, otherwise false
+  //! @return true if successful, otherwise false
   //----------------------------------------------------------------------------
   bool QueueForArchiving();
 
@@ -656,7 +656,7 @@ public:
   //! workflow protobuf endpoint
   //! @param errMsgBack Output parameter: Error message back from the workflow
   //! protobuf endpoint
-  //! @return
+  //! @return 0 if successful, error code otherwise
   //----------------------------------------------------------------------------
   int NotifyProtoWfEndPointClosew(const eos::common::FmdHelper& fmd,
                                   uint32_t ownerUid, uint32_t ownerGid,

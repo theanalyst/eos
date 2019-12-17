@@ -1140,7 +1140,7 @@ XrdFstOfsFile::_close()
           // Attempt to queue file for archiving
           if (mSyncEventOnClose &&
               mEventWorkflow != common::RETRIEVE_WRITTEN_WORKFLOW_NAME) {
-            queueingerror = QueueForArchiving();
+            queueingerror = !QueueForArchiving();
           }
         }
       }
