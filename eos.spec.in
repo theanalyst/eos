@@ -71,6 +71,11 @@
   %endif
 %endif
 
+# Avoid richacl for CentOS 8 until RPMs are provided
+%if 0%{distribution} == 8
+%define use_richacl 0
+%endif
+
 #-------------------------------------------------------------------------------
 # Custom strip command for SLC6, CC7
 #-------------------------------------------------------------------------------
@@ -148,14 +153,14 @@ BuildRequires: eos-protobuf3-devel = 3.5.1-5.el7.cern.eos
 %global __requires_exclude ^libprotobuf.so.*$
 %endif
 %else
-%if %{?fedora}%{!?fedora:0} >= 27
+%if %{?fedora}%{!?fedora:0} >= 27 || 0%{distribution} == 8
 BuildRequires: protobuf >= 3.3, protobuf-devel >= 3.3, protobuf-compiler >= 3.3
 %else
 BuildRequires: protobuf3 >= 3.3, protobuf3-devel >= 3.3, protobuf3-compiler >= 3.3
 %endif
 %endif
 %else
-%if %{?fedora}%{!?fedora:0} >= 27
+%if %{?fedora}%{!?fedora:0} >= 27  || 0%{distribution} == 8
 BuildRequires: protobuf >= 3.3, protobuf-devel >= 3.3, protobuf-compiler >= 3.3
 %else
 BuildRequires: protobuf3 >= 3.3, protobuf3-devel >= 3.3, protobuf3-compiler >= 3.3
