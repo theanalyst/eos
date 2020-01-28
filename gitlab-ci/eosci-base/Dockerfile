@@ -14,4 +14,4 @@ RUN git clone https://gitlab.cern.ch/dss/eos.git; cd eos/; \
     echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/citrine-depend/el-7/x86_64/\ngpgcheck=0\nenabled=1\npriority=2\n' >> /etc/yum.repos.d/eos-depend.repo; \
     yum-builddep --nogpgcheck --setopt="cern*.exclude=xrootd*" -y build/SRPMS/*
 
-ENTRYPOINT ["/bin/bash"]
+ENTRYPOINT /bin/bash
