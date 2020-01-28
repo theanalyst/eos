@@ -1,4 +1,5 @@
 stages:
+  - prebuild
   - build:rpm
   - build:dockerimage
   - test
@@ -12,15 +13,24 @@ before_script:
   - echo "Exporting BRANCH=${BRANCH}"
 
 
+eosci-base_docker_image_commit:
+  stage: prebuild
+  image:
+    name: gitlab-registry.cern.ch/ci-tools/docker-image-builder
+    entrypoint: [""]
+  script:
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --context $CI_PROJECT_DIR/gitlab-ci/eosci-base --dockerfile $CI_PROJECT_DIR/gitlab-ci/eosci-base/Dockerfile --destination gitlab-registry.cern.ch/dss/eos/eosci-base
+
+
 #-------------------------------------------------------------------------------
 # Build templates
 #-------------------------------------------------------------------------------
 
 .cc7_template: &cc7_template_definition
   stage: build:rpm
-  image: gitlab-registry.cern.ch/linuxsupport/cc7-base
+  image: gitlab-registry.cern.ch/dss/eos/eosci-base
   script:
-    - yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git yum-plugin-priorities ccache epel-release rpm-sign
     - git submodule update --init --recursive
     - mkdir build ; cd build/
     - cmake3 ../ -DPACKAGEONLY=1 ${CMAKE_OPTIONS}
@@ -43,69 +53,6 @@ before_script:
     expire_in: 1 day
     paths:
       - ${BUILD_NAME}_artifacts/
-
-
-.fedora_template: &fedora_template_definition
-  stage: build:rpm
-  script:
-    - dnf install --nogpg -y gcc-c++ cmake3 make rpm-build which git tar dnf-plugins-core ccache rpm-sign
-    - git submodule update --init --recursive
-    - mkdir build; cd build
-    - cmake3 .. -DPACKAGEONLY=1; make srpm; cd ..
-    - echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/'${EOS_ARCH}'/x86_64/\ngpgcheck=0\nenabled=1\nexclude=xrootd*\npriority=4\n' >> /etc/yum.repos.d/eos-depend.repo
-    - dnf builddep --nogpgcheck --allowerasing -y build/SRPMS/*
-    - if [[ $CI_COMMIT_TAG ]]; then BUILD_TYPE=tag; else BUILD_TYPE=commit; fi
-    - if [ "$BUILD_TYPE" == "commit" ]; then source gitlab-ci/setup_ccache_fc.sh; else export CCACHE_DISABLE=1; fi
-    # @todo: add this flag to have the build pass as it fails during boost header compilation - should be removed in the future ...
-    - export CXXFLAGS="-Wno-parentheses"
-    - rpmbuild --rebuild --with server --define "_rpmdir build/RPMS/" --define "_build_name_fmt %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" build/SRPMS/*
-    - ccache -s
-    - if [ "$BUILD_TYPE" == "tag" ]; then gpg2 --allow-secret-key-import --import /keys/stci-debian-repo.sec; printf "" | setsid rpmsign --define='%_gpg_name stci@cern.ch' --define='%_signature gpg' --addsign build/RPMS/*.rpm; fi
-    - mkdir ${EOS_ARCH}_artifacts
-    - cp -R build/SRPMS ${EOS_ARCH}_artifacts
-    - cp -R build/RPMS ${EOS_ARCH}_artifacts
-  cache:
-    key: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
-    paths:
-      - ccache/
-  artifacts:
-    expire_in: 1 day
-    paths:
-      - ${EOS_ARCH}_artifacts/
-  allow_failure: true
-
-
-.ubuntu_template: &ubuntu_template_definition
-  stage: build:rpm
-  script:
-    - apt-get update -y; apt-get install -y git cmake g++ debhelper devscripts equivs gdebi-core ccache gawk
-    # @todo re-enable building against latest XRootD master commit when CMake allows using XRootD plugin version 5 libraries
-    #- echo -e '\ndeb http://storage-ci.web.cern.ch/storage-ci/debian/xrootd/ '${EOS_ARCH}' master' >> /etc/apt/sources.list
-    - echo -e '\ndeb http://storage-ci.web.cern.ch/storage-ci/debian/xrootd/ '${EOS_ARCH}' release' >> /etc/apt/sources.list
-    - wget -O - http://storage-ci.web.cern.ch/storage-ci/storageci.key | apt-key add -
-    - apt-get update -y
-    - git submodule update --init --recursive
-    # @todo once the XRootD deb repos are better structured we can point to a
-    # particular stable branch for the moment we force install the version we want
-    - export XROOTD_VERSION=`grep "define xrootd_version_min" eos.spec.in | awk -F ':' '{print $2;}'`
-    - apt-get install -y xrootd-libs=${XROOTD_VERSION} xrootd-server-libs=${XROOTD_VERSION} xrootd-client-libs=${XROOTD_VERSION} xrootd-devel=${XROOTD_VERSION} xrootd-client-devel=${XROOTD_VERSION} xrootd-server-devel=${XROOTD_VERSION} xrootd-private-devel=${XROOTD_VERSION}
-    - mk-build-deps --build-dep debian/control
-    - gdebi -n eos-build-deps-depends*.deb
-    - dch --create -v `./genversion.sh` --package eos --urgency low --distribution ${EOS_ARCH} -M "This package is built and released automatically. For important notices and releases subscribe to our mailing lists or visit our website."
-    - if [[ $CI_COMMIT_TAG ]]; then export CCACHE_DISABLE=1; else source gitlab-ci/setup_ccache_deb.sh; fi
-    - dpkg-buildpackage -b -us -uc -tc --buildinfo-option="-udeb_packages" --changes-option="-udeb_packages"
-    - ccache -s
-    - mkdir ${EOS_ARCH}_artifacts/
-    - cp deb_packages/*.deb ${EOS_ARCH}_artifacts
-  cache:
-    key: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
-    paths:
-      - ccache/
-  artifacts:
-    expire_in: 1 day
-    paths:
-      - ${EOS_ARCH}_artifacts/
-  allow_failure: true
 
 
 #-------------------------------------------------------------------------------
@@ -285,40 +232,6 @@ before_script:
 # Build RPMs
 #-------------------------------------------------------------------------------
 
-build_slc6:
-  stage: build:rpm
-  image: gitlab-registry.cern.ch/linuxsupport/slc6-base
-  script:
-    - yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git yum-plugin-priorities tar ccache sl-release-scl
-    - git submodule update --init --recursive
-    - mkdir build
-    - cd build
-    - cmake3 .. -DPACKAGEONLY=1
-    - make srpm
-    - cd ..
-    - echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-6/x86_64/\ngpgcheck=0\nenabled=1\npriority=1\n' >> /etc/yum.repos.d/eos-depend.repo
-    - yum-builddep --nogpgcheck --setopt="cern*.exclude=xrootd*" -y build/SRPMS/*
-    - if [[ $CI_COMMIT_TAG ]]; then BUILD_TYPE=tag; else BUILD_TYPE=commit; fi
-    - if [ "$BUILD_TYPE" == "commit" ]; then source gitlab-ci/setup_ccache_slc6.sh; else export CCACHE_DISABLE=1; fi
-    - rpmbuild --rebuild --with server --define "_rpmdir build/RPMS/" --define "_build_name_fmt %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" build/SRPMS/*
-    - ccache -s
-    - if [ "$BUILD_TYPE" == "tag" ]; then gpg --allow-secret-key-import --import /keys/stci-debian-repo.sec; printf "" | setsid rpmsign --define='%_gpg_name stci@cern.ch' --define='%_signature gpg' --addsign build/RPMS/*.rpm; fi
-    - mkdir slc6_artifacts
-    - cp -R build/SRPMS slc6_artifacts
-    - cp -R build/RPMS slc6_artifacts
-  cache:
-    key: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
-    paths:
-      - ccache/
-  artifacts:
-    expire_in: 1 day
-    paths:
-      - slc6_artifacts/
-  tags:
-    - docker_node
-    - slc6
-
-
 build_cc7:
   <<: *cc7_template_definition
   variables:
@@ -326,185 +239,6 @@ build_cc7:
   tags:
     - docker_node
     - cc7
-
-# Re-enable xrd_testing jobs once project ugprades to XRootD 5
-build_cc7_xrd_testing:
-  before_script:
-    - source gitlab-ci/export_branch.sh
-    - echo "Exporting BRANCH=${BRANCH}"
-    - echo -e '[xrootd-testing]\nname=XRootD Testing repository\nbaseurl=http://xrootd.org/binaries/testing/slc/7/$basearch http://xrootd.cern.ch/sw/repos/testing/slc/7/$basearch\ngpgcheck=0\nenabled=1\npriority=1\nprotect=0\ngpgkey=http://xrootd.cern.ch/sw/releases/RPM-GPG-KEY.txt\nexclude=xrootd-*5.0.0*\n' >> /etc/yum.repos.d/xrootd-testing.repo
-  <<: *cc7_template_definition
-  variables:
-    BUILD_NAME: cc7_xrd_testing
-  tags:
-    - docker_node
-    - cc7
-  only:
-    - schedules
-  except:
-    - tags
-  allow_failure: true
-
-
-build_cc7_xrd_cta:
-  before_script:
-    - source gitlab-ci/export_branch.sh
-    - echo "Exporting BRANCH=${BRANCH}"
-    - echo -e '[xrootd-cta]\nname=XRootD CTA-CI repository\nbaseurl=https://cta-ci-repo.web.cern.ch/cta-ci-repo/xrootd_tag/\ngpgcheck=0\nenabled=1\npriority=1\nprotect=0\n' >> /etc/yum.repos.d/xrootd-cta.repo
-  <<: *cc7_template_definition
-  variables:
-    BUILD_NAME: cc7_xrd_cta
-  tags:
-    - docker_node
-    - cc7
-  when: manual
-  allow_failure: true
-
-
-build_cc7_asan:
-  <<: *cc7_template_definition
-  variables:
-    BUILD_NAME: cc7_asan
-    CMAKE_OPTIONS: "-DASAN=1"
-    RPMBUILD_OPTIONS: "--with asan"
-    CXXFLAGS: "-Wno-parentheses"    # Avoid boost header compilation errors
-  tags:
-    - docker_node
-  only:
-    - schedules
-
-
-build_cc7_eos_xrd:
-  before_script:
-    - source gitlab-ci/export_branch.sh
-    - echo "Exporting BRANCH=${BRANCH}"
-    - sed -i "s/pgm \/usr\/bin\/xrdcp/pgm \/bin\/true/g" misc/etc/xrd.cf.fst
-  <<: *cc7_template_definition
-  variables:
-    BUILD_NAME: cc7_eos_xrd
-    CMAKE_OPTIONS: "-DEOS_XROOTD=1"
-    RPMBUILD_OPTIONS: "--with eos_xrootd_rh"
-  tags:
-    - docker_node
-    - cc7
-  when: manual
-  allow_failure: true
-
-
-build_cc7_clang:
-  <<: *cc7_template_definition
-  variables:
-    BUILD_NAME: cc7_clang
-    CMAKE_OPTIONS: "-DCLANG_BUILD=1"
-    RPMBUILD_OPTIONS: "--with clang"
-  tags:
-    - docker_node
-    - cc7
-  only:
-    - schedules
-  allow_failure: true
-
-
-build_cc7_coverage:
-  <<: *cc7_template_definition
-  variables:
-    BUILD_NAME: cc7_coverage
-    RPMBUILD_OPTIONS: "--with coverage"
-  tags:
-    - docker_node
-    - cc7
-  only:
-    variables:
-      - $COVERAGE_SCHEDULE
-
-
-build_fedora_stable:
-  image: fedora:31
-  <<: *fedora_template_definition
-  variables:
-    EOS_ARCH: fc-31
-  tags:
-    - docker_node
-    - fedora_stable
-  only:
-    - schedules
-    - tags
-
-build_fedora_30:
-  image: fedora:30
-  <<: *fedora_template_definition
-  variables:
-    EOS_ARCH: fc-30
-  tags:
-    - docker_node
-    - fedora_30
-  only:
-    - schedules
-    - tags
-
-build_fedora_rawhide:
-  image: registry.fedoraproject.org/fedora:rawhide
-  <<: *fedora_template_definition
-  variables:
-    EOS_ARCH: fc-rawhide
-  tags:
-    - docker_node
-    - fedora_rawhide
-  only:
-    - schedules
-
-
-build_ubuntu_bionic:
-  image: ubuntu:bionic
-  before_script:
-    - apt-get update
-    - apt-get install -y apt-transport-https ca-certificates gnupg software-properties-common wget
-    - wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | apt-key add -
-    - apt-add-repository 'deb https://apt.kitware.com/ubuntu/ '${EOS_ARCH}' main'
-  <<: *ubuntu_template_definition
-  variables:
-    EOS_ARCH: bionic
-  tags:
-    - docker_node
-    - ubuntu
-
-# Re-enable once CMake >=3.14 is available on Ubuntu Disco
-.build_ubuntu_disco:
-  image: ubuntu:disco
-  <<: *ubuntu_template_definition
-  variables:
-    EOS_ARCH: disco
-  tags:
-    - docker_node
-    - ubuntu
-  only:
-    - schedules
-    - tags
-
-
-macosx_dmg:
-  stage: build:rpm
-  script:
-    - git submodule update --init --recursive
-    - mkdir build
-    - mkdir install
-    - cd build
-    - cmake -DCLIENT=1 -DCMAKE_INSTALL_PREFIX=/usr/local -D Z_ROOT_DIR=/usr/local/opt/zlib/ -D OPENSSL_ROOT_DIR=/usr/local/opt/openssl/ -D NCURSES_ROOT_DIR=/usr/local/opt/ncurses/ -D ZMQ_ROOT_DIR=/usr/local/opt/zeromq/ -D XROOTD_ROOT_DIR=/usr/local/opt/xrootd/ -D UUID_ROOT_DIR=/usr/local/opt/ossp-uuid ..
-    - make -j 4
-    - make install DESTDIR=../install/
-    - version=`../genversion.sh`
-    - ../utils/eos-osx-package.sh $version ../install/
-    - ccache -s
-    - cd ..
-    - mkdir osx_artifacts
-    - cp build/*.dmg osx_artifacts
-  artifacts:
-    expire_in: 1 day
-    paths:
-      - osx_artifacts/
-  tags:
-    - macosx-shell
-
 
 clone_docker:
   stage: build:rpm
@@ -541,169 +275,6 @@ cc7_docker_image_commit:
   except:
     - beryl_aquamarine
     - tags
-
-
-ubuntu_bionic_docker_image_commit:
-  stage: build:dockerimage
-  tags:
-    - docker-image-build
-  script:
-    - ""
-  variables:
-    TO: gitlab-registry.cern.ch/dss/eos:ubuntu_bionic_client_${CI_PIPELINE_ID}
-    DOCKER_FILE: eos-docker/Dockerfile_ubuntu_bionic
-  dependencies:
-    - build_ubuntu_bionic
-    - clone_docker
-  only:
-    - dev
-    - master
-  allow_failure: true
-
-
-.ubuntu_disco_docker_image_commit:
-  stage: build:dockerimage
-  tags:
-    - docker-image-build
-  script:
-    - ""
-  variables:
-    TO: gitlab-registry.cern.ch/dss/eos:ubuntu_disco_client_${CI_PIPELINE_ID}
-    DOCKER_FILE: eos-docker/Dockerfile_ubuntu_disco
-  dependencies:
-    - build_ubuntu_disco
-    - clone_docker
-  only:
-    - schedules
-  allow_failure: true
-
-
-cc7_asan_docker_image:
-  stage: build:dockerimage
-  tags:
-    - docker-image-build
-  script:
-    - ""
-  variables:
-    TO: gitlab-registry.cern.ch/dss/eos:asan_${CI_PIPELINE_ID}
-    DOCKER_FILE: eos-docker/Dockerfile_asan
-    BUILD_ARG: BRANCH=${BRANCH}
-  dependencies:
-    - build_cc7_asan
-    - clone_docker
-  only:
-    - schedules
-  except:
-    - tags
-  allow_failure: true
-
-
-cc7_coverage_docker_image:
-  stage: build:dockerimage
-  tags:
-    - docker-image-build
-  script:
-    - ""
-  variables:
-    TO: gitlab-registry.cern.ch/dss/eos:coverage_${CI_PIPELINE_ID}
-    DOCKER_FILE: eos-docker/Dockerfile_coverage
-    BUILD_ARG: BRANCH=${BRANCH}
-  dependencies:
-    - build_cc7_coverage
-    - clone_docker
-  only:
-    variables:
-      - $COVERAGE_SCHEDULE
-
-
-cc7_docker_image_xrd_testing:
-  stage: build:dockerimage
-  tags:
-    - docker-image-build
-  script:
-    - ""
-  variables:
-    TO: gitlab-registry.cern.ch/dss/eos:xrd_testing_${CI_PIPELINE_ID}
-    DOCKER_FILE: eos-docker/Dockerfile_xrd_testing
-  dependencies:
-    - build_cc7_xrd_testing
-    - clone_docker
-  only:
-    - schedules
-  except:
-    - tags
-  allow_failure: true
-
-
-cc7_docker_image_tag:
-  stage: build:dockerimage
-  tags:
-    - docker-image-build
-  script:
-    - ""
-  variables:
-    TO: gitlab-registry.cern.ch/dss/eos:${CI_COMMIT_TAG}
-    DOCKER_FILE: eos-docker/Dockerfile
-    NO_CACHE: 1
-  dependencies:
-    - build_cc7
-    - clone_docker
-  only:
-    - tags
-
-
-ubuntu_bionic_docker_image_tag:
-  stage: build:dockerimage
-  tags:
-    - docker-image-build
-  script:
-    - ""
-  variables:
-    TO: gitlab-registry.cern.ch/dss/eos:ubuntu_bionic_client_${CI_COMMIT_TAG}
-    DOCKER_FILE: eos-docker/Dockerfile_ubuntu_bionic
-    NO_CACHE: 1
-  dependencies:
-    - build_ubuntu_bionic
-    - clone_docker
-  only:
-    - tags
-  allow_failure: true
-
-
-.ubuntu_disco_docker_image_tag:
-  stage: build:dockerimage
-  tags:
-    - docker-image-build
-  script:
-    - ""
-  variables:
-    TO: gitlab-registry.cern.ch/dss/eos:ubuntu_disco_client_${CI_COMMIT_TAG}
-    DOCKER_FILE: eos-docker/Dockerfile_ubuntu_disco
-  dependencies:
-    - build_ubuntu_disco
-    - clone_docker
-  only:
-    - tags
-  allow_failure: true
-
-
-prod_docker_image_tag:
-  stage: build:dockerimage
-  tags:
-    - docker-image-build
-  script:
-    - ""
-  variables:
-    TO: gitlab-registry.cern.ch/dss/eos/eos-prod:${CI_COMMIT_TAG}
-    DOCKER_FILE: eos-docker/projects/eos/Dockerfile
-    NO_CACHE: 1
-  dependencies:
-    - build_cc7
-    - clone_docker
-  only:
-    - tags
-  allow_failure: true
-
 
 #-------------------------------------------------------------------------------
 # Kubernetes testing framework
@@ -908,21 +479,6 @@ unit_test:
     - schedules
 
 
-unit_test_asan:
-  stage: test
-  <<: *unit_test_template
-  variables:
-    BUILD_NAME: cc7_asan
-    LSAN_OPTIONS: "suppressions=/var/eos/test/LeakSanitizer.supp"  # Suppress known memory leaks
-  dependencies:
-    - build_cc7_asan
-  tags:
-    - docker_node
-  only:
-    - schedules
-  allow_failure: true
-
-
 namespace_unit_test:
   stage: test
   <<: *namespace_unit_test_template
@@ -932,21 +488,6 @@ namespace_unit_test:
     - docker_node
   except:
     - schedules
-
-
-namespace_unit_test_asan:
-  stage: test
-  <<: *namespace_unit_test_template
-  variables:
-    BUILD_NAME: cc7_asan
-    ASAN_OPTIONS: "fast_unwind_on_malloc=0"  # Avoid indirect leaks from linked dependencies
-  dependencies:
-    - build_cc7_asan
-  tags:
-    - docker_node
-  only:
-    - schedules
-  allow_failure: true
 
 
 stress_test:
@@ -984,24 +525,6 @@ publish_koji_cc7:
     - docker_node
   dependencies:
     - build_cc7
-  only:
-    - tags
-
-
-publish_koji_slc6:
-  stage: publish
-  image: gitlab-registry.cern.ch/linuxsupport/cc7-base
-  script:
-    - yum install --nogpg -y sssd-client
-    - yum install -y koji
-    - mkdir ~/.koji
-    - echo -e '[koji]\nserver = https://kojihub.cern.ch/kojihub\nweburl = https://koji.cern.ch/\ntopurl = https://koji.cern.ch/kojifiles\nkrb_canon_host = no\nkrb_rdns = False\n' >> ~/.koji/config
-    - kinit stci@CERN.CH -k -t /stci.krb5/stci.keytab
-    - koji build eos6 slc6_artifacts/SRPMS/*.src.rpm
-  tags:
-    - docker_node
-  dependencies:
-    - build_slc6
   only:
     - tags
 
@@ -1052,48 +575,6 @@ rpm_stable_artifacts:
     - tags
   dependencies: []
   when: manual
-
-
-debian_artifacts:
-  stage: publish
-  image: ubuntu:bionic
-  script:
-    - apt-get update
-    - apt-get install -y sudo apt-utils sssd gpg
-    - mkdir /home/stci
-    - chown -R stci:def-cg /home/stci
-    - chmod -R 700 /home/stci
-    - sudo -u stci -H gpg --homedir /home/stci/ --allow-secret-key-import --import /keys/stci-debian-repo.sec
-    - if [[ $CI_COMMIT_TAG ]]; then BUILD_TYPE=tag; else BUILD_TYPE=commit; fi
-    - sudo -u stci -H ./gitlab-ci/store_artifacts_debian.sh /eos/project/s/storage-ci/www/debian/eos/${BRANCH} ${BUILD_TYPE}
-  tags:
-    - docker_node
-  dependencies:
-    - build_ubuntu_bionic
-    # - build_ubuntu_disco     # Re-enable with Ubuntu Disco build
-  only:
-    - master
-    - dev
-    - tags
-  retry: 2
-  allow_failure: true
-
-
-debian_artifacts_volume:
-  stage: publish
-  image: ubuntu:bionic
-  script:
-    - apt-get update
-    - apt-get install -y sudo apt-utils sssd gpg
-    - mkdir /home/stci
-    - gpg --homedir /home/stci/ --allow-secret-key-import --import /keys/stci-debian-repo.sec
-    - ./gitlab-ci/store_artifacts_debian.sh /mnt/eos_repositories/debian/eos/${BRANCH} tag
-  tags:
-    - docker_node
-  dependencies:
-    - build_ubuntu_bionic
-  only:
-    - tags
 
 
 #-------------------------------------------------------------------------------
