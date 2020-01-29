@@ -5,8 +5,7 @@ LABEL maintainer="Fabio Luchetti, faluchet@cern.ch, CERN 2020"
 RUN yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git yum-plugin-priorities tar ccache sl-release-scl
 
 RUN pwd; ls -l; \
-    echo $BRANCH; echo $CI_PROJECT_DIR; \
-    cd $CI_PROJECT_DIR; \
+    cd /builds/dss/eos/; \
     source gitlab-ci/export_branch.sh; \
     git submodule update --init --recursive; \
     mkdir build; cd build/;\
