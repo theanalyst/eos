@@ -4,7 +4,7 @@ MAINTAINER Fabio Luchetti, faluchet@cern.ch, CERN 2020
 
 RUN yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git yum-plugin-priorities tar ccache sl-release-scl
 
-RUN git clone https://gitlab.cern.ch/dss/eos.git; cd eos/; \
+RUN pwd; ls -l; \
     source gitlab-ci/export_branch.sh; \
     git submodule update --init --recursive; \
     mkdir build; cd build/;\
