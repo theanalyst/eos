@@ -41,8 +41,7 @@ eosci-base_docker_image_commit:
   image: gitlab-registry.cern.ch/dss/eos/eosci-base
   script:
     - git submodule update --init --recursive
-#    - mkdir build;
-    - pwd; ls -l; cd build/
+    - mkdir build; cd build/
     - cmake3 ../ -DPACKAGEONLY=1 ${CMAKE_OPTIONS}
     - make srpm
     - cd ../
