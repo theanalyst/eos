@@ -19,6 +19,15 @@ eosci-base_docker_image_commit:
     name: gitlab-registry.cern.ch/ci-tools/docker-image-builder
     entrypoint: [""]
   script:
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --build-arg MYVAR="thisismyvar" --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/eosci-base/Dockerfile --destination gitlab-registry.cern.ch/dss/eos/eosci-base
+
+eosci2-base_docker_image_commit:
+  stage: prebuild
+  image:
+    name: gitlab-registry.cern.ch/ci-tools/docker-image-builder
+    entrypoint: [""]
+  script:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}"
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/eosci-base/Dockerfile --destination gitlab-registry.cern.ch/dss/eos/eosci-base
@@ -26,10 +35,6 @@ eosci-base_docker_image_commit:
     key: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
     paths:
       - ccache/
-  artifacts:
-    expire_in: 1 day
-    paths:
-      - ${BUILD_NAME}_artifacts/
 
 
 #-------------------------------------------------------------------------------
