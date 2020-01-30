@@ -1,4 +1,5 @@
 stages:
+  - prebuild
   - build:rpm
   - build:dockerimage
   - test
@@ -13,14 +14,84 @@ before_script:
 
 
 #-------------------------------------------------------------------------------
+# Prebuild
+#-------------------------------------------------------------------------------
+
+.eosci-cc7_template: &eosci-cc7_template_definition
+  stage: prebuild
+  image:
+    name: gitlab-registry.cern.ch/ci-tools/docker-image-builder
+    entrypoint: [""]
+  script:
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor --build-args CMAKE_OPTIONS="$CMAKE_OPTIONS" --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/eosci-base/Dockerfile_eosci-cc7 --destination gitlab-registry.cern.ch/dss/eos/eosci-cc7
+
+eosci-cc7:
+  <<: *eosci-cc7_template_definition
+
+eosci-cc7_xrd_testing:
+  before_script:
+#    - source gitlab-ci/export_branch.sh
+#    - echo "Exporting BRANCH=${BRANCH}"
+    - echo -e '[xrootd-testing]\nname=XRootD Testing repository\nbaseurl=http://xrootd.org/binaries/testing/slc/7/$basearch http://xrootd.cern.ch/sw/repos/testing/slc/7/$basearch\ngpgcheck=0\nenabled=1\npriority=1\nprotect=0\ngpgkey=http://xrootd.cern.ch/sw/releases/RPM-GPG-KEY.txt\nexclude=xrootd-*5.0.0*\n' >> /etc/yum.repos.d/xrootd-testing.repo
+  <<: *eosci-cc7_template_definition
+#  only:
+#    - schedules
+#  except:
+#    - tags
+  allow_failure: true
+
+eosci-cc7_xrd_cta:
+  before_script:
+#    - source gitlab-ci/export_branch.sh
+#    - echo "Exporting BRANCH=${BRANCH}"
+    - echo -e '[xrootd-cta]\nname=XRootD CTA-CI repository\nbaseurl=https://cta-ci-repo.web.cern.ch/cta-ci-repo/xrootd_tag/\ngpgcheck=0\nenabled=1\npriority=1\nprotect=0\n' >> /etc/yum.repos.d/xrootd-cta.repo
+  <<: *eosci-cc7_template_definition
+#  when: manual
+  allow_failure: true
+
+eosci-cc7_asan:
+  <<: *eosci-cc7_template_definition
+  variables:
+    CMAKE_OPTIONS: "-DASAN=1"
+    CXXFLAGS: "-Wno-parentheses"    # Avoid boost header compilation errors
+#  only:
+#    - schedules
+
+eosci-cc7_eos_xrd:
+  before_script:
+#    - source gitlab-ci/export_branch.sh
+#    - echo "Exporting BRANCH=${BRANCH}"
+    - sed -i "s/pgm \/usr\/bin\/xrdcp/pgm \/bin\/true/g" misc/etc/xrd.cf.fst
+  <<: *eosci-cc7_template_definition
+  variables:
+    CMAKE_OPTIONS: "-DEOS_XROOTD=1"
+#  when: manual
+  allow_failure: true
+
+eosci-cc7_clang:
+  <<: *eosci-cc7_template_definition
+  variables:
+    CMAKE_OPTIONS: "-DCLANG_BUILD=1"
+#  only:
+#    - schedules
+  allow_failure: true
+
+eosci-cc7_coverage:
+  <<: *eosci-cc7_template_definition
+  only:
+    variables:
+      - $COVERAGE_SCHEDULE
+
+
+#-------------------------------------------------------------------------------
 # Build templates
 #-------------------------------------------------------------------------------
 
 .cc7_template: &cc7_template_definition
   stage: build:rpm
-  image: gitlab-registry.cern.ch/linuxsupport/cc7-base
+  image: gitlab-registry.cern.ch/dss/eos/eosci-cc7
   script:
-    - yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git yum-plugin-priorities ccache epel-release rpm-sign
     - git submodule update --init --recursive
     - mkdir build ; cd build/
     - cmake3 ../ -DPACKAGEONLY=1 ${CMAKE_OPTIONS}
