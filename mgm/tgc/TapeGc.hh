@@ -161,7 +161,7 @@ protected:
 
   //----------------------------------------------------------------------------
   //! @return the amount of free bytes in the EOS space worked on by this
-  //! garbage collector.  Zero is in the case of error.
+  //! garbage collector.  Zero is returned in the case of error.
   //----------------------------------------------------------------------------
   std::uint64_t getFreeBytes() const noexcept;
 

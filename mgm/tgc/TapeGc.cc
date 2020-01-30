@@ -308,8 +308,7 @@ TapeGc::getLruQueueSize() const noexcept
 //----------------------------------------------------------------------------
 uint64_t
 TapeGc::getFreeBytes() const noexcept {
-  const char *const msgFormat =
-    "TapeGc::getSpaceFreeBytes() failed space=%s: %s";
+  const char *const msgFormat = "TapeGc::getFreeBytes() failed space=%s: %s";
   try {
     std::lock_guard<std::mutex> freeSpaceBytesLock(m_freeSpaceBytesMutex);
     return m_freeSpaceBytes;
