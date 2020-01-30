@@ -24,16 +24,30 @@ before_script:
     entrypoint: [""]
   script:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --build-arg CMAKE_OPTIONS="$CMAKE_OPTIONS" --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/eosci-OS-base/Dockerfile_eosci-cc7 --destination "gitlab-registry.cern.ch/dss/eos/eosci-cc7${BUILD_NAME}"
+    - /kaniko/executor --build-arg BUILD_NAME="$BUILD_NAME" --build-arg CMAKE_OPTIONS="$CMAKE_OPTIONS" --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/eosci-OS-base/Dockerfile_eosci-cc7 --destination "gitlab-registry.cern.ch/dss/eos/eosci-${BUILD_NAME}"
 
 eosci-cc7:
   <<: *eosci-cc7_template_definition
+  variables:
+    BUILD_NAME: cc7
+
+eosci-cc7_eos_xrd:
+#  before_script:
+    #    - source gitlab-ci/export_branch.sh
+    #    - echo "Exporting BRANCH=${BRANCH}"
+#    - sed -i "s/pgm \/usr\/bin\/xrdcp/pgm \/bin\/true/g" misc/etc/xrd.cf.fst
+  <<: *eosci-cc7_template_definition
+  variables:
+    BUILD_NAME: cc7_eos_xrd
+    CMAKE_OPTIONS: "-DEOS_XROOTD=1"
+  #  when: manual
+  allow_failure: true
 
 eosci-cc7_xrd_testing:
-  before_script:
+#  before_script:
 #    - source gitlab-ci/export_branch.sh
 #    - echo "Exporting BRANCH=${BRANCH}"
-    - echo -e '[xrootd-testing]\nname=XRootD Testing repository\nbaseurl=http://xrootd.org/binaries/testing/slc/7/$basearch http://xrootd.cern.ch/sw/repos/testing/slc/7/$basearch\ngpgcheck=0\nenabled=1\npriority=1\nprotect=0\ngpgkey=http://xrootd.cern.ch/sw/releases/RPM-GPG-KEY.txt\nexclude=xrootd-*5.0.0*\n' >> /etc/yum.repos.d/xrootd-testing.repo
+#    - echo -e '[xrootd-testing]\nname=XRootD Testing repository\nbaseurl=http://xrootd.org/binaries/testing/slc/7/$basearch http://xrootd.cern.ch/sw/repos/testing/slc/7/$basearch\ngpgcheck=0\nenabled=1\npriority=1\nprotect=0\ngpgkey=http://xrootd.cern.ch/sw/releases/RPM-GPG-KEY.txt\nexclude=xrootd-*5.0.0*\n' >> /etc/yum.repos.d/xrootd-testing.repo
   <<: *eosci-cc7_template_definition
   variables:
     BUILD_NAME: cc7_xrd_testing
@@ -44,10 +58,10 @@ eosci-cc7_xrd_testing:
   allow_failure: true
 
 eosci-cc7_xrd_cta:
-  before_script:
+#  before_script:
 #    - source gitlab-ci/export_branch.sh
 #    - echo "Exporting BRANCH=${BRANCH}"
-    - echo -e '[xrootd-cta]\nname=XRootD CTA-CI repository\nbaseurl=https://cta-ci-repo.web.cern.ch/cta-ci-repo/xrootd_tag/\ngpgcheck=0\nenabled=1\npriority=1\nprotect=0\n' >> /etc/yum.repos.d/xrootd-cta.repo
+#    - echo -e '[xrootd-cta]\nname=XRootD CTA-CI repository\nbaseurl=https://cta-ci-repo.web.cern.ch/cta-ci-repo/xrootd_tag/\ngpgcheck=0\nenabled=1\npriority=1\nprotect=0\n' >> /etc/yum.repos.d/xrootd-cta.repo
   <<: *eosci-cc7_template_definition
   variables:
     BUILD_NAME: cc7_xrd_cta
@@ -62,18 +76,6 @@ eosci-cc7_asan:
     CXXFLAGS: "-Wno-parentheses"    # Avoid boost header compilation errors
 #  only:
 #    - schedules
-
-eosci-cc7_eos_xrd:
-  before_script:
-#    - source gitlab-ci/export_branch.sh
-#    - echo "Exporting BRANCH=${BRANCH}"
-    - sed -i "s/pgm \/usr\/bin\/xrdcp/pgm \/bin\/true/g" misc/etc/xrd.cf.fst
-  <<: *eosci-cc7_template_definition
-  variables:
-    BUILD_NAME: cc7_eos_xrd
-    CMAKE_OPTIONS: "-DEOS_XROOTD=1"
-  #  when: manual
-  allow_failure: true
 
 eosci-cc7_clang:
   <<: *eosci-cc7_template_definition
@@ -188,7 +190,6 @@ eosci-cc7_coverage:
       - ${EOS_ARCH}_artifacts/
   allow_failure: true
 
-
 #-------------------------------------------------------------------------------
 # Test templates
 #-------------------------------------------------------------------------------
@@ -197,7 +198,6 @@ eosci-cc7_coverage:
   after_script:
     - ./eos-docker/scripts/collect_logs.sh eos-logs/
     - sudo ./eos-docker/scripts/shutdown_services.sh
-
 
 .system_test_template: &system_test_template_definition
   script:
@@ -231,7 +231,6 @@ eosci-cc7_coverage:
     paths:
       - eos-logs/
 
-
 .ubuntu_system_test_template: &ubuntu_system_test_template_definition
   script:
     - sudo ./eos-docker/scripts/shutdown_services.sh
@@ -258,7 +257,6 @@ eosci-cc7_coverage:
     paths:
       - eos-logs/
 
-
 .unit_test_template: &unit_test_template
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
@@ -272,7 +270,6 @@ eosci-cc7_coverage:
     - eos-fusex-tests
   variables:
     BUILD_NAME: cc7
-
 
 .namespace_unit_test_template: &namespace_unit_test_template
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
@@ -294,7 +291,6 @@ eosci-cc7_coverage:
   variables:
     BUILD_NAME: cc7
 
-
 #-------------------------------------------------------------------------------
 # Kubernetes templates
 #-------------------------------------------------------------------------------
@@ -310,7 +306,6 @@ eosci-cc7_coverage:
       fi;
     - git clone https://gitlab.cern.ch/eos/eos-on-k8s.git
 
-
 .k8s_after_script_template: &k8s_after_script_template
   after_script:
     - . /home/gitlab-runner/coe-cluster-config/st-gitlab-k8s-02/env_st-gitlab-k8s-02.sh # get access configs for the cluster
@@ -319,7 +314,6 @@ eosci-cc7_coverage:
     - ./eos-on-k8s/delete-all.sh ${NAMESPACE}
     - rm -rf eos-on-k8s/
     - docker images -q | xargs docker rmi || true # remove unused images
-
 
 .k8s_system_test_script_template: &k8s_system_test_script_template
   <<: *k8s_before_script_template
@@ -343,7 +337,6 @@ eosci-cc7_coverage:
     paths:
       - eos-logs/
 
-
 .k8s_unit_test_template: &k8s_unit_test_template
   <<: *k8s_before_script_template
   script:
@@ -361,7 +354,6 @@ eosci-cc7_coverage:
     - if [[ "$CI_JOB_NAME" =~ "asan" ]]; then export ASAN_OPTIONS="fast_unwind_on_malloc=0" ; else export ASAN_OPTIONS="" ; fi
     - kubectl exec -n $NAMESPACE -i $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- bash -c "ASAN_OPTIONS=${ASAN_OPTIONS} eos-ns-quarkdb-tests"
   <<: *k8s_after_script_template
-
 
 #-------------------------------------------------------------------------------
 # Build RPMs
@@ -400,7 +392,6 @@ build_slc6:
     - docker_node
     - slc6
 
-
 build_cc7:
   <<: *cc7_template_definition
   variables:
@@ -408,6 +399,23 @@ build_cc7:
   tags:
     - docker_node
     - cc7
+
+build_cc7_eos_xrd:
+  before_script:
+    - source gitlab-ci/export_branch.sh
+    - echo "Exporting BRANCH=${BRANCH}"
+    - sed -i "s/pgm \/usr\/bin\/xrdcp/pgm \/bin\/true/g" misc/etc/xrd.cf.fst
+  <<: *cc7_template_definition
+  variables:
+    BUILD_NAME: cc7_eos_xrd
+    CMAKE_OPTIONS: "-DEOS_XROOTD=1"
+    RPMBUILD_OPTIONS: "--with eos_xrootd_rh"
+  tags:
+    - docker_node
+    - cc7
+  when: manual
+  allow_failure: true
+
 
 # Re-enable xrd_testing jobs once project ugprades to XRootD 5
 build_cc7_xrd_testing:
@@ -454,23 +462,6 @@ build_cc7_asan:
     - docker_node
   only:
     - schedules
-
-
-build_cc7_eos_xrd:
-  before_script:
-    - source gitlab-ci/export_branch.sh
-    - echo "Exporting BRANCH=${BRANCH}"
-    - sed -i "s/pgm \/usr\/bin\/xrdcp/pgm \/bin\/true/g" misc/etc/xrd.cf.fst
-  <<: *cc7_template_definition
-  variables:
-    BUILD_NAME: cc7_eos_xrd
-    CMAKE_OPTIONS: "-DEOS_XROOTD=1"
-    RPMBUILD_OPTIONS: "--with eos_xrootd_rh"
-  tags:
-    - docker_node
-    - cc7
-  when: manual
-  allow_failure: true
 
 
 build_cc7_clang:
