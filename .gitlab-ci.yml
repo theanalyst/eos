@@ -17,47 +17,68 @@ before_script:
 # Prebuild
 #-------------------------------------------------------------------------------
 
-.eosci-template: &eosci-template_definition
+# DEPRECATED
+#.prebuild-template: &prebuild-template_definition:
+#  stage: prebuild
+#  image:
+#    name: gitlab-registry.cern.ch/ci-tools/docker-image-builder
+#    entrypoint: [""]
+#  script:
+#    - ""
+#  variables:
+#    TO: gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}
+#    DOCKER_FILE: gitlab-ci/prebuild-OS-base/Dockerfile_prebuild-cc7
+#    BUILD_ARG_1: BRANCH=${BRANCH}
+#    BUILD_ARG_2: PREBUILD_NAME=${PREBUILD_NAME}
+#    BUILD_ARG_3: CMAKE_OPTIONS=${CMAKE_OPTIONS}
+#    NO_CACHE: 1
+
+.prebuid-template: &prebuild-template_definition
   stage: prebuild
   image:
-    name: gitlab-registry.cern.ch/ci-tools/docker-image-builder
+    name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
   script:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - if [[ $PREBUILD_NAME == "slc6" ]]; then
-        /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/eosci-OS-base/Dockerfile_eosci-slc6 --destination gitlab-registry.cern.ch/dss/eos/eosci-slc6;
+        /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-slc6 --destination gitlab-registry.cern.ch/dss/eos/prebuild-slc6;
       elif [[ $PREBUILD_NAME == "c8" ]]; then
-        /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/eosci-OS-base/Dockerfile_eosci-c8 --destination gitlab-registry.cern.ch/dss/eos/eosci-c8;
-      elif [[ $PREBUILD_NAME == cc7* ]]; then
-        /kaniko/executor --build-arg PREBUILD_NAME="$PREBUILD_NAME" --build-arg CMAKE_OPTIONS="$CMAKE_OPTIONS" --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/eosci-OS-base/Dockerfile_eosci-cc7 --destination "gitlab-registry.cern.ch/dss/eos/eosci-${PREBUILD_NAME}";
-      fi;
-  when: manual
+        /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-c8 --destination gitlab-registry.cern.ch/dss/eos/prebuild-c8;
+      else
+        /kaniko/executor --build-arg PREBUILD_NAME="$PREBUILD_NAME" --build-arg CMAKE_OPTIONS="$CMAKE_OPTIONS" --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-cc7 --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}";
+      fi
+    - ls -l `which sh` ; which bash
+    - if [[ $PREBUILD_NAME == "slc6" ]]; then echo slc6; elif [[ $PREBUILD_NAME == "c8" ]]; then echo c8; elif [[ $PREBUILD_NAME =~ cc7 ]]; then echo cc7-star; else echo none; fi
+    - echo "var PREBUILD_NAME:$PREBUILD_NAME
+#      elif [[ $PREBUILD_NAME == "cc7" ]]; then
+#      echo "var PREBUILD_NAME:$PREBUILD_NAME not properly defined"; exit 1;
 
-eosci-slc6:
-  <<: *eosci-template_definition
+
+prebuid-slc6:
+  <<: *prebuild-template_definition
   variables:
     PREBUILD_NAME: slc6
 
-eosci-c8:
-  <<: *eosci-template_definition
+prebuild-c8:
+  <<: *prebuild-template_definition
   variables:
     PREBUILD_NAME: c8
 
-eosci-cc7:
-  <<: *eosci-template_definition
+prebuild-cc7:
+  <<: *prebuild-template_definition
   variables:
     PREBUILD_NAME: cc7
 
-eosci-cc7_eos_xrd:
-  <<: *eosci-template_definition
+prebuild-cc7_eos_xrd:
+  <<: *prebuild-template_definition
   variables:
     PREBUILD_NAME: cc7_eos_xrd
     CMAKE_OPTIONS: "-DEOS_XROOTD=1"
   #  when: manual
   allow_failure: true
 
-eosci-cc7_xrd_testing:
-  <<: *eosci-template_definition
+prebuild-cc7_xrd_testing:
+  <<: *prebuild-template_definition
   variables:
     PREBUILD_NAME: cc7_xrd_testing
 #  only:
@@ -66,15 +87,15 @@ eosci-cc7_xrd_testing:
 #    - tags
   allow_failure: true
 
-eosci-cc7_xrd_cta:
-  <<: *eosci-template_definition
+prebuild-cc7_xrd_cta:
+  <<: *prebuild-template_definition
   variables:
     PREBUILD_NAME: cc7_xrd_cta
 #  when: manual
   allow_failure: true
 
-eosci-cc7_asan:
-  <<: *eosci-template_definition
+prebuild-cc7_asan:
+  <<: *prebuild-template_definition
   variables:
     PREBUILD_NAME: cc7_asan
     CMAKE_OPTIONS: "-DASAN=1"
@@ -82,8 +103,8 @@ eosci-cc7_asan:
 #  only:
 #    - schedules
 
-eosci-cc7_clang:
-  <<: *eosci-template_definition
+prebuild-cc7_clang:
+  <<: *prebuild-template_definition
   variables:
     PREBUILD_NAME: cc7_clang
     CMAKE_OPTIONS: "-DCLANG_BUILD=1"
@@ -91,8 +112,8 @@ eosci-cc7_clang:
 #    - schedules
   allow_failure: true
 
-eosci-cc7_coverage:
-  <<: *eosci-template_definition
+prebuild-cc7_coverage:
+  <<: *prebuild-template_definition
   variables:
     PREBUILD_NAME: cc7_coverage
 #  only:
@@ -107,7 +128,7 @@ eosci-cc7_coverage:
 # @todo set the proper image for each kind of build
 .cc7_template: &cc7_template_definition
   stage: build:rpm
-  image: gitlab-registry.cern.ch/dss/eos/eosci-${BUILD_NAME}
+  image: gitlab-registry.cern.ch/dss/eos/prebuild-${BUILD_NAME}
   script:
     - git submodule update --init --recursive
     - mkdir build ; cd build/
@@ -366,7 +387,7 @@ eosci-cc7_coverage:
 
 build_slc6:
   stage: build:rpm
-  image: gitlab-registry.cern.ch/dss/eos/eosci-slc6
+  image: gitlab-registry.cern.ch/dss/eos/prebuild-slc6
   script:
     - git submodule update --init --recursive
     - mkdir build

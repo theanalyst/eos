@@ -7,9 +7,7 @@ ARG CMAKE_OPTIONS
 
 WORKDIR /builds/dss/eos/
 
-RUN source gitlab-ci/export_branch.sh; \
-    echo "Exporting BRANCH=${BRANCH}"; \
-    if [[ $PREBUILD_NAME == "cc7_eos_xrd" ]]; then \
+RUN if [[ $PREBUILD_NAME == "cc7_eos_xrd" ]]; then \
       sed -i "s@pgm /usr/bin/xrdcp@pgm /bin/true@g" misc/etc/xrd.cf.fst; \
     elif [[ $PREBUILD_NAME == "cc7_xrd_testing" ]]; then \
       echo -e '[xrootd-testing]\nname=XRootD Testing repository\nbaseurl=http://xrootd.org/binaries/testing/slc/7/$basearch http://xrootd.cern.ch/sw/repos/testing/slc/7/$basearch\ngpgcheck=0\nenabled=1\npriority=1\nprotect=0\ngpgkey=http://xrootd.cern.ch/sw/releases/RPM-GPG-KEY.txt\nexclude=xrootd-*5.0.0*\n' >> /etc/yum.repos.d/xrootd-testing.repo; \
@@ -17,16 +15,16 @@ RUN source gitlab-ci/export_branch.sh; \
       echo -e '[xrootd-cta]\nname=XRootD CTA-CI repository\nbaseurl=https://cta-ci-repo.web.cern.ch/cta-ci-repo/xrootd_tag/\ngpgcheck=0\nenabled=1\npriority=1\nprotect=0\n' >> /etc/yum.repos.d/xrootd-cta.repo; \
     fi
 
-RUN yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git yum-plugin-priorities tar ccache sl-release-scl
+RUN yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git yum-plugin-priorities tar ccache sl-release-scl && env && source ~/.bashrc && env
 
-RUN source gitlab-ci/export_branch.sh; \
-    echo "Exporting BRANCH=${BRANCH}"; \
-    git submodule update --init --recursive; \
-    mkdir build; cd build/; \
-    cmake3 ../ -DPACKAGEONLY=1 ${CMAKE_OPTIONS}; \
-    make srpm; \
-    cd ../; \
-    echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-7/x86_64/\ngpgcheck=0\nenabled=1\npriority=2\n' >> /etc/yum.repos.d/eos-depend.repo; \
-    yum-builddep --nogpgcheck --setopt="cern*.exclude=xrootd*" -y build/SRPMS/*
+RUN source gitlab-ci/export_branch.sh \
+    && echo "Exporting BRANCH=${BRANCH}" \
+    && git submodule update --init --recursive \
+    && mkdir build \
+    && cd build/ \
+    && cmake3 ../ -DPACKAGEONLY=1 ${CMAKE_OPTIONS} && make srpm \
+    && cd ../ \
+    && echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-7/x86_64/\ngpgcheck=0\nenabled=1\npriority=2\n' >> /etc/yum.repos.d/eos-depend.repo \
+    && yum-builddep --nogpgcheck --setopt="cern*.exclude=xrootd*" -y build/SRPMS/*
 
 ENTRYPOINT /bin/bash
