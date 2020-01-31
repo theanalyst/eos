@@ -10,7 +10,7 @@ WORKDIR /builds/dss/eos/
 RUN source gitlab-ci/export_branch.sh; \
     echo "Exporting BRANCH=${BRANCH}"; \
     if [[ $PREBUILD_NAME == "cc7_eos_xrd" ]]; then \
-      sed -i "s/pgm \/usr\/bin\/xrdcp/pgm \/bin\/true/g" misc/etc/xrd.cf.fst; \
+      sed -i "s@pgm /usr/bin/xrdcp@pgm /bin/true@g" misc/etc/xrd.cf.fst; \
     elif [[ $PREBUILD_NAME == "cc7_xrd_testing" ]]; then \
       echo -e '[xrootd-testing]\nname=XRootD Testing repository\nbaseurl=http://xrootd.org/binaries/testing/slc/7/$basearch http://xrootd.cern.ch/sw/repos/testing/slc/7/$basearch\ngpgcheck=0\nenabled=1\npriority=1\nprotect=0\ngpgkey=http://xrootd.cern.ch/sw/releases/RPM-GPG-KEY.txt\nexclude=xrootd-*5.0.0*\n' >> /etc/yum.repos.d/xrootd-testing.repo; \
     elif [[ $PREBUILD_NAME == "cc7_xrd_cta" ]]; then \
