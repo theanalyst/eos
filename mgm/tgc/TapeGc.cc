@@ -147,8 +147,10 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
       const auto queryPeriodSecs = getQueryPeriodSecsAndLogIfChanged();
 
       if(secsSinceLastQuery >= queryPeriodSecs) {
+        const auto freeAndUsedBytes = m_mgm.getSpaceFreeAndUsedBytes(m_space);
+
         std::lock_guard<std::mutex> freeSpaceBytesLock(m_freeSpaceBytesMutex);
-        m_freeSpaceBytes = m_mgm.getSpaceFreeBytes(m_space);
+        m_freeSpaceBytes = freeAndUsedBytes.freeBytes;
         m_freeSpaceQueryTimestamp = now;
       }
 

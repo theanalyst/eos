@@ -109,61 +109,6 @@ bool RealTapeGcMgm::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_
 }
 
 //----------------------------------------------------------------------------
-// Return number of free bytes within the specified space
-//----------------------------------------------------------------------------
-uint64_t
-RealTapeGcMgm::getSpaceFreeBytes(const std::string &space)
-{
-  eos::common::RWMutexReadLock lock(FsView::gFsView.ViewMutex);
-
-  const auto spaceItor = FsView::gFsView.mSpaceView.find(space);
-
-  if(FsView::gFsView.mSpaceView.end() == spaceItor) {
-    throw SpaceNotFound(std::string(__FUNCTION__) + ": Cannot find space " +
-      space + ": FsView does not know the space name");
-  }
-
-  if(nullptr == spaceItor->second) {
-    throw SpaceNotFound(std::string(__FUNCTION__) + ": Cannot find space " +
-      space + ": Pointer to FsSpace is nullptr");
-  }
-
-  const FsSpace &fsSpace = *(spaceItor->second);
-
-  uint64_t freeBytes = 0;
-  for(const auto fsid: fsSpace) {
-    FileSystem * const fs = FsView::gFsView.mIdView.lookupByID(fsid);
-
-    // Skip this file system if it cannot be found
-    if(nullptr == fs) {
-      std::ostringstream msg;
-      msg << "Unable to find file system: space=" << space << " fsid=" << fsid;
-      eos_static_warning(msg.str().c_str());
-      continue;
-    }
-
-    common::FileSystem::fs_snapshot_t fsSnapshot;
-
-    // Skip this file system if a snapshot cannot be taken
-    const bool doLock = true;
-    if(!fs->SnapShotFileSystem(fsSnapshot, doLock)) {
-      std::ostringstream msg;
-      msg << "Unable to take a snaphot of file system: space=" << space << " fsid=" << fsid;
-      eos_static_warning(msg.str().c_str());
-    }
-
-    // Only consider file systems that are booted, on-line and read/write
-    if(common::BootStatus::kBooted == fsSnapshot.mStatus &&
-       common::ActiveStatus::kOnline == fsSnapshot.mActiveStatus &&
-       common::ConfigStatus::kRW == fsSnapshot.mConfigStatus) {
-      freeBytes += (uint64_t)fsSnapshot.mDiskBavail * (uint64_t)fsSnapshot.mDiskBsize;
-    }
-  }
-
-  return freeBytes;
-}
-
-//----------------------------------------------------------------------------
 // Return numbers of free and used bytes within the specified space
 //----------------------------------------------------------------------------
 ITapeGcMgm::FreeAndUsedBytes

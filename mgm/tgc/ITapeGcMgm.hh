@@ -65,15 +65,6 @@ public:
   //----------------------------------------------------------------------------
   virtual uint64_t getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept = 0;
 
-  //----------------------------------------------------------------------------
-  //! @return The number of free bytes within the specified space
-  //! @param space The name of the EOS space to be queried
-  //! @return the amount of free space in bytes
-  //! @throw TapeAwareGcSpaceNotFound when the EOS space named m_spaceName
-  //! cannot be found
-  //----------------------------------------------------------------------------
-  virtual uint64_t getSpaceFreeBytes(const std::string &space) = 0;
-
   struct FreeAndUsedBytes {
     uint64_t freeBytes;
     uint64_t usedBytes;
