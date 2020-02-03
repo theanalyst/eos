@@ -29,6 +29,7 @@
 
 #include <functional>
 #include <time.h>
+#include <mutex>
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -70,6 +71,8 @@ public:
   CurrentAndPrev<ValueType>
   get()
   {
+    std::lock_guard<std::mutex> lock(m_mutex);
+
     const time_t now = time(nullptr);
     const time_t age = now - m_timestamp;
 
@@ -92,6 +95,9 @@ public:
   }
 
 private:
+  /// Mutex used to protect the cached value
+  std::mutex m_mutex;
+
   /// True if the cached value has never been set
   bool m_valueHasNeverBeenSet;
 
