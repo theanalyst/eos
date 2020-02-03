@@ -97,6 +97,14 @@ public:
   uint64_t getSpaceFreeBytes(const std::string &space) override;
 
   //----------------------------------------------------------------------------
+  //! @return The numbers of free and used bytes within the specified space
+  //! @param space The name of the EOS space to be queried
+  //! @throw TapeAwareGcSpaceNotFound when the EOS space named m_spaceName
+  //! cannot be found
+  //----------------------------------------------------------------------------
+  FreeAndUsedBytes getSpaceFreeAndUsedBytes(const std::string &space) override;
+
+  //----------------------------------------------------------------------------
   //! @param fid The file identifier
   //! @return The size of the specified file in bytes.  If the file cannot be
   //! found in the EOS namespace then a file size of 0 is returned.

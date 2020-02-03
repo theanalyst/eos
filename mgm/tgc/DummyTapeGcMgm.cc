@@ -108,6 +108,14 @@ DummyTapeGcMgm::getSpaceFreeBytes(const std::string &space) {
 }
 
 //----------------------------------------------------------------------------
+// Return numbers of free and used bytes within the specified space
+//----------------------------------------------------------------------------
+ITapeGcMgm::FreeAndUsedBytes
+DummyTapeGcMgm::getSpaceFreeAndUsedBytes(const std::string &space) {
+  return FreeAndUsedBytes();
+}
+
+//----------------------------------------------------------------------------
 // Return size of the specified file
 //----------------------------------------------------------------------------
 uint64_t

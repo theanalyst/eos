@@ -74,6 +74,21 @@ public:
   //----------------------------------------------------------------------------
   virtual uint64_t getSpaceFreeBytes(const std::string &space) = 0;
 
+  struct FreeAndUsedBytes {
+    uint64_t freeBytes;
+    uint64_t usedBytes;
+
+    FreeAndUsedBytes(): freeBytes(0), usedBytes(0) {}
+  };
+
+  //----------------------------------------------------------------------------
+  //! @return The numbers of free and used bytes within the specified space
+  //! @param space The name of the EOS space to be queried
+  //! @throw TapeAwareGcSpaceNotFound when the EOS space named m_spaceName
+  //! cannot be found
+  //----------------------------------------------------------------------------
+  virtual FreeAndUsedBytes getSpaceFreeAndUsedBytes(const std::string &space) = 0;
+
   //----------------------------------------------------------------------------
   //! @param fid The file identifier
   //! @return The size of the specified file in bytes.  If the file cannot be
