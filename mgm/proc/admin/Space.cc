@@ -548,7 +548,7 @@ ProcCommand::Space()
                   (key == "filearchivedgc") ||
                   (key == "tgc.freebytesqryperiodsecs") ||
                   (key == "tgc.minfreebytes") ||
-                  (key == "tgc.usedspaceqryperiodsecs") ||
+                  (key == "tgc.usedbytesqryperiodsecs") ||
                   (key == "tgc.minusedbytes") ||
 		  (key == "balancer.threshold") ||
 		  (key == "token.generation") ||

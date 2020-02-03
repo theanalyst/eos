@@ -989,8 +989,8 @@ FsSpace::FsSpace(const char* name)
     }
 
     // Set the default delay in seconds between used space queries
-    if (GetConfigMember("tgc.usedspaceqryperiodsecs").empty()) {
-      SetConfigMember("tgc.usedspaceqryperiodsecs", std::to_string(tgc::TGC_DEFAULT_USED_SPACE_QRY_PERIOD_SECS));
+    if (GetConfigMember("tgc.usedbytesqryperiodsecs").empty()) {
+      SetConfigMember("tgc.usedbytesqryperiodsecs", std::to_string(tgc::TGC_DEFAULT_USED_BYTES_QRY_PERIOD_SECS));
     }
 
     // Set the default minimum number of used bytes for the tape aware GC
