@@ -42,10 +42,10 @@ RealTapeGcMgm::RealTapeGcMgm(XrdMgmOfs &ofs): m_ofs(ofs) {
 // Return The delay in seconds between free space queries for the specified
 // space as set in the configuration variables of the space.  If the delay
 // cannot be determined for whatever reason then
-// TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS is returned.
+// TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS is returned.
 //------------------------------------------------------------------------------
 uint64_t
-RealTapeGcMgm::getSpaceConfigQryPeriodSecs(const std::string &spaceName) noexcept
+RealTapeGcMgm::getSpaceConfigFreeBytesQryPeriodSecs(const std::string &spaceName) noexcept
 {
   try {
     std::string valueStr;
@@ -55,13 +55,13 @@ RealTapeGcMgm::getSpaceConfigQryPeriodSecs(const std::string &spaceName) noexcep
       const auto spaceItor = FsView::gFsView.mSpaceView.find(spaceName);
       if (FsView::gFsView.mSpaceView.end() != spaceItor && nullptr != spaceItor->second) {
         const auto &space = *(spaceItor->second);
-        valueStr = space.GetConfigMember("tgc.freespaceqryperiodsecs");
+        valueStr = space.GetConfigMember("tgc.freebytesqryperiodsecs");
       }
     }
 
     return Utils::toUint64(valueStr);
   } catch(...) {
-    return TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS;
+    return TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS;
   }
 }
 

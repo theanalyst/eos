@@ -30,7 +30,7 @@ EOSTGCNAMESPACE_BEGIN
 // Constructor
 //------------------------------------------------------------------------------
 DummyTapeGcMgm::DummyTapeGcMgm():
-m_nbCallsToGetSpaceConfigQryPeriodSecs(0),
+m_nbCallsToGetSpaceConfigFreeBytesQryPeriodSecs(0),
 m_nbCallsToGetSpaceConfigMinFreeBytes(0),
 m_nbCallsToFileInNamespaceAndNotScheduledForDeletion(0),
 m_nbCallsToGetFileSizeBytes(0),
@@ -42,14 +42,14 @@ m_nbCallsToStagerrmAsRoot(0)
 // Return The delay in seconds between free space queries for the specified
 // space as set in the configuration variables of the space.  If the delay
 // cannot be determined for whatever reason then
-// TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS is returned.
+// TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS is returned.
 //------------------------------------------------------------------------------
 uint64_t
-DummyTapeGcMgm::getSpaceConfigQryPeriodSecs(const std::string &spaceName) noexcept
+DummyTapeGcMgm::getSpaceConfigFreeBytesQryPeriodSecs(const std::string &spaceName) noexcept
 {
   try {
     std::lock_guard<std::mutex> lock(m_mutex);
-    m_nbCallsToGetSpaceConfigQryPeriodSecs++;
+    m_nbCallsToGetSpaceConfigFreeBytesQryPeriodSecs++;
 
     auto itor = m_spaceToQryPeriodSecs.find(spaceName);
     if(itor == m_spaceToQryPeriodSecs.end()) {
@@ -60,7 +60,7 @@ DummyTapeGcMgm::getSpaceConfigQryPeriodSecs(const std::string &spaceName) noexce
   } catch(...) {
     // Do nothing
   }
-  return TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS;
+  return TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS;
 }
 
 //------------------------------------------------------------------------------

@@ -978,9 +978,9 @@ FsSpace::FsSpace(const char* name)
       SetConfigMember("filearchivedgc", "off");
     }
 
-    // Set the default delay in seconds between free space queries
-    if (GetConfigMember("tgc.freespaceqryperiodsecs").empty()) {
-      SetConfigMember("tgc.freespaceqryperiodsecs", std::to_string(tgc::TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS));
+    // Set the default delay in seconds between free bytes queries
+    if (GetConfigMember("tgc.freebytesqryperiodsecs").empty()) {
+      SetConfigMember("tgc.freebytesqryperiodsecs", std::to_string(tgc::TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS));
     }
 
     // Set the default minimum number of free bytes for the tape aware GC

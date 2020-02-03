@@ -71,11 +71,11 @@ public:
   //! @return The delay in seconds between free space queries for the specified
   //! space as set in the configuration variables of the space.  If the delay
   //! cannot be determined for whatever reason then
-  //! TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS is returned.
+  //! TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS is returned.
   //!
   //! @param spaceName The name of the space
   //----------------------------------------------------------------------------
-  uint64_t getSpaceConfigQryPeriodSecs(const std::string &spaceName) noexcept override;
+  uint64_t getSpaceConfigFreeBytesQryPeriodSecs(const std::string &spaceName) noexcept override;
 
   //----------------------------------------------------------------------------
   //! @return The minimum number of free bytes the specified space should have
@@ -174,9 +174,9 @@ private:
   std::map<std::string, uint64_t> m_spaceToMinFreeBytes;
 
   //----------------------------------------------------------------------------
-  //! Number of times getSpaceConfigQryPeriodSecs() has been called
+  //! Number of times getSpaceConfigFreeBytesQryPeriodSecs() has been called
   //----------------------------------------------------------------------------
-  uint64_t m_nbCallsToGetSpaceConfigQryPeriodSecs;
+  uint64_t m_nbCallsToGetSpaceConfigFreeBytesQryPeriodSecs;
 
   //----------------------------------------------------------------------------
   //! Number of times getSpaceConfigMinFreeBytes() has been called

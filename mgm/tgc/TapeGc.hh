@@ -187,10 +187,10 @@ protected:
     const std::string &path, IFileMD::id_t fid);
 
   //----------------------------------------------------------------------------
-  //! Cached configuration value for the delay in seconds between space queries
-  //! to the EOS MGM
+  //! Cached configuration value for the delay in seconds between free bytes
+  //! queries to the EOS MGM
   //----------------------------------------------------------------------------
-  CachedValue<std::time_t> m_queryPeriodSecs;
+  CachedValue<std::time_t> m_freeBytesQueryPeriodSecs;
 
   //----------------------------------------------------------------------------
   //! Cached value for the minimum number of free bytes to be available in the
@@ -211,8 +211,8 @@ protected:
   //----------------------------------------------------------------------------
   std::uint64_t m_freeSpaceBytes;
 
-  /// The timestamp at which the last free space query was made
-  std::atomic<std::time_t> m_freeSpaceQueryTimestamp;
+  /// The timestamp at which the last free bytes query was made
+  std::atomic<std::time_t> m_freeBytesQueryTimestamp;
 
   //----------------------------------------------------------------------------
   //! Counter that is incremented each time a file is successfully stagerrm'ed

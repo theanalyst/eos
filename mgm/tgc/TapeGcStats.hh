@@ -49,7 +49,7 @@ struct TapeGcStats {
     nbStagerrms(0),
     lruQueueSize(0),
     freeBytes(0),
-    freeSpaceQueryTimestamp(0) {
+    freeBytesQueryTimestamp(0) {
   }
 
   //----------------------------------------------------------------------------
@@ -72,7 +72,7 @@ struct TapeGcStats {
   //! Timestamp at which the number of free bytes was queried.  This value is
   //! zero in the case of error.
   //----------------------------------------------------------------------------
-  time_t freeSpaceQueryTimestamp;
+  time_t freeBytesQueryTimestamp;
 };
 
 EOSTGCNAMESPACE_END

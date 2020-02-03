@@ -40,14 +40,14 @@ TapeGc::TapeGc(ITapeGcMgm &mgm, const std::string &space,
   m_mgm(mgm),
   m_space(space),
   m_enabled(false),
-  m_queryPeriodSecs(
-    std::bind(&ITapeGcMgm::getSpaceConfigQryPeriodSecs, &m_mgm, space),
+  m_freeBytesQueryPeriodSecs(
+    std::bind(&ITapeGcMgm::getSpaceConfigFreeBytesQryPeriodSecs, &m_mgm, space),
     queryPeriodCacheAgeSecs),
   m_minFreeBytes(
     std::bind(&ITapeGcMgm::getSpaceConfigMinFreeBytes, &m_mgm, space),
     minFreeBytesCacheAgeSecs),
   m_freeSpaceBytes(0),
-  m_freeSpaceQueryTimestamp(0),
+  m_freeBytesQueryTimestamp(0),
   m_nbStagerrms(0)
 {
 }
@@ -142,7 +142,7 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
 
     try {
       const std::time_t now = time(nullptr);
-      const std::time_t secsSinceLastQuery = now - m_freeSpaceQueryTimestamp;
+      const std::time_t secsSinceLastQuery = now - m_freeBytesQueryTimestamp;
 
       const auto queryPeriodSecs = getQueryPeriodSecsAndLogIfChanged();
 
@@ -151,7 +151,7 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
 
         std::lock_guard<std::mutex> freeSpaceBytesLock(m_freeSpaceBytesMutex);
         m_freeSpaceBytes = freeAndUsedBytes.freeBytes;
-        m_freeSpaceQueryTimestamp = now;
+        m_freeBytesQueryTimestamp = now;
       }
 
       // Return no file was garbage collected if there is still enough free space
@@ -226,7 +226,7 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
 time_t
 TapeGc::getQueryPeriodSecsAndLogIfChanged()
 {
-  const auto queryPeriodSecs = m_queryPeriodSecs.get();
+  const auto queryPeriodSecs = m_freeBytesQueryPeriodSecs.get();
   if (queryPeriodSecs.prev != queryPeriodSecs.current) {
     std::ostringstream msg;
     msg << "msg=\"spaceQueryPeriodSecs has been changed from " << queryPeriodSecs.prev  << " to " <<
@@ -280,7 +280,7 @@ TapeGc::getStats() const noexcept
   stats.nbStagerrms = m_nbStagerrms;
   stats.lruQueueSize = getLruQueueSize();
   stats.freeBytes = getFreeBytes();
-  stats.freeSpaceQueryTimestamp = m_freeSpaceQueryTimestamp;
+  stats.freeBytesQueryTimestamp = m_freeBytesQueryTimestamp;
 
   return stats;
 }

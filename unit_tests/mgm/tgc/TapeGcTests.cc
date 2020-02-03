@@ -56,7 +56,7 @@ TEST_F(TgcTapeGcTest, constructor)
   ASSERT_EQ(0, stats.nbStagerrms);
   ASSERT_EQ(0, stats.lruQueueSize);
   ASSERT_EQ(0, stats.freeBytes);
-  ASSERT_EQ(0, stats.freeSpaceQueryTimestamp);
+  ASSERT_EQ(0, stats.freeBytesQueryTimestamp);
 }
 
 //------------------------------------------------------------------------------
