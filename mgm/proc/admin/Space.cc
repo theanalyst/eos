@@ -548,6 +548,8 @@ ProcCommand::Space()
                   (key == "filearchivedgc") ||
                   (key == "tgc.freespaceqryperiodsecs") ||
                   (key == "tgc.minfreebytes") ||
+                  (key == "tgc.usedspaceqryperiodsecs") ||
+                  (key == "tgc.minusedbytes") ||
 		  (key == "balancer.threshold") ||
 		  (key == "token.generation") ||
                   (key == eos::common::SCAN_IO_RATE_NAME) ||

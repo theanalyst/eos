@@ -711,6 +711,8 @@ void SpaceCmd::ConfigSubcmd(const eos::console::SpaceProto_ConfigProto& config,
             (key == "filearchivedgc") ||
             (key == "tgc.freespaceqryperiodsecs") ||
             (key == "tgc.minfreebytes") ||
+            (key == "tgc.usedspaceqryperiodsecs") ||
+            (key == "tgc.minusedbytes") ||
 	    (key == "token.generation") ||
             (key == "balancer.threshold") ||
             (key == eos::common::SCAN_IO_RATE_NAME) ||

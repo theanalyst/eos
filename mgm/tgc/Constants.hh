@@ -53,6 +53,12 @@ const uint64_t TGC_DEFAULT_FREE_SPACE_QRY_PERIOD_SECS = 310;
 /// Default minimum number of free bytes within an EOS space for the tape-aware GC
 const uint64_t TGC_DEFAULT_MIN_FREE_BYTES = 0;
 
+/// Default delay in seconds between used space queries for the tape-aware GC
+const uint64_t TGC_DEFAULT_USED_SPACE_QRY_PERIOD_SECS = 310;
+
+/// Default minimum number of used bytes with an EOS space for the tape-aware GC
+const uint64_t TGC_DEFAULT_MIN_USED_BYTES = 1000000000000000000UL; // 1 Exabyte
+
 EOSTGCNAMESPACE_END
 
 #endif

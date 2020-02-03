@@ -987,6 +987,16 @@ FsSpace::FsSpace(const char* name)
     if (GetConfigMember("tgc.minfreebytes").empty()) {
       SetConfigMember("tgc.minfreebytes", std::to_string(tgc::TGC_DEFAULT_MIN_FREE_BYTES));
     }
+
+    // Set the default delay in seconds between used space queries
+    if (GetConfigMember("tgc.usedspaceqryperiodsecs").empty()) {
+      SetConfigMember("tgc.usedspaceqryperiodsecs", std::to_string(tgc::TGC_DEFAULT_USED_SPACE_QRY_PERIOD_SECS));
+    }
+
+    // Set the default minimum number of used bytes for the tape aware GC
+    if (GetConfigMember("tgc.minusedbytes").empty()) {
+      SetConfigMember("tgc.minusedbytes", std::to_string(tgc::TGC_DEFAULT_MIN_USED_BYTES));
+    }
   }
 
   if (mName == std::string("default")) {

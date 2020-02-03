@@ -569,6 +569,10 @@ com_space_usage:
   fprintf(stdout,
           "       space config <space-name> space.tgc.minfreebytes=<#>          : configure the minimum number of free bytes the space should have before the tape-aware GC kicks in [ default=%lu ] \n", eos::mgm::tgc::TGC_DEFAULT_MIN_FREE_BYTES);
   fprintf(stdout,
+          "       space config <space-name> space.tgc.usedspaceqryperiod=<#>    : delay in seconds between used space queries for the tape-aware GC [ default=%lu ]\n", eos::mgm::tgc::TGC_DEFAULT_USED_SPACE_QRY_PERIOD_SECS);
+  fprintf(stdout,
+          "       space config <space-name> space.tgc.minusedbytes=<#>          : configure the minimum number of used bytes the space should have before the tape-aware GC kicks in [ default=%lu ] \n", eos::mgm::tgc::TGC_DEFAULT_MIN_USED_BYTES);
+  fprintf(stdout,
           "       space config <space-name> space.tracker=on|off                : enable/disable the space layout creation tracker [default=off]\n");
   fprintf(stdout,
           "       space config <space-name> space.inspector=on|off                : enable/disable the file inspector [default=off]\n");
