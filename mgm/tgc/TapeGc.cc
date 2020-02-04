@@ -46,7 +46,7 @@ TapeGc::TapeGc(ITapeGcMgm &mgm, const std::string &space,
   m_minFreeBytes(
     std::bind(&ITapeGcMgm::getSpaceConfigMinFreeBytes, &m_mgm, space),
     minFreeBytesCacheAgeSecs),
-  m_freeSpaceBytes(0),
+  m_freeBytes(0),
   m_freeBytesQueryTimestamp(0),
   m_nbStagerrms(0)
 {
@@ -149,13 +149,13 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
       if(secsSinceLastQuery >= queryPeriodSecs) {
         const auto freeAndUsedBytes = m_mgm.getSpaceFreeAndUsedBytes(m_space);
 
-        std::lock_guard<std::mutex> freeSpaceBytesLock(m_freeSpaceBytesMutex);
-        m_freeSpaceBytes = freeAndUsedBytes.freeBytes;
+        std::lock_guard<std::mutex> freeSpaceBytesLock(m_freeBytesMutex);
+        m_freeBytes = freeAndUsedBytes.freeBytes;
         m_freeBytesQueryTimestamp = now;
       }
 
       // Return no file was garbage collected if there is still enough free space
-      if(m_freeSpaceBytes >= minFreeBytes) return false;
+      if(m_freeBytes >= minFreeBytes) return false;
     } catch(SpaceNotFound &) {
       // Return no file was garbage collected if the space was not found
       return false;
@@ -312,8 +312,8 @@ uint64_t
 TapeGc::getFreeBytes() const noexcept {
   const char *const msgFormat = "TapeGc::getFreeBytes() failed space=%s: %s";
   try {
-    std::lock_guard<std::mutex> freeSpaceBytesLock(m_freeSpaceBytesMutex);
-    return m_freeSpaceBytes;
+    std::lock_guard<std::mutex> freeSpaceBytesLock(m_freeBytesMutex);
+    return m_freeBytes;
   } catch(std::exception &ex) {
     eos_static_err(msgFormat, m_space.c_str(), ex.what());
   } catch(...) {
@@ -340,12 +340,12 @@ TapeGc::enableWithoutStartingWorkerThread() {
 void
 TapeGc::fileQueuedForDeletion(const size_t deletedFileSize)
 {
-  std::lock_guard<std::mutex> lock(m_freeSpaceBytesMutex);
+  std::lock_guard<std::mutex> lock(m_freeBytesMutex);
 
-  if(m_freeSpaceBytes < deletedFileSize) {
-    m_freeSpaceBytes = 0;
+  if(m_freeBytes < deletedFileSize) {
+    m_freeBytes = 0;
   } else {
-    m_freeSpaceBytes -= deletedFileSize;
+    m_freeBytes -= deletedFileSize;
   }
 }
 

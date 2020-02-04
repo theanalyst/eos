@@ -201,15 +201,15 @@ protected:
   CachedValue<std::uint64_t> m_minFreeBytes;
 
   //----------------------------------------------------------------------------
-  //! Mutex to protect m_freeSpaceBytes
+  //! Mutex to protect m_freeBytes
   //----------------------------------------------------------------------------
-  mutable std::mutex m_freeSpaceBytesMutex;
+  mutable std::mutex m_freeBytesMutex;
 
   //----------------------------------------------------------------------------
   //! The number of free bytes in the EOS space worked on by this garbage
   //! collector
   //----------------------------------------------------------------------------
-  std::uint64_t m_freeSpaceBytes;
+  std::uint64_t m_freeBytes;
 
   /// The timestamp at which the last free bytes query was made
   std::atomic<std::time_t> m_freeBytesQueryTimestamp;
