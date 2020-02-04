@@ -27,11 +27,11 @@
 #include "mgm/tgc/TapeGc.hh"
 
 #include <atomic>
+#include <ctime>
 #include <mutex>
 #include <stdexcept>
 #include <stdint.h>
 #include <thread>
-#include <time.h>
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -55,17 +55,14 @@ public:
   //! @param mgm interface to the EOS MGM
   //! @param space name of the EOS space that this garbage collector will work
   //! on
-  //! @param queryPeriodCacheAgeSecs age at which the cached value of
-  //! queryPeriodSecs should be renewed
-  //! @param minFreeBytesCacheAgeSecs age at which the cached value of
-  //! minFreeBytes should be renewed
+  //! @param maxConfigCacheAgeSecs maximum age in seconds of a tape-ware garbage
+  //! collector's cached configuration
   //----------------------------------------------------------------------------
   TestingTapeGc(
     ITapeGcMgm &mgm,
     const std::string &space,
-    time_t queryPeriodCacheAgeSecs,
-    time_t minFreeBytesCacheAgeSecs
-  ): TapeGc(mgm, space, queryPeriodCacheAgeSecs, minFreeBytesCacheAgeSecs)
+    const std::time_t maxConfigCacheAgeSecs
+  ): TapeGc(mgm, space, maxConfigCacheAgeSecs)
   {
   }
 

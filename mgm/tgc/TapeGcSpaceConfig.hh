@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: Constants.hh
+// File: TapeGcSpaceConfig.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,56 +21,57 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGMTGC_CONSTANTS_HH__
-#define __EOSMGMTGC_CONSTANTS_HH__
+#ifndef __EOSMGMTGC_TAPEGCSPACECONFIG_HH__
+#define __EOSMGMTGC_TAPEGCSPACECONFIG_HH__
 
 #include "mgm/Namespace.hh"
+#include "mgm/tgc/Constants.hh"
 
+#include <ctime>
 #include <stdint.h>
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file Constants.hh
+ * @file TapeGcSpaceConfig.hh
  *
- * @brief Constants specific to the implementation of the tape aware garbage
- * collector.
- *
+ * @brief The configuration of a tape-aware garbage collector for a specific EOS
+ * space.
  */
 /*----------------------------------------------------------------------------*/
 EOSTGCNAMESPACE_BEGIN
 
-/// Default maximum age in seconds of a tape-ware garbage collector's
-/// cached configuration
-const uint64_t TGC_DEFAULT_MAX_CONFIG_CACHE_AGE_SECS = 10;
+//------------------------------------------------------------------------------
+//! The configuration of a tape-aware garbage collector for a specific EOSi
+//! space.
+//------------------------------------------------------------------------------
+struct TapeGcSpaceConfig {
+  std::time_t freeBytesQueryPeriodSecs;
+  uint64_t minFreeBytes;
+  std::time_t usedBytesQueryPeriodSecs;
+  uint64_t minUsedBytes;
 
-/// Default age at which the cached value of minFreeBytes for a garbage
-/// collector should be renewed
-const uint64_t TGC_DEFAULT_MIN_FREE_BYTES_CACHE_AGE_SECS = 10;
+  TapeGcSpaceConfig():
+    freeBytesQueryPeriodSecs(TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS),
+    minFreeBytes(TGC_DEFAULT_MIN_FREE_BYTES),
+    usedBytesQueryPeriodSecs(TGC_DEFAULT_USED_BYTES_QRY_PERIOD_SECS),
+    minUsedBytes(TGC_DEFAULT_MIN_USED_BYTES)
+  {
+  }
 
-/// Name of a space configuration member
-constexpr const char * TGC_NAME_FREE_BYTES_QRY_PERIOD_SECS = "tgc.freebytesqryperiodsecs";
+  /*
+  bool operator==(const TapeGcSpaceConfig &rhs) const noexcept {
+    return
+      freeBytesQueryPeriodSecs == rhs.freeBytesQueryPeriodSecs &&
+      minFreeBytes == rhs.minFreeBytes &&
+      usedBytesQueryPeriodSecs == rhs.usedBytesQueryPeriodSecs &&
+      minUsedBytes == rhs.minUsedBytes;
+  }
 
-/// Default delay in seconds between free bytes queries for the tape-aware GC
-const uint64_t TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS = 310;
-
-/// Name of a space configuration member
-constexpr const char * TGC_NAME_MIN_FREE_BYTES = "tgc.minfreebytes";
-
-/// Default minimum number of free bytes within an EOS space for the tape-aware GC
-const uint64_t TGC_DEFAULT_MIN_FREE_BYTES = 0;
-
-/// Name of a space configuration member
-constexpr const char * TGC_NAME_USED_BYTES_QRY_PERIOD_SECS = "tgc.usedbytesqryperiodsecs";
-
-/// Default delay in seconds between used bytes queries for the tape-aware GC
-const uint64_t TGC_DEFAULT_USED_BYTES_QRY_PERIOD_SECS = 310;
-
-/// Name of a space configuration member
-constexpr const char * TGC_NAME_MIN_USED_BYTES = "tgc.minusedbytes";
-
-/// Default min:w
-/// imum number of used bytes with an EOS space for the tape-aware GC
-const uint64_t TGC_DEFAULT_MIN_USED_BYTES = 1000000000000000000UL; // 1 Exabyte
+  bool operator!=(const TapeGcSpaceConfig &rhs) const noexcept {
+    return !operator==(rhs);
+  }
+   */
+};
 
 EOSTGCNAMESPACE_END
 

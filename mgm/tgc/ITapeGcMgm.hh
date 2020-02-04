@@ -25,6 +25,7 @@
 #define __EOSMGMTGC_ITAPEGCMGM_HH__
 
 #include "mgm/Namespace.hh"
+#include "mgm/tgc/TapeGcSpaceConfig.hh"
 #include "namespace/interface/IFileMD.hh"
 
 #include <stdint.h>
@@ -46,24 +47,21 @@ EOSTGCNAMESPACE_BEGIN
 class ITapeGcMgm {
 public:
   //----------------------------------------------------------------------------
-  //! @return The delay in seconds between free bytes queries for the specified
-  //! space as set in the configuration variables of the space.  If the delay
-  //! cannot be determined for whatever reason then
-  //! TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS is returned.
-  //!
-  //! @param spaceName The name of the space
+  //! Default constructor
   //----------------------------------------------------------------------------
-  virtual uint64_t getSpaceConfigFreeBytesQryPeriodSecs(const std::string &spaceName) noexcept = 0;
+  ITapeGcMgm() = default;
 
   //----------------------------------------------------------------------------
-  //! @return The minimum number of free bytes the specified space should have
-  //! as set in the configuration variables of the space.  If the minimum
-  //! number of free bytes cannot be determined for whatever reason then
-  //! TGC_DEFAULT_MIN_FREE_BYTES is returned.
-  //!
+  //! Virtual destructor
+  //----------------------------------------------------------------------------
+  virtual ~ITapeGcMgm() = 0;
+
+  //----------------------------------------------------------------------------
+  //! @return The configuration of a tape-aware garbage collector for the
+  //! specified space.
   //! @param spaceName The name of the space
   //----------------------------------------------------------------------------
-  virtual uint64_t getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept = 0;
+  virtual TapeGcSpaceConfig getTapeGcSpaceConfig(const std::string &spaceName) = 0;
 
   struct FreeAndUsedBytes {
     uint64_t freeBytes;

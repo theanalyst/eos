@@ -68,24 +68,11 @@ public:
   RealTapeGcMgm &operator=(const RealTapeGcMgm &) = delete;
 
   //----------------------------------------------------------------------------
-  //! @return The delay in seconds between free space queries for the specified
-  //! space as set in the configuration variables of the space.  If the delay
-  //! cannot be determined for whatever reason then
-  //! TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS is returned.
-  //!
+  //! @return The configuration of a tape-aware garbage collector for the
+  //! specified space.
   //! @param spaceName The name of the space
   //----------------------------------------------------------------------------
-  uint64_t getSpaceConfigFreeBytesQryPeriodSecs(const std::string &spaceName) noexcept override;
-
-  //----------------------------------------------------------------------------
-  //! @return The minimum number of free bytes the specified space should have
-  //! as set in the configuration variables of the space.  If the minimum
-  //! number of free bytes cannot be determined for whatever reason then 0 is
-  //! returned.
-  //!
-  //! @param spaceName The name of the space
-  //----------------------------------------------------------------------------
-  uint64_t getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept override;
+  TapeGcSpaceConfig getTapeGcSpaceConfig(const std::string &spaceName) override;
 
   //----------------------------------------------------------------------------
   //! @return The numbers of free and used bytes within the specified space
@@ -122,6 +109,18 @@ private:
 
   /// The XRootD OFS plugin implementing the metadata handling of EOS
   XrdMgmOfs &m_ofs;
+
+  //----------------------------------------------------------------------------
+  //! @return The unit64_t value of the specified space configuration variable.
+  //! If the value cannot be determined for whatever reason then the specified
+  //! default is returned.
+  //!
+  //! @param spaceName The name of the space
+  //! @param memberName The name of the space configuration member.
+  //! @param defaultValue The default value of the space configuration member.
+  //----------------------------------------------------------------------------
+  uint64_t getSpaceConfigMemberUint64(const std::string &spaceName, const std::string &memberName,
+    uint64_t defaultValue) noexcept;
 };
 
 EOSTGCNAMESPACE_END

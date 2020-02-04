@@ -30,6 +30,8 @@
 #include "namespace/interface/IFileMDSvc.hh"
 #include "namespace/Prefetcher.hh"
 
+#include <stdexcept>
+
 EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
@@ -38,60 +40,51 @@ EOSTGCNAMESPACE_BEGIN
 RealTapeGcMgm::RealTapeGcMgm(XrdMgmOfs &ofs): m_ofs(ofs) {
 }
 
-//------------------------------------------------------------------------------
-// Return The delay in seconds between free space queries for the specified
-// space as set in the configuration variables of the space.  If the delay
-// cannot be determined for whatever reason then
-// TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS is returned.
-//------------------------------------------------------------------------------
-uint64_t
-RealTapeGcMgm::getSpaceConfigFreeBytesQryPeriodSecs(const std::string &spaceName) noexcept
-{
-  try {
-    std::string valueStr;
-    {
-      eos::common::RWMutexReadLock lock(FsView::gFsView.ViewMutex);
+//----------------------------------------------------------------------------
+// Return the configuration of a tape-aware garbage collector
+//----------------------------------------------------------------------------
+TapeGcSpaceConfig
+RealTapeGcMgm::getTapeGcSpaceConfig(const std::string &spaceName) {
+  TapeGcSpaceConfig config;
 
-      const auto spaceItor = FsView::gFsView.mSpaceView.find(spaceName);
-      if (FsView::gFsView.mSpaceView.end() != spaceItor && nullptr != spaceItor->second) {
-        const auto &space = *(spaceItor->second);
-        valueStr = space.GetConfigMember("tgc.freebytesqryperiodsecs");
-      }
-    }
-
-    return Utils::toUint64(valueStr);
-  } catch(...) {
-    return TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS;
-  }
+  config.freeBytesQueryPeriodSecs = getSpaceConfigMemberUint64(spaceName, TGC_NAME_FREE_BYTES_QRY_PERIOD_SECS,
+    TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS);
+  config.minFreeBytes = getSpaceConfigMemberUint64(spaceName, TGC_NAME_MIN_FREE_BYTES,
+    TGC_DEFAULT_MIN_FREE_BYTES);
+  config.usedBytesQueryPeriodSecs = getSpaceConfigMemberUint64(spaceName, TGC_NAME_USED_BYTES_QRY_PERIOD_SECS,
+    TGC_DEFAULT_USED_BYTES_QRY_PERIOD_SECS);
+  config.minUsedBytes = getSpaceConfigMemberUint64(spaceName, TGC_NAME_MIN_USED_BYTES,
+    TGC_DEFAULT_MIN_USED_BYTES);
+  return config;
 }
 
-//------------------------------------------------------------------------------
-// Return the minimum number of free bytes the specified space should have
-// as set in the configuration variables of the space.  If the minimum
-// number of free bytes cannot be determined for whatever reason then
-// TGC_DEFAULT_MIN_FREE_BYTES is returned.
-//------------------------------------------------------------------------------
+//----------------------------------------------------------------------------
+// Return the value of the specified space configuration variable
+//----------------------------------------------------------------------------
 uint64_t
-RealTapeGcMgm::getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept
+RealTapeGcMgm::getSpaceConfigMemberUint64(
+  const std::string &spaceName,
+  const std::string &memberName,
+  const uint64_t defaultValue) noexcept
 {
   try {
     std::string valueStr;
     {
       eos::common::RWMutexReadLock lock(FsView::gFsView.ViewMutex);
       const auto spaceItor = FsView::gFsView.mSpaceView.find(spaceName);
-      if (FsView::gFsView.mSpaceView.end() == spaceItor) return 0;
-      if (nullptr == spaceItor->second) return 0;
+      if (FsView::gFsView.mSpaceView.end() == spaceItor) throw std::exception();
+      if (nullptr == spaceItor->second) throw std::exception();
       const auto &space = *(spaceItor->second);
-      valueStr = space.GetConfigMember("tgc.minfreebytes");
+      valueStr = space.GetConfigMember(memberName);
     }
 
     if(valueStr.empty()) {
-     return 0;
+      throw std::exception();
     } else {
       return Utils::toUint64(valueStr);
     }
   } catch(...) {
-    return TGC_DEFAULT_MIN_FREE_BYTES;
+    return defaultValue;
   }
 }
 

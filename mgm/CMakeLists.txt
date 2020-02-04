@@ -172,6 +172,7 @@ add_library(
   tgc/MultiSpaceTapeGc.cc
   tgc/SpaceToTapeGcMap.cc
   tgc/DummyTapeGcMgm.cc
+  tgc/ITapeGcMgm.cc
   tgc/Lru.cc
   tgc/RealTapeGcMgm.cc
   tgc/SpaceNotFound.cc

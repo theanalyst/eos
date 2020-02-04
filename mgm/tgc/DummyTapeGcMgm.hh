@@ -68,24 +68,11 @@ public:
   DummyTapeGcMgm &operator=(const DummyTapeGcMgm &) = delete;
 
   //----------------------------------------------------------------------------
-  //! @return The delay in seconds between free space queries for the specified
-  //! space as set in the configuration variables of the space.  If the delay
-  //! cannot be determined for whatever reason then
-  //! TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS is returned.
-  //!
+  //! @return The configuration of a tape-aware garbage collector for the
+  //! specified space.
   //! @param spaceName The name of the space
   //----------------------------------------------------------------------------
-  uint64_t getSpaceConfigFreeBytesQryPeriodSecs(const std::string &spaceName) noexcept override;
-
-  //----------------------------------------------------------------------------
-  //! @return The minimum number of free bytes the specified space should have
-  //! as set in the configuration variables of the space.  If the minimum
-  //! number of free bytes cannot be determined for whatever reason then
-  //! TGC_DEFAULT_MIN_FREE_BYTES is returned.
-  //!
-  //! @param spaceName The name of the space
-  //----------------------------------------------------------------------------
-  uint64_t getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept override;
+  TapeGcSpaceConfig getTapeGcSpaceConfig(const std::string &spaceName) override;
 
   //----------------------------------------------------------------------------
   //! @return The numbers of free and used bytes within the specified space
@@ -119,26 +106,18 @@ public:
   void stagerrmAsRoot(IFileMD::id_t fid) override;
 
   //----------------------------------------------------------------------------
-  //! Set the period between free space queries for the specified EOS space
+  //! Set the tape-aware garbage collector configuration for the specified EOS
+  //! space
   //!
   //! @param space Name of the space.
-  //! @param qryPeriodSecs Query period in seconds.
+  //! @param config The configuration
   //----------------------------------------------------------------------------
-  void setSpaceConfigQryPeriod(const std::string &space, time_t qryPeriodSecs);
+  void setTapeGcSpaceConfig(const std::string &space, const TapeGcSpaceConfig &config);
 
   //----------------------------------------------------------------------------
-  //! Set the minimum number of free bytes for the specified EOS space
-  //!
-  //! @param space Name of the space.
-  //! @param nbFreeBytes Number of free bytes.
+  //! @return number of times getTapeGcSpaceConfig() has been called
   //----------------------------------------------------------------------------
-  void setSpaceConfigMinFreeBytes(const std::string &space,
-    uint64_t nbFreeBytes);
-
-  //----------------------------------------------------------------------------
-  //! @return number of times getSpaceConfigMinFreeBytes() has been called
-  //----------------------------------------------------------------------------
-  uint64_t getNbCallsToGetSpaceConfigMinFreeBytes() const;
+  uint64_t getNbCallsToGetTapeGcSpaceConfig() const;
 
   //----------------------------------------------------------------------------
   //! @return number of times fileInNamespaceAndNotScheduledForDeletion() has
@@ -164,24 +143,14 @@ private:
   mutable std::mutex m_mutex;
 
   //----------------------------------------------------------------------------
-  //! Map from EOS space name to the delay in seconds between free space queries
+  //! Map from EOS space name to the tape-aware garbage collector configuration
   //----------------------------------------------------------------------------
-  std::map<std::string, uint64_t> m_spaceToQryPeriodSecs;
+  std::map<std::string, TapeGcSpaceConfig> m_spaceToTapeGcConfig;
 
   //----------------------------------------------------------------------------
-  //! Map from EOS space name to the minimum number of free bytes for that space
+  //! Number of times getTapeGcSpaceConfig() has been called
   //----------------------------------------------------------------------------
-  std::map<std::string, uint64_t> m_spaceToMinFreeBytes;
-
-  //----------------------------------------------------------------------------
-  //! Number of times getSpaceConfigFreeBytesQryPeriodSecs() has been called
-  //----------------------------------------------------------------------------
-  uint64_t m_nbCallsToGetSpaceConfigFreeBytesQryPeriodSecs;
-
-  //----------------------------------------------------------------------------
-  //! Number of times getSpaceConfigMinFreeBytes() has been called
-  //----------------------------------------------------------------------------
-  uint64_t m_nbCallsToGetSpaceConfigMinFreeBytes;
+  uint64_t m_nbCallsToGetTapeGcSpaceConfig;
 
   //----------------------------------------------------------------------------
   //! Number of times fileInNamespaceAndNotScheduledForDeletion() has been

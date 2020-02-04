@@ -25,6 +25,7 @@
 #include "common/Constants.hh"
 #include "common/token/EosTok.hh"
 #include "mgm/proc/ProcInterface.hh"
+#include "mgm/tgc/Constants.hh"
 #include "mgm/tracker/ReplicationTracker.hh"
 #include "mgm/inspector/FileInspector.hh"
 #include "mgm/XrdMgmOfs.hh"
@@ -546,10 +547,10 @@ ProcCommand::Space()
                   (key == "geo.access.policy.read.exact") ||
                   (key == "geo.access.policy.write.exact") ||
                   (key == "filearchivedgc") ||
-                  (key == "tgc.freebytesqryperiodsecs") ||
-                  (key == "tgc.minfreebytes") ||
-                  (key == "tgc.usedbytesqryperiodsecs") ||
-                  (key == "tgc.minusedbytes") ||
+                  (key == eos::mgm::tgc::TGC_NAME_FREE_BYTES_QRY_PERIOD_SECS) ||
+                  (key == eos::mgm::tgc::TGC_NAME_MIN_FREE_BYTES) ||
+                  (key == eos::mgm::tgc::TGC_NAME_USED_BYTES_QRY_PERIOD_SECS) ||
+                  (key == eos::mgm::tgc::TGC_NAME_MIN_USED_BYTES) ||
 		  (key == "balancer.threshold") ||
 		  (key == "token.generation") ||
                   (key == eos::common::SCAN_IO_RATE_NAME) ||

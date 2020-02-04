@@ -45,11 +45,10 @@ TEST_F(TgcTapeGcTest, constructor)
   using namespace eos::mgm::tgc;
 
   const std::string space = "space";
-  const std::time_t queryPeriodCacheAgeSecs = 0; // Always renew cached value
-  const std::time_t minFreeBytesCacheAgeSecs = 0; // Always renew cached value
+  const std::time_t maxConfigCacheAgeSecs = 0; // Always renew cached value
 
   DummyTapeGcMgm mgm;
-  TapeGc gc(mgm, space, queryPeriodCacheAgeSecs, minFreeBytesCacheAgeSecs);
+  TapeGc gc(mgm, space, maxConfigCacheAgeSecs);
 
   const auto stats = gc.getStats();
 
@@ -67,11 +66,10 @@ TEST_F(TgcTapeGcTest, enable)
   using namespace eos::mgm::tgc;
 
   const std::string space = "space";
-  const std::time_t queryPeriodCacheAgeSecs = 0; // Always renew cached value
-  const std::time_t minFreeBytesCacheAgeSecs = 0; // Always renew cached value
+  const std::time_t maxConfigCacheAgeSecs = 0; // Always renew cached value
 
   DummyTapeGcMgm mgm;
-  TapeGc gc(mgm, space, queryPeriodCacheAgeSecs, minFreeBytesCacheAgeSecs);
+  TapeGc gc(mgm, space, maxConfigCacheAgeSecs);
 
   gc.enable();
 }
@@ -84,11 +82,10 @@ TEST_F(TgcTapeGcTest, enableWithoutStartingWorkerThread)
   using namespace eos::mgm::tgc;
 
   const std::string space = "space";
-  const std::time_t queryPeriodCacheAgeSecs = 0; // Always renew cached value
-  const std::time_t minFreeBytesCacheAgeSecs = 0; // Always renew cached value
+  const std::time_t maxConfigCacheAgeSecs = 0; // Always renew cached value
 
   DummyTapeGcMgm mgm;
-  TestingTapeGc gc(mgm, space, queryPeriodCacheAgeSecs, minFreeBytesCacheAgeSecs);
+  TestingTapeGc gc(mgm, space, maxConfigCacheAgeSecs);
 
   gc.enableWithoutStartingWorkerThread();
 }
@@ -101,19 +98,18 @@ TEST_F(TgcTapeGcTest, tryToGarbageCollectASingleFile)
   using namespace eos::mgm::tgc;
 
   const std::string space = "space";
-  const std::time_t queryPeriodCacheAgeSecs = 0; // Always renew cached value
-  const std::time_t minFreeBytesCacheAgeSecs = 0; // Always renew cached value
+  const std::time_t maxConfigCacheAgeSecs = 0; // Always renew cached value
 
   DummyTapeGcMgm mgm;
-  TestingTapeGc gc(mgm, space, queryPeriodCacheAgeSecs, minFreeBytesCacheAgeSecs);
+  TestingTapeGc gc(mgm, space, maxConfigCacheAgeSecs);
 
   gc.enableWithoutStartingWorkerThread();
 
-  ASSERT_EQ(0, mgm.getNbCallsToGetSpaceConfigMinFreeBytes());
+  ASSERT_EQ(0, mgm.getNbCallsToGetTapeGcSpaceConfig());
 
   gc.tryToGarbageCollectASingleFile();
 
-  ASSERT_EQ(1, mgm.getNbCallsToGetSpaceConfigMinFreeBytes());
+  ASSERT_EQ(1, mgm.getNbCallsToGetTapeGcSpaceConfig());
   ASSERT_EQ(0, mgm.getNbCallsToFileInNamespaceAndNotScheduledForDeletion());
   ASSERT_EQ(0, mgm.getNbCallsToGetFileSizeBytes());
   ASSERT_EQ(0, mgm.getNbCallsToStagerrmAsRoot());
@@ -124,16 +120,20 @@ TEST_F(TgcTapeGcTest, tryToGarbageCollectASingleFile)
 
   gc.tryToGarbageCollectASingleFile();
 
-  ASSERT_EQ(2, mgm.getNbCallsToGetSpaceConfigMinFreeBytes());
+  ASSERT_EQ(2, mgm.getNbCallsToGetTapeGcSpaceConfig());
   ASSERT_EQ(0, mgm.getNbCallsToFileInNamespaceAndNotScheduledForDeletion());
   ASSERT_EQ(0, mgm.getNbCallsToGetFileSizeBytes());
   ASSERT_EQ(0, mgm.getNbCallsToStagerrmAsRoot());
 
-  mgm.setSpaceConfigMinFreeBytes(space, 1);
+  {
+    TapeGcSpaceConfig config;
+    config.minFreeBytes = 1;
+    mgm.setTapeGcSpaceConfig(space, config);
+  }
 
   gc.tryToGarbageCollectASingleFile();
 
-  ASSERT_EQ(3, mgm.getNbCallsToGetSpaceConfigMinFreeBytes());
+  ASSERT_EQ(3, mgm.getNbCallsToGetTapeGcSpaceConfig());
   ASSERT_EQ(0, mgm.getNbCallsToFileInNamespaceAndNotScheduledForDeletion());
   ASSERT_EQ(1, mgm.getNbCallsToGetFileSizeBytes());
   ASSERT_EQ(1, mgm.getNbCallsToStagerrmAsRoot());

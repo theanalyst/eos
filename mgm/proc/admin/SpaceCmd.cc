@@ -23,6 +23,7 @@
 
 #include "SpaceCmd.hh"
 #include "mgm/proc/ProcInterface.hh"
+#include "mgm/tgc/Constants.hh"
 #include "mgm/XrdMgmOfs.hh"
 
 #include "common/Path.hh"
@@ -709,10 +710,10 @@ void SpaceCmd::ConfigSubcmd(const eos::console::SpaceProto_ConfigProto& config,
             (key == "geo.access.policy.read.exact") ||
             (key == "geo.access.policy.write.exact") ||
             (key == "filearchivedgc") ||
-            (key == "tgc.freebytesqryperiodsecs") ||
-            (key == "tgc.minfreebytes") ||
-            (key == "tgc.usedbytesqryperiodsecs") ||
-            (key == "tgc.minusedbytes") ||
+            (key == eos::mgm::tgc::TGC_NAME_FREE_BYTES_QRY_PERIOD_SECS) ||
+            (key == eos::mgm::tgc::TGC_NAME_MIN_FREE_BYTES) ||
+            (key == eos::mgm::tgc::TGC_NAME_USED_BYTES_QRY_PERIOD_SECS) ||
+            (key == eos::mgm::tgc::TGC_NAME_MIN_USED_BYTES) ||
 	    (key == "token.generation") ||
             (key == "balancer.threshold") ||
             (key == eos::common::SCAN_IO_RATE_NAME) ||

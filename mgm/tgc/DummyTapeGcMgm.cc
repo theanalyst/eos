@@ -30,62 +30,35 @@ EOSTGCNAMESPACE_BEGIN
 // Constructor
 //------------------------------------------------------------------------------
 DummyTapeGcMgm::DummyTapeGcMgm():
-m_nbCallsToGetSpaceConfigFreeBytesQryPeriodSecs(0),
-m_nbCallsToGetSpaceConfigMinFreeBytes(0),
+m_nbCallsToGetTapeGcSpaceConfig(0),
 m_nbCallsToFileInNamespaceAndNotScheduledForDeletion(0),
 m_nbCallsToGetFileSizeBytes(0),
 m_nbCallsToStagerrmAsRoot(0)
 {
 }
 
-//------------------------------------------------------------------------------
-// Return The delay in seconds between free space queries for the specified
-// space as set in the configuration variables of the space.  If the delay
-// cannot be determined for whatever reason then
-// TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS is returned.
-//------------------------------------------------------------------------------
-uint64_t
-DummyTapeGcMgm::getSpaceConfigFreeBytesQryPeriodSecs(const std::string &spaceName) noexcept
-{
+//----------------------------------------------------------------------------
+//! @return The configuration of a tape-aware garbage collector for the
+//! specified space.
+//! @param spaceName The name of the space
+//----------------------------------------------------------------------------
+TapeGcSpaceConfig
+DummyTapeGcMgm::getTapeGcSpaceConfig(const std::string &spaceName) {
+  const TapeGcSpaceConfig defaultConfig;
+
   try {
     std::lock_guard<std::mutex> lock(m_mutex);
-    m_nbCallsToGetSpaceConfigFreeBytesQryPeriodSecs++;
+    m_nbCallsToGetTapeGcSpaceConfig++;
 
-    auto itor = m_spaceToQryPeriodSecs.find(spaceName);
-    if(itor == m_spaceToQryPeriodSecs.end()) {
-      return 0;
+    auto itor = m_spaceToTapeGcConfig.find(spaceName);
+    if(itor == m_spaceToTapeGcConfig.end()) {
+      return defaultConfig;
     } else {
       return itor->second;
     }
   } catch(...) {
-    // Do nothing
+    return defaultConfig;
   }
-  return TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS;
-}
-
-//------------------------------------------------------------------------------
-// Return the minimum number of free bytes the specified space should have
-// as set in the configuration variables of the space.  If the minimum
-// number of free bytes cannot be determined for whatever reason then
-// TGC_DEFAULT_MIN_FREE_BYTES is returned.
-//------------------------------------------------------------------------------
-uint64_t
-DummyTapeGcMgm::getSpaceConfigMinFreeBytes(const std::string &spaceName) noexcept
-{
-  try {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    m_nbCallsToGetSpaceConfigMinFreeBytes++;
-
-    auto itor = m_spaceToMinFreeBytes.find(spaceName);
-    if(itor == m_spaceToMinFreeBytes.end()) {
-      return 0;
-    } else {
-      return itor->second;
-    }
-  } catch(...) {
-    // Do nothing
-  }
-  return TGC_DEFAULT_MIN_FREE_BYTES;
 }
 
 //----------------------------------------------------------------------------
@@ -129,35 +102,24 @@ DummyTapeGcMgm::stagerrmAsRoot(const IFileMD::id_t /* fid */)
 }
 
 //----------------------------------------------------------------------------
-// Set the period between free space queries for the specified EOS space
+// Set the configuration of the tape-aware garbage collector
 //----------------------------------------------------------------------------
 void
-DummyTapeGcMgm::setSpaceConfigQryPeriod(const std::string &space,
-  const time_t qryPeriodSecs) {
+DummyTapeGcMgm::setTapeGcSpaceConfig(const std::string &space,
+  const TapeGcSpaceConfig &config) {
   std::lock_guard<std::mutex> lock(m_mutex);
 
-  m_spaceToQryPeriodSecs[space] = qryPeriodSecs;
-}
-
-//----------------------------------------------------------------------------
-// Set the minimum number of free bytes for the specified space
-//----------------------------------------------------------------------------
-void
-DummyTapeGcMgm::setSpaceConfigMinFreeBytes(const std::string &space,
-  const uint64_t nbFreeBytes) {
-  std::lock_guard<std::mutex> lock(m_mutex);
-
-  m_spaceToMinFreeBytes[space] = nbFreeBytes;
+  m_spaceToTapeGcConfig[space] = config;
 }
 
 //------------------------------------------------------------------------------
-// Return number of times getSpaceConfigMinFreeBytes() has been called
+// Return number of times getTapeGcSpaceConfig() has been called
 //------------------------------------------------------------------------------
 uint64_t
-DummyTapeGcMgm::getNbCallsToGetSpaceConfigMinFreeBytes() const {
+DummyTapeGcMgm::getNbCallsToGetTapeGcSpaceConfig() const {
   std::lock_guard<std::mutex> lock(m_mutex);
 
-  return m_nbCallsToGetSpaceConfigMinFreeBytes;
+  return m_nbCallsToGetTapeGcSpaceConfig;
 }
 
 //------------------------------------------------------------------------------

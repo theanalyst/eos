@@ -31,6 +31,7 @@
 #include "mgm/tgc/Constants.hh"
 #include "mgm/tgc/ITapeGcMgm.hh"
 #include "mgm/tgc/Lru.hh"
+#include "mgm/tgc/TapeGcSpaceConfig.hh"
 #include "mgm/tgc/TapeGcStats.hh"
 #include "namespace/interface/IFileMD.hh"
 #include "proto/ConsoleReply.pb.h"
@@ -65,16 +66,13 @@ public:
   //! @param mgm interface to the EOS MGM
   //! @param space name of the EOS space that this garbage collector will work
   //! on
-  //! @param queryPeriodCacheAgeSecs age at which the cached value of
-  //! queryPeriodSecs should be renewed
-  //! @param minFreeBytesCacheAgeSecs age at which the cached value of
-  //! minFreeBytes should be renewed
+  //! @param maxConfigCacheAgeSecs maximum age in seconds of a tape-ware garbage
+  //! collector's cached configuration
   //----------------------------------------------------------------------------
   TapeGc(
     ITapeGcMgm &mgm,
     const std::string &space,
-    std::time_t queryPeriodCacheAgeSecs = TGC_DEFAULT_QUERY_PERIOD_CACHED_AGE_SECS,
-    std::time_t minFreeBytesCacheAgeSecs = TGC_DEFAULT_MIN_FREE_BYTES_CACHE_AGE_SECS
+    std::time_t maxConfigCacheAgeSecs = TGC_DEFAULT_MAX_CONFIG_CACHE_AGE_SECS
   );
 
   //----------------------------------------------------------------------------
@@ -187,18 +185,9 @@ protected:
     const std::string &path, IFileMD::id_t fid);
 
   //----------------------------------------------------------------------------
-  //! Cached configuration value for the delay in seconds between free bytes
-  //! queries to the EOS MGM
+  //! Cached configuration
   //----------------------------------------------------------------------------
-  CachedValue<std::time_t> m_freeBytesQueryPeriodSecs;
-
-  //----------------------------------------------------------------------------
-  //! Cached value for the minimum number of free bytes to be available in the
-  //! EOS space worked on by this garnage collector.  If the actual number of
-  //! free bytes is less than this value then the garbage collector will try to
-  //! free up space by garbage collecting disk replicas.
-  //----------------------------------------------------------------------------
-  CachedValue<std::uint64_t> m_minFreeBytes;
+  CachedValue<TapeGcSpaceConfig> m_config;
 
   //----------------------------------------------------------------------------
   //! Mutex to protect m_freeBytes
@@ -220,15 +209,9 @@ protected:
   std::atomic<std::uint64_t> m_nbStagerrms;
 
   //----------------------------------------------------------------------------
-  //! @return the configured query period and log if changed
+  //! @return the tape-aware garbage collector configuration and log if changed
   //----------------------------------------------------------------------------
-  std::time_t getQueryPeriodSecsAndLogIfChanged();
-
-  //----------------------------------------------------------------------------
-  //! @return the configured min free bytes for the EOS space worked on by this
-  //! garbage collector and log if changed
-  //----------------------------------------------------------------------------
-  std::uint64_t getMinFreeBytesAndLogIfChanged();
+  TapeGcSpaceConfig getSpaceConfigAndLogIfChanged();
 
   //----------------------------------------------------------------------------
   //! Take note of a file queued for deletion so that the amount of free space
