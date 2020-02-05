@@ -200,8 +200,8 @@ protected:
   //----------------------------------------------------------------------------
   std::uint64_t m_freeBytes;
 
-  /// The timestamp at which the last free bytes query was made
-  std::atomic<std::time_t> m_freeBytesQueryTimestamp;
+  /// The timestamp at which the last query was made
+  std::atomic<std::time_t> m_queryTimestamp;
 
   //----------------------------------------------------------------------------
   //! Counter that is incremented each time a file is successfully stagerrm'ed

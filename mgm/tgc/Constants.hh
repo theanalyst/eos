@@ -43,27 +43,17 @@ EOSTGCNAMESPACE_BEGIN
 /// cached configuration
 const uint64_t TGC_DEFAULT_MAX_CONFIG_CACHE_AGE_SECS = 10;
 
-/// Default age at which the cached value of minFreeBytes for a garbage
-/// collector should be renewed
-const uint64_t TGC_DEFAULT_MIN_FREE_BYTES_CACHE_AGE_SECS = 10;
-
 /// Name of a space configuration member
-constexpr const char * TGC_NAME_FREE_BYTES_QRY_PERIOD_SECS = "tgc.freebytesqryperiodsecs";
+constexpr const char * TGC_NAME_QRY_PERIOD_SECS = "tgc.qryperiodsecs";
 
-/// Default delay in seconds between free bytes queries for the tape-aware GC
-const uint64_t TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS = 310;
+/// Default delay in seconds between EOS space queries for the tape-aware GC
+const uint64_t TGC_DEFAULT_QRY_PERIOD_SECS = 310;
 
 /// Name of a space configuration member
 constexpr const char * TGC_NAME_MIN_FREE_BYTES = "tgc.minfreebytes";
 
 /// Default minimum number of free bytes within an EOS space for the tape-aware GC
 const uint64_t TGC_DEFAULT_MIN_FREE_BYTES = 0;
-
-/// Name of a space configuration member
-constexpr const char * TGC_NAME_USED_BYTES_QRY_PERIOD_SECS = "tgc.usedbytesqryperiodsecs";
-
-/// Default delay in seconds between used bytes queries for the tape-aware GC
-const uint64_t TGC_DEFAULT_USED_BYTES_QRY_PERIOD_SECS = 310;
 
 /// Name of a space configuration member
 constexpr const char * TGC_NAME_MIN_USED_BYTES = "tgc.minusedbytes";

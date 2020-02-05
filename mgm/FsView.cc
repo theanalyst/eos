@@ -978,19 +978,14 @@ FsSpace::FsSpace(const char* name)
       SetConfigMember("filearchivedgc", "off");
     }
 
-    // Set the default delay in seconds between free bytes queries
-    if (GetConfigMember(tgc::TGC_NAME_FREE_BYTES_QRY_PERIOD_SECS).empty()) {
-      SetConfigMember(tgc::TGC_NAME_FREE_BYTES_QRY_PERIOD_SECS, std::to_string(tgc::TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS));
+    // Set the default delay in seconds between queries from the tape-aware GC
+    if (GetConfigMember(tgc::TGC_NAME_QRY_PERIOD_SECS).empty()) {
+      SetConfigMember(tgc::TGC_NAME_QRY_PERIOD_SECS, std::to_string(tgc::TGC_DEFAULT_QRY_PERIOD_SECS));
     }
 
     // Set the default minimum number of free bytes for the tape aware GC
     if (GetConfigMember(tgc::TGC_NAME_MIN_FREE_BYTES).empty()) {
       SetConfigMember(tgc::TGC_NAME_MIN_FREE_BYTES, std::to_string(tgc::TGC_DEFAULT_MIN_FREE_BYTES));
-    }
-
-    // Set the default delay in seconds between used space queries
-    if (GetConfigMember(tgc::TGC_NAME_USED_BYTES_QRY_PERIOD_SECS).empty()) {
-      SetConfigMember(tgc::TGC_NAME_USED_BYTES_QRY_PERIOD_SECS, std::to_string(tgc::TGC_DEFAULT_USED_BYTES_QRY_PERIOD_SECS));
     }
 
     // Set the default minimum number of used bytes for the tape aware GC

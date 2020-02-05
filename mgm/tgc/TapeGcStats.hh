@@ -49,7 +49,8 @@ struct TapeGcStats {
     nbStagerrms(0),
     lruQueueSize(0),
     freeBytes(0),
-    freeBytesQueryTimestamp(0) {
+    usedBytes(0),
+    queryTimestamp(0) {
   }
 
   //----------------------------------------------------------------------------
@@ -69,10 +70,15 @@ struct TapeGcStats {
   uint64_t freeBytes;
 
   //----------------------------------------------------------------------------
-  //! Timestamp at which the number of free bytes was queried.  This value is
-  //! zero in the case of error.
+  //! Number of used bytes.  This value is zero in the case of an error.
   //----------------------------------------------------------------------------
-  time_t freeBytesQueryTimestamp;
+  uint64_t usedBytes;
+
+  //----------------------------------------------------------------------------
+  //! Timestamp at which the EOS space was queried.  This value is zero in the
+  //! case of error.
+  //----------------------------------------------------------------------------
+  time_t queryTimestamp;
 };
 
 EOSTGCNAMESPACE_END

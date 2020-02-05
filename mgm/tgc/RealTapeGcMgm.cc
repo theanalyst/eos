@@ -47,14 +47,9 @@ TapeGcSpaceConfig
 RealTapeGcMgm::getTapeGcSpaceConfig(const std::string &spaceName) {
   TapeGcSpaceConfig config;
 
-  config.freeBytesQueryPeriodSecs = getSpaceConfigMemberUint64(spaceName, TGC_NAME_FREE_BYTES_QRY_PERIOD_SECS,
-    TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS);
-  config.minFreeBytes = getSpaceConfigMemberUint64(spaceName, TGC_NAME_MIN_FREE_BYTES,
-    TGC_DEFAULT_MIN_FREE_BYTES);
-  config.usedBytesQueryPeriodSecs = getSpaceConfigMemberUint64(spaceName, TGC_NAME_USED_BYTES_QRY_PERIOD_SECS,
-    TGC_DEFAULT_USED_BYTES_QRY_PERIOD_SECS);
-  config.minUsedBytes = getSpaceConfigMemberUint64(spaceName, TGC_NAME_MIN_USED_BYTES,
-    TGC_DEFAULT_MIN_USED_BYTES);
+  config.queryPeriodSecs = getSpaceConfigMemberUint64(spaceName, TGC_NAME_QRY_PERIOD_SECS, TGC_DEFAULT_QRY_PERIOD_SECS);
+  config.minFreeBytes = getSpaceConfigMemberUint64(spaceName, TGC_NAME_MIN_FREE_BYTES, TGC_DEFAULT_MIN_FREE_BYTES);
+  config.minUsedBytes = getSpaceConfigMemberUint64(spaceName, TGC_NAME_MIN_USED_BYTES, TGC_DEFAULT_MIN_USED_BYTES);
   return config;
 }
 

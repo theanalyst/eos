@@ -41,7 +41,7 @@ TapeGc::TapeGc(ITapeGcMgm &mgm, const std::string &space, const std::time_t maxC
   m_enabled(false),
   m_config(std::bind(&ITapeGcMgm::getTapeGcSpaceConfig, &m_mgm, space), maxConfigCacheAgeSecs),
   m_freeBytes(0),
-  m_freeBytesQueryTimestamp(0),
+  m_queryTimestamp(0),
   m_nbStagerrms(0)
 {
 }
@@ -136,14 +136,14 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
 
     try {
       const std::time_t now = time(nullptr);
-      const std::time_t secsSinceLastQuery = now - m_freeBytesQueryTimestamp;
+      const std::time_t secsSinceLastQuery = now - m_queryTimestamp;
 
-      if(secsSinceLastQuery >= config.freeBytesQueryPeriodSecs) {
+      if(secsSinceLastQuery >= config.queryPeriodSecs) {
         const auto freeAndUsedBytes = m_mgm.getSpaceFreeAndUsedBytes(m_space);
 
         std::lock_guard<std::mutex> freeSpaceBytesLock(m_freeBytesMutex);
         m_freeBytes = freeAndUsedBytes.freeBytes;
-        m_freeBytesQueryTimestamp = now;
+        m_queryTimestamp = now;
       }
 
       // Return no file was garbage collected if there is still enough free space
@@ -219,22 +219,16 @@ TapeGcSpaceConfig
 TapeGc::getSpaceConfigAndLogIfChanged() {
   const auto config = m_config.get();
 
-  if (config.prev.freeBytesQueryPeriodSecs != config.current.freeBytesQueryPeriodSecs) {
+  if (config.prev.queryPeriodSecs != config.current.queryPeriodSecs) {
     std::ostringstream msg;
-    msg << "msg=\"" << TGC_NAME_FREE_BYTES_QRY_PERIOD_SECS << " has been changed from " <<
-      config.prev.freeBytesQueryPeriodSecs  << " to " << config.current.freeBytesQueryPeriodSecs << "\"";
+    msg << "msg=\"" << TGC_NAME_QRY_PERIOD_SECS << " has been changed from " <<
+      config.prev.queryPeriodSecs  << " to " << config.current.queryPeriodSecs << "\"";
     eos_static_info(msg.str().c_str());
   }
   if (config.prev.minFreeBytes != config.current.minFreeBytes) {
     std::ostringstream msg;
     msg << "msg=\"" << TGC_NAME_MIN_FREE_BYTES << " has been changed from " << config.prev.minFreeBytes  << " to " <<
       config.current.minFreeBytes << "\"";
-    eos_static_info(msg.str().c_str());
-  }
-  if (config.prev.usedBytesQueryPeriodSecs != config.current.usedBytesQueryPeriodSecs) {
-    std::ostringstream msg;
-    msg << "msg=\"" << TGC_NAME_USED_BYTES_QRY_PERIOD_SECS << " has been changed from " <<
-      config.prev.usedBytesQueryPeriodSecs  << " to " << config.current.usedBytesQueryPeriodSecs << "\"";
     eos_static_info(msg.str().c_str());
   }
   if (config.prev.minUsedBytes != config.current.minUsedBytes) {
@@ -273,7 +267,7 @@ TapeGc::getStats() const noexcept
   stats.nbStagerrms = m_nbStagerrms;
   stats.lruQueueSize = getLruQueueSize();
   stats.freeBytes = getFreeBytes();
-  stats.freeBytesQueryTimestamp = m_freeBytesQueryTimestamp;
+  stats.queryTimestamp = m_queryTimestamp;
 
   return stats;
 }

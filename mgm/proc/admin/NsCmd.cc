@@ -406,7 +406,7 @@ NsCmd::StatSubcmd(const eos::console::NsProto_StatProto& stat,
         for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
           const std::string &tgcSpace = itor->first;
           const tgc::TapeGcStats &tgcSpaceStats = itor->second;
-          oss << " " << tgcSpace << "=" << tgcSpaceStats.freeBytesQueryTimestamp;
+          oss << " " << tgcSpace << "=" << tgcSpaceStats.queryTimestamp;
         }
         oss << std::endl;
       }
@@ -564,7 +564,7 @@ NsCmd::StatSubcmd(const eos::console::NsProto_StatProto& stat,
         for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
           const std::string &tgcSpace = itor->first;
           const tgc::TapeGcStats &tgcSpaceStats = itor->second;
-          oss << " " << tgcSpace << "=" << tgcSpaceStats.freeBytesQueryTimestamp;
+          oss << " " << tgcSpace << "=" << tgcSpaceStats.queryTimestamp;
         }
         oss << std::endl;
       }

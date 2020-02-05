@@ -45,32 +45,16 @@ EOSTGCNAMESPACE_BEGIN
 //! space.
 //------------------------------------------------------------------------------
 struct TapeGcSpaceConfig {
-  std::time_t freeBytesQueryPeriodSecs;
+  std::time_t queryPeriodSecs;
   uint64_t minFreeBytes;
-  std::time_t usedBytesQueryPeriodSecs;
   uint64_t minUsedBytes;
 
   TapeGcSpaceConfig():
-    freeBytesQueryPeriodSecs(TGC_DEFAULT_FREE_BYTES_QRY_PERIOD_SECS),
+    queryPeriodSecs(TGC_DEFAULT_QRY_PERIOD_SECS),
     minFreeBytes(TGC_DEFAULT_MIN_FREE_BYTES),
-    usedBytesQueryPeriodSecs(TGC_DEFAULT_USED_BYTES_QRY_PERIOD_SECS),
     minUsedBytes(TGC_DEFAULT_MIN_USED_BYTES)
   {
   }
-
-  /*
-  bool operator==(const TapeGcSpaceConfig &rhs) const noexcept {
-    return
-      freeBytesQueryPeriodSecs == rhs.freeBytesQueryPeriodSecs &&
-      minFreeBytes == rhs.minFreeBytes &&
-      usedBytesQueryPeriodSecs == rhs.usedBytesQueryPeriodSecs &&
-      minUsedBytes == rhs.minUsedBytes;
-  }
-
-  bool operator!=(const TapeGcSpaceConfig &rhs) const noexcept {
-    return !operator==(rhs);
-  }
-   */
 };
 
 EOSTGCNAMESPACE_END
