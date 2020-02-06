@@ -27,11 +27,11 @@
 #include "common/Logging.hh"
 #include "mgm/Namespace.hh"
 #include "mgm/tgc/BlockingFlag.hh"
-#include "mgm/tgc/CachedValue.hh"
 #include "mgm/tgc/Constants.hh"
 #include "mgm/tgc/ITapeGcMgm.hh"
 #include "mgm/tgc/Lru.hh"
-#include "mgm/tgc/TapeGcSpaceConfig.hh"
+#include "mgm/tgc/SmartSpaceConfig.hh"
+#include "mgm/tgc/SmartSpaceStats.hh"
 #include "mgm/tgc/TapeGcStats.hh"
 #include "namespace/interface/IFileMD.hh"
 #include "proto/ConsoleReply.pb.h"
@@ -64,14 +64,14 @@ public:
   //! Constructor
   //!
   //! @param mgm interface to the EOS MGM
-  //! @param space name of the EOS space that this garbage collector will work
-  //! on
+  //! @param spaceName name of the EOS space that this garbage collector will
+  //! manage
   //! @param maxConfigCacheAgeSecs maximum age in seconds of a tape-ware garbage
   //! collector's cached configuration
   //----------------------------------------------------------------------------
   TapeGc(
     ITapeGcMgm &mgm,
-    const std::string &space,
+    const std::string &spaceName,
     std::time_t maxConfigCacheAgeSecs = TGC_DEFAULT_MAX_CONFIG_CACHE_AGE_SECS
   );
 
@@ -120,8 +120,8 @@ protected:
   /// The interface to the EOS MGM
   ITapeGcMgm &m_mgm;
 
-  /// The name of the EOS sapce being worked on by this garbage collector
-  std::string m_space;
+  /// The name of the EOS space managed by this garbage collector
+  std::string m_spaceName;
 
   /// Used to ensure the enable() method only starts the worker thread once
   std::atomic_flag m_enabledMethodCalled = ATOMIC_FLAG_INIT;
@@ -158,12 +158,6 @@ protected:
   Lru::FidQueue::size_type getLruQueueSize() const noexcept;
 
   //----------------------------------------------------------------------------
-  //! @return the amount of free bytes in the EOS space worked on by this
-  //! garbage collector.  Zero is returned in the case of error.
-  //----------------------------------------------------------------------------
-  std::uint64_t getFreeBytes() const noexcept;
-
-  //----------------------------------------------------------------------------
   //! Try to garbage collect a single file if necessary and possible.
   //!
   //! Please note that a file is considered successfully garbage collected if
@@ -185,33 +179,19 @@ protected:
     const std::string &path, IFileMD::id_t fid);
 
   //----------------------------------------------------------------------------
-  //! Cached configuration
+  //! Configuration
   //----------------------------------------------------------------------------
-  CachedValue<TapeGcSpaceConfig> m_config;
+  SmartSpaceConfig m_config;
 
   //----------------------------------------------------------------------------
-  //! Mutex to protect m_freeBytes
+  //! Statistics about the EOS space being managed
   //----------------------------------------------------------------------------
-  mutable std::mutex m_freeBytesMutex;
-
-  //----------------------------------------------------------------------------
-  //! The number of free bytes in the EOS space worked on by this garbage
-  //! collector
-  //----------------------------------------------------------------------------
-  std::uint64_t m_freeBytes;
-
-  /// The timestamp at which the last query was made
-  std::atomic<std::time_t> m_queryTimestamp;
+  SmartSpaceStats m_spaceStats;
 
   //----------------------------------------------------------------------------
   //! Counter that is incremented each time a file is successfully stagerrm'ed
   //----------------------------------------------------------------------------
   std::atomic<std::uint64_t> m_nbStagerrms;
-
-  //----------------------------------------------------------------------------
-  //! @return the tape-aware garbage collector configuration and log if changed
-  //----------------------------------------------------------------------------
-  TapeGcSpaceConfig getSpaceConfigAndLogIfChanged();
 
   //----------------------------------------------------------------------------
   //! Take note of a file queued for deletion so that the amount of free space

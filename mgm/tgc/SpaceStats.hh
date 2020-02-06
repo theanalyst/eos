@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeGcSpaceConfig.hh
+// File: SpaceStats.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,40 +21,32 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGMTGC_TAPEGCSPACECONFIG_HH__
-#define __EOSMGMTGC_TAPEGCSPACECONFIG_HH__
+#ifndef __EOSMGMTGC_SPACESTATS_HH__
+#define __EOSMGMTGC_SPACESTATS_HH__
 
 #include "mgm/Namespace.hh"
-#include "mgm/tgc/Constants.hh"
 
-#include <ctime>
-#include <stdint.h>
+#include <cstdint>
+#include <string>
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file TapeGcSpaceConfig.hh
+ * @file FreeAndUsedBytes.hh
  *
- * @brief The configuration of a tape-aware garbage collector for a specific EOS
- * space.
+ * @brief Structure to store statistics about an EOS space
+ *
  */
 /*----------------------------------------------------------------------------*/
 EOSTGCNAMESPACE_BEGIN
 
-//------------------------------------------------------------------------------
-//! The configuration of a tape-aware garbage collector for a specific EOSi
-//! space.
-//------------------------------------------------------------------------------
-struct TapeGcSpaceConfig {
-  std::time_t queryPeriodSecs;
-  uint64_t minFreeBytes;
-  uint64_t minUsedBytes;
+/*----------------------------------------------------------------------------*/
+//! Structure to store the statistics about an EOS space
+/*----------------------------------------------------------------------------*/
+struct SpaceStats {
+  std::uint64_t freeBytes;
+  std::uint64_t usedBytes;
 
-  TapeGcSpaceConfig():
-    queryPeriodSecs(TGC_DEFAULT_QRY_PERIOD_SECS),
-    minFreeBytes(TGC_DEFAULT_MIN_FREE_BYTES),
-    minUsedBytes(TGC_DEFAULT_MIN_USED_BYTES)
-  {
-  }
+  SpaceStats(): freeBytes(0), usedBytes(0) {}
 };
 
 EOSTGCNAMESPACE_END

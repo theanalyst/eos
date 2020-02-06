@@ -30,7 +30,6 @@
 #include <ctime>
 #include <mutex>
 #include <stdexcept>
-#include <stdint.h>
 #include <thread>
 
 /*----------------------------------------------------------------------------*/

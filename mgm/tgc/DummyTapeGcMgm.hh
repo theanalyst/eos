@@ -72,22 +72,22 @@ public:
   //! specified space.
   //! @param spaceName The name of the space
   //----------------------------------------------------------------------------
-  TapeGcSpaceConfig getTapeGcSpaceConfig(const std::string &spaceName) override;
+  SpaceConfig getTapeGcSpaceConfig(const std::string &spaceName) override;
 
   //----------------------------------------------------------------------------
-  //! @return The numbers of free and used bytes within the specified space
+  //! @return Statistics about the specified space
   //! @param space The name of the EOS space to be queried
   //! @throw TapeAwareGcSpaceNotFound when the EOS space named m_spaceName
   //! cannot be found
   //----------------------------------------------------------------------------
-  FreeAndUsedBytes getSpaceFreeAndUsedBytes(const std::string &space) override;
+  SpaceStats getSpaceStats(const std::string &space) const override;
 
   //----------------------------------------------------------------------------
   //! @param fid The file identifier
   //! @return The size of the specified file in bytes.  If the file cannot be
   //! found in the EOS namespace then a file size of 0 is returned.
   //----------------------------------------------------------------------------
-  uint64_t getFileSizeBytes(IFileMD::id_t fid) override;
+  std::uint64_t getFileSizeBytes(IFileMD::id_t fid) override;
 
   //----------------------------------------------------------------------------
   //! Determine if the specified file exists and is not scheduled for deletion
@@ -112,28 +112,28 @@ public:
   //! @param space Name of the space.
   //! @param config The configuration
   //----------------------------------------------------------------------------
-  void setTapeGcSpaceConfig(const std::string &space, const TapeGcSpaceConfig &config);
+  void setTapeGcSpaceConfig(const std::string &space, const SpaceConfig &config);
 
   //----------------------------------------------------------------------------
   //! @return number of times getTapeGcSpaceConfig() has been called
   //----------------------------------------------------------------------------
-  uint64_t getNbCallsToGetTapeGcSpaceConfig() const;
+  std::uint64_t getNbCallsToGetTapeGcSpaceConfig() const;
 
   //----------------------------------------------------------------------------
   //! @return number of times fileInNamespaceAndNotScheduledForDeletion() has
   //! been called
   //----------------------------------------------------------------------------
-  uint64_t getNbCallsToFileInNamespaceAndNotScheduledForDeletion() const;
+  std::uint64_t getNbCallsToFileInNamespaceAndNotScheduledForDeletion() const;
 
   //----------------------------------------------------------------------------
   //! @return number of times getFileSizeBytes() has been called
   //----------------------------------------------------------------------------
-  uint64_t getNbCallsToGetFileSizeBytes() const;
+  std::uint64_t getNbCallsToGetFileSizeBytes() const;
 
   //------------------------------------------------------------------------------
   //! @return number of times stagerrmAsRoot() has been called
   //------------------------------------------------------------------------------
-  uint64_t getNbCallsToStagerrmAsRoot() const;
+  std::uint64_t getNbCallsToStagerrmAsRoot() const;
 
 private:
 
@@ -145,28 +145,28 @@ private:
   //----------------------------------------------------------------------------
   //! Map from EOS space name to the tape-aware garbage collector configuration
   //----------------------------------------------------------------------------
-  std::map<std::string, TapeGcSpaceConfig> m_spaceToTapeGcConfig;
+  std::map<std::string, SpaceConfig> m_spaceToTapeGcConfig;
 
   //----------------------------------------------------------------------------
   //! Number of times getTapeGcSpaceConfig() has been called
   //----------------------------------------------------------------------------
-  uint64_t m_nbCallsToGetTapeGcSpaceConfig;
+  std::uint64_t m_nbCallsToGetTapeGcSpaceConfig;
 
   //----------------------------------------------------------------------------
   //! Number of times fileInNamespaceAndNotScheduledForDeletion() has been
   //! called
   //----------------------------------------------------------------------------
-  uint64_t m_nbCallsToFileInNamespaceAndNotScheduledForDeletion;
+  std::uint64_t m_nbCallsToFileInNamespaceAndNotScheduledForDeletion;
 
   //----------------------------------------------------------------------------
   //! Number of times getFileSizeBytes() has been called
   //----------------------------------------------------------------------------
-  uint64_t m_nbCallsToGetFileSizeBytes;
+  std::uint64_t m_nbCallsToGetFileSizeBytes;
 
   //----------------------------------------------------------------------------
   //! Number of times stagerrmAsRoot() has been called
   //----------------------------------------------------------------------------
-  uint64_t m_nbCallsToStagerrmAsRoot;
+  std::uint64_t m_nbCallsToStagerrmAsRoot;
 };
 
 EOSTGCNAMESPACE_END

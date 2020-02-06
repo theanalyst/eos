@@ -35,13 +35,12 @@ EOSTGCNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 // Constructor
 //------------------------------------------------------------------------------
-TapeGc::TapeGc(ITapeGcMgm &mgm, const std::string &space, const std::time_t maxConfigCacheAgeSecs):
+TapeGc::TapeGc(ITapeGcMgm &mgm, const std::string &spaceName, const std::time_t maxConfigCacheAgeSecs):
   m_mgm(mgm),
-  m_space(space),
+  m_spaceName(spaceName),
   m_enabled(false),
-  m_config(std::bind(&ITapeGcMgm::getTapeGcSpaceConfig, &m_mgm, space), maxConfigCacheAgeSecs),
-  m_freeBytes(0),
-  m_queryTimestamp(0),
+  m_config(m_mgm, spaceName, maxConfigCacheAgeSecs),
+  m_spaceStats(spaceName, mgm, m_config),
   m_nbStagerrms(0)
 {
 }
@@ -106,7 +105,7 @@ TapeGc::fileOpened(const std::string &path, const IFileMD::id_t fid) noexcept
   if(!m_enabled) return;
 
   try {
-    const std::string preamble = createLogPreamble(m_space, path, fid);
+    const std::string preamble = createLogPreamble(m_spaceName, path, fid);
     eos_static_debug(preamble.c_str());
 
     std::lock_guard<std::mutex> lruQueueLock(m_lruQueueMutex);
@@ -132,22 +131,13 @@ bool
 TapeGc::tryToGarbageCollectASingleFile() noexcept
 {
   try {
-    const auto config = getSpaceConfigAndLogIfChanged();
+    const auto config = m_config.get();
 
     try {
-      const std::time_t now = time(nullptr);
-      const std::time_t secsSinceLastQuery = now - m_queryTimestamp;
-
-      if(secsSinceLastQuery >= config.queryPeriodSecs) {
-        const auto freeAndUsedBytes = m_mgm.getSpaceFreeAndUsedBytes(m_space);
-
-        std::lock_guard<std::mutex> freeSpaceBytesLock(m_freeBytesMutex);
-        m_freeBytes = freeAndUsedBytes.freeBytes;
-        m_queryTimestamp = now;
-      }
+      const auto spaceStats = m_spaceStats.get();
 
       // Return no file was garbage collected if there is still enough free space
-      if(m_freeBytes >= config.minFreeBytes) return false;
+      if(spaceStats.freeBytes >= config.minFreeBytes) return false;
     } catch(SpaceNotFound &) {
       // Return no file was garbage collected if the space was not found
       return false;
@@ -212,35 +202,6 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
   return false; // No file was garbage collected
 }
 
-//------------------------------------------------------------------------------
-// Returns the tape-aware garbage collector configuration
-//------------------------------------------------------------------------------
-TapeGcSpaceConfig
-TapeGc::getSpaceConfigAndLogIfChanged() {
-  const auto config = m_config.get();
-
-  if (config.prev.queryPeriodSecs != config.current.queryPeriodSecs) {
-    std::ostringstream msg;
-    msg << "msg=\"" << TGC_NAME_QRY_PERIOD_SECS << " has been changed from " <<
-      config.prev.queryPeriodSecs  << " to " << config.current.queryPeriodSecs << "\"";
-    eos_static_info(msg.str().c_str());
-  }
-  if (config.prev.minFreeBytes != config.current.minFreeBytes) {
-    std::ostringstream msg;
-    msg << "msg=\"" << TGC_NAME_MIN_FREE_BYTES << " has been changed from " << config.prev.minFreeBytes  << " to " <<
-      config.current.minFreeBytes << "\"";
-    eos_static_info(msg.str().c_str());
-  }
-  if (config.prev.minUsedBytes != config.current.minUsedBytes) {
-    std::ostringstream msg;
-    msg << "msg=\"" << TGC_NAME_MIN_USED_BYTES << " has been changed from " << config.prev.minUsedBytes  << " to " <<
-      config.current.minUsedBytes << "\"";
-    eos_static_info(msg.str().c_str());
-  }
-
-  return config.current;
-}
-
 //----------------------------------------------------------------------------
 // Return the preamble to be placed at the beginning of every log message
 //----------------------------------------------------------------------------
@@ -262,14 +223,14 @@ TapeGc::createLogPreamble(const std::string &space, const std::string &path,
 TapeGcStats
 TapeGc::getStats() const noexcept
 {
-  TapeGcStats stats;
+  TapeGcStats tgcStats;
 
-  stats.nbStagerrms = m_nbStagerrms;
-  stats.lruQueueSize = getLruQueueSize();
-  stats.freeBytes = getFreeBytes();
-  stats.queryTimestamp = m_queryTimestamp;
+  tgcStats.nbStagerrms = m_nbStagerrms;
+  tgcStats.lruQueueSize = getLruQueueSize();
+  tgcStats.spaceStats = m_spaceStats.get();
+  tgcStats.queryTimestamp = m_spaceStats.getQueryTimestamp();
 
-  return stats;
+  return tgcStats;
 }
 
 //----------------------------------------------------------------------------
@@ -284,27 +245,9 @@ TapeGc::getLruQueueSize() const noexcept
     std::lock_guard<std::mutex> lruQueueLock(m_lruQueueMutex);
     return m_lruQueue.size();
   } catch(std::exception &ex) {
-    eos_static_err(msgFormat, m_space.c_str(), ex.what());
+    eos_static_err(msgFormat, m_spaceName.c_str(), ex.what());
   } catch(...) {
-    eos_static_err(msgFormat, m_space.c_str(), "Caught an unknown exception");
-  }
-
-  return 0;
-}
-
-//----------------------------------------------------------------------------
-// Return free bytes in the EOS space worked on by this garbage collector
-//----------------------------------------------------------------------------
-uint64_t
-TapeGc::getFreeBytes() const noexcept {
-  const char *const msgFormat = "TapeGc::getFreeBytes() failed space=%s: %s";
-  try {
-    std::lock_guard<std::mutex> freeSpaceBytesLock(m_freeBytesMutex);
-    return m_freeBytes;
-  } catch(std::exception &ex) {
-    eos_static_err(msgFormat, m_space.c_str(), ex.what());
-  } catch(...) {
-    eos_static_err(msgFormat, m_space.c_str(), "Caught an unknown exception");
+    eos_static_err(msgFormat, m_spaceName.c_str(), "Caught an unknown exception");
   }
 
   return 0;
@@ -327,13 +270,7 @@ TapeGc::enableWithoutStartingWorkerThread() {
 void
 TapeGc::fileQueuedForDeletion(const size_t deletedFileSize)
 {
-  std::lock_guard<std::mutex> lock(m_freeBytesMutex);
-
-  if(m_freeBytes < deletedFileSize) {
-    m_freeBytes = 0;
-  } else {
-    m_freeBytes -= deletedFileSize;
-  }
+  m_spaceStats.fileQueuedForDeletion(deletedFileSize);
 }
 
 EOSTGCNAMESPACE_END

@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: ITapeGcMgm.hh
+// File: SmartSpaceConfig.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,79 +21,72 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGMTGC_ITAPEGCMGM_HH__
-#define __EOSMGMTGC_ITAPEGCMGM_HH__
+#ifndef __EOSMGM_SMARTSPACECONFIG_HH__
+#define __EOSMGM_SMARTSPACECONFIG_HH__
 
 #include "mgm/Namespace.hh"
-#include "mgm/tgc/SpaceStats.hh"
+#include "mgm/tgc/CachedValue.hh"
+#include "mgm/tgc/ITapeGcMgm.hh"
 #include "mgm/tgc/SpaceConfig.hh"
-#include "namespace/interface/IFileMD.hh"
-
-#include <cstdint>
-#include <string>
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file ITapeGcMgm.hh
+ * @file SmartSpaceConfig.hh
  *
- * @brief Specifies the tape-aware garbage collector's interface to the EOS MGM
+ * @brief Implements the required caching and logging surrounding the
+ * configuration of a tape-ware garbage collector.
  *
  */
 /*----------------------------------------------------------------------------*/
 EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
-//! Specifies the tape-aware garbage collector's interface to the EOS MGM
+//! Implements the required caching and logging surrounding the configuration of
+//! a tape-ware garbage collector.
 //------------------------------------------------------------------------------
-class ITapeGcMgm {
+class SmartSpaceConfig
+{
 public:
   //----------------------------------------------------------------------------
-  //! Default constructor
-  //----------------------------------------------------------------------------
-  ITapeGcMgm() = default;
-
-  //----------------------------------------------------------------------------
-  //! Virtual destructor
-  //----------------------------------------------------------------------------
-  virtual ~ITapeGcMgm() = 0;
-
-  //----------------------------------------------------------------------------
-  //! @return The configuration of a tape-aware garbage collector for the
-  //! specified space.
-  //! @param spaceName The name of the space
-  //----------------------------------------------------------------------------
-  virtual SpaceConfig getTapeGcSpaceConfig(const std::string &spaceName) = 0;
-
-  //----------------------------------------------------------------------------
-  //! @return Statistics about the specified space
-  //! @param space The name of the EOS space to be queried
-  //! @throw TapeAwareGcSpaceNotFound when the EOS space named m_spaceName
-  //! cannot be found
-  //----------------------------------------------------------------------------
-  [[nodiscard]] virtual SpaceStats getSpaceStats(const std::string &spaceName) const = 0;
-
-  //----------------------------------------------------------------------------
-  //! @param fid The file identifier
-  //! @return The size of the specified file in bytes.  If the file cannot be
-  //! found in the EOS namespace then a file size of 0 is returned.
-  //----------------------------------------------------------------------------
-  virtual std::uint64_t getFileSizeBytes(IFileMD::id_t fid) = 0;
-
-  //----------------------------------------------------------------------------
-  //! Determine if the specified file exists and is not scheduled for deletion
+  //! Constructor
   //!
-  //! @param fid The file identifier
-  //! @return True if the file exists in the EOS namespace and is not scheduled
-  //! for deletion
+  //! @param mgm interface to the EOS MGM
+  //! @param spaceName name of the EOS space that this garbage collector will
+  //! manage
+  //! @param maxConfigCacheAgeSecs maximum age in seconds of a tape-ware garbage
+  //! collector's cached configuration
   //----------------------------------------------------------------------------
-  virtual bool fileInNamespaceAndNotScheduledForDeletion(IFileMD::id_t fid) = 0;
+  SmartSpaceConfig(
+    ITapeGcMgm &mgm,
+    const std::string &spaceName,
+    std::time_t maxConfigCacheAgeSecs);
 
   //----------------------------------------------------------------------------
-  //! Execute stagerrm as user root
-  //!
-  //! @param fid The file identifier
+  //! Delete copy constructor
   //----------------------------------------------------------------------------
-  virtual void stagerrmAsRoot(const IFileMD::id_t fid) = 0;
+  SmartSpaceConfig(const SmartSpaceConfig &) = delete;
+
+  //----------------------------------------------------------------------------
+  //! Delete move constructor
+  //----------------------------------------------------------------------------
+  SmartSpaceConfig(const SmartSpaceConfig &&) = delete;
+
+  //----------------------------------------------------------------------------
+  //! Delete assignment operator
+  //----------------------------------------------------------------------------
+  SmartSpaceConfig &operator=(const SmartSpaceConfig &) = delete;
+
+  //----------------------------------------------------------------------------
+  //! @return the tape-aware garbage collector configuration and log if changed
+  //----------------------------------------------------------------------------
+  SpaceConfig get() const;
+
+private:
+
+  //----------------------------------------------------------------------------
+  //! The cached tape-aware garbage configuration
+  //----------------------------------------------------------------------------
+  mutable CachedValue<SpaceConfig> m_config;
 };
 
 EOSTGCNAMESPACE_END

@@ -34,9 +34,9 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <cstdint>
 #include <mutex>
 #include <stdexcept>
-#include <stdint.h>
 #include <thread>
 
 /*----------------------------------------------------------------------------*/
@@ -73,7 +73,7 @@ public:
   //! @throw InvalidUint64 if the specified string is not a valid unsigned
   //! 64-bit integer
   //----------------------------------------------------------------------------
-  static uint64_t toUint64(const std::string &str);
+  static std::uint64_t toUint64(const std::string &str);
 
   //----------------------------------------------------------------------------
   //! Return true if the specified string is a valid unsigned integer

@@ -26,7 +26,7 @@
 
 #include "mgm/Namespace.hh"
 
-#include <stdint.h>
+#include <cstdint>
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -41,26 +41,26 @@ EOSTGCNAMESPACE_BEGIN
 
 /// Default maximum age in seconds of a tape-ware garbage collector's
 /// cached configuration
-const uint64_t TGC_DEFAULT_MAX_CONFIG_CACHE_AGE_SECS = 10;
+const std::uint64_t TGC_DEFAULT_MAX_CONFIG_CACHE_AGE_SECS = 10;
 
 /// Name of a space configuration member
 constexpr const char * TGC_NAME_QRY_PERIOD_SECS = "tgc.qryperiodsecs";
 
 /// Default delay in seconds between EOS space queries for the tape-aware GC
-const uint64_t TGC_DEFAULT_QRY_PERIOD_SECS = 310;
+const std::uint64_t TGC_DEFAULT_QRY_PERIOD_SECS = 310;
 
 /// Name of a space configuration member
 constexpr const char * TGC_NAME_MIN_FREE_BYTES = "tgc.minfreebytes";
 
 /// Default minimum number of free bytes within an EOS space for the tape-aware GC
-const uint64_t TGC_DEFAULT_MIN_FREE_BYTES = 0;
+const std::uint64_t TGC_DEFAULT_MIN_FREE_BYTES = 0;
 
 /// Name of a space configuration member
 constexpr const char * TGC_NAME_MIN_USED_BYTES = "tgc.minusedbytes";
 
 /// Default min:w
 /// imum number of used bytes with an EOS space for the tape-aware GC
-const uint64_t TGC_DEFAULT_MIN_USED_BYTES = 1000000000000000000UL; // 1 Exabyte
+const std::uint64_t TGC_DEFAULT_MIN_USED_BYTES = 1000000000000000000UL; // 1 Exabyte
 
 EOSTGCNAMESPACE_END
 

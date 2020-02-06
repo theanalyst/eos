@@ -398,8 +398,15 @@ NsCmd::StatSubcmd(const eos::console::NsProto_StatProto& stat,
         oss << "uid=all gid=all tgc.stats=freebytes";
         for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
           const std::string &tgcSpace = itor->first;
-          const tgc::TapeGcStats &tgcSpaceStats = itor->second;
-          oss << " " << tgcSpace << "=" << tgcSpaceStats.freeBytes;
+          const tgc::TapeGcStats &tgcStats = itor->second;
+          oss << " " << tgcSpace << "=" << tgcStats.spaceStats.freeBytes;
+        }
+        oss << std::endl;
+        oss << "uid=all gid=all tgc.stats=usedbytes";
+        for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
+          const std::string &tgcSpace = itor->first;
+          const tgc::TapeGcStats &tgcStats = itor->second;
+          oss << " " << tgcSpace << "=" << tgcStats.spaceStats.usedBytes;
         }
         oss << std::endl;
         oss << "uid=all gid=all tgc.stats=qrytimestamp";
@@ -556,8 +563,15 @@ NsCmd::StatSubcmd(const eos::console::NsProto_StatProto& stat,
         oss << "ALL      tgc.stats=freebytes             ";
         for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
           const std::string &tgcSpace = itor->first;
-          const tgc::TapeGcStats &tgcSpaceStats = itor->second;
-          oss << " " << tgcSpace << "=" << tgcSpaceStats.freeBytes;
+          const tgc::TapeGcStats &tgcStats = itor->second;
+          oss << " " << tgcSpace << "=" << tgcStats.spaceStats.freeBytes;
+        }
+        oss << std::endl;
+        oss << "ALL      tgc.stats=usedbytes             ";
+        for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
+          const std::string &tgcSpace = itor->first;
+          const tgc::TapeGcStats &tgcStats = itor->second;
+          oss << " " << tgcSpace << "=" << tgcStats.spaceStats.usedBytes;
         }
         oss << std::endl;
         oss << "ALL      tgc.stats=qrytimestamp          ";

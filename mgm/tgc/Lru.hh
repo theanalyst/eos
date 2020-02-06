@@ -30,7 +30,6 @@
 #include "namespace/interface/IFileMD.hh"
 
 #include <list>
-#include <stdint.h>
 #include <unordered_map>
 
 /*----------------------------------------------------------------------------*/

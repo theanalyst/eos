@@ -43,9 +43,9 @@ RealTapeGcMgm::RealTapeGcMgm(XrdMgmOfs &ofs): m_ofs(ofs) {
 //----------------------------------------------------------------------------
 // Return the configuration of a tape-aware garbage collector
 //----------------------------------------------------------------------------
-TapeGcSpaceConfig
+SpaceConfig
 RealTapeGcMgm::getTapeGcSpaceConfig(const std::string &spaceName) {
-  TapeGcSpaceConfig config;
+  SpaceConfig config;
 
   config.queryPeriodSecs = getSpaceConfigMemberUint64(spaceName, TGC_NAME_QRY_PERIOD_SECS, TGC_DEFAULT_QRY_PERIOD_SECS);
   config.minFreeBytes = getSpaceConfigMemberUint64(spaceName, TGC_NAME_MIN_FREE_BYTES, TGC_DEFAULT_MIN_FREE_BYTES);
@@ -56,11 +56,11 @@ RealTapeGcMgm::getTapeGcSpaceConfig(const std::string &spaceName) {
 //----------------------------------------------------------------------------
 // Return the value of the specified space configuration variable
 //----------------------------------------------------------------------------
-uint64_t
+std::uint64_t
 RealTapeGcMgm::getSpaceConfigMemberUint64(
   const std::string &spaceName,
   const std::string &memberName,
-  const uint64_t defaultValue) noexcept
+  const std::uint64_t defaultValue) noexcept
 {
   try {
     std::string valueStr;
@@ -99,8 +99,8 @@ bool RealTapeGcMgm::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_
 //----------------------------------------------------------------------------
 // Return numbers of free and used bytes within the specified space
 //----------------------------------------------------------------------------
-ITapeGcMgm::FreeAndUsedBytes
-RealTapeGcMgm::getSpaceFreeAndUsedBytes(const std::string &space)
+SpaceStats
+RealTapeGcMgm::getSpaceStats(const std::string &space) const
 {
   eos::common::RWMutexReadLock lock(FsView::gFsView.ViewMutex);
 
@@ -118,7 +118,7 @@ RealTapeGcMgm::getSpaceFreeAndUsedBytes(const std::string &space)
 
   const FsSpace &fsSpace = *(spaceItor->second);
 
-  FreeAndUsedBytes freeAndUsedBytes;
+  SpaceStats stats;
   for(const auto fsid: fsSpace) {
     FileSystem * const fs = FsView::gFsView.mIdView.lookupByID(fsid);
 
@@ -144,18 +144,18 @@ RealTapeGcMgm::getSpaceFreeAndUsedBytes(const std::string &space)
     if(common::BootStatus::kBooted == fsSnapshot.mStatus &&
        common::ActiveStatus::kOnline == fsSnapshot.mActiveStatus &&
        common::ConfigStatus::kRW == fsSnapshot.mConfigStatus) {
-      freeAndUsedBytes.freeBytes += (uint64_t)fsSnapshot.mDiskBavail * (uint64_t)fsSnapshot.mDiskBsize;
-      freeAndUsedBytes.usedBytes += (uint64_t)fsSnapshot.mDiskBused * (uint64_t)fsSnapshot.mDiskBsize;
+      stats.freeBytes += (std::uint64_t)fsSnapshot.mDiskBavail * (std::uint64_t)fsSnapshot.mDiskBsize;
+      stats.usedBytes += (std::uint64_t)fsSnapshot.mDiskBused * (std::uint64_t)fsSnapshot.mDiskBsize;
     }
   }
 
-  return freeAndUsedBytes;
+  return stats;
 }
 
 //----------------------------------------------------------------------------
 // Return size of the specified file
 //----------------------------------------------------------------------------
-uint64_t RealTapeGcMgm::getFileSizeBytes(const IFileMD::id_t fid) {
+std::uint64_t RealTapeGcMgm::getFileSizeBytes(const IFileMD::id_t fid) {
   // Prefetch before taking lock because metadata may not be in memory
   Prefetcher::prefetchFileMDAndWait(m_ofs.eosView, fid);
   common::RWMutexReadLock lock(m_ofs.eosViewRWMutex);

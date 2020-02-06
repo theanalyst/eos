@@ -175,6 +175,8 @@ add_library(
   tgc/ITapeGcMgm.cc
   tgc/Lru.cc
   tgc/RealTapeGcMgm.cc
+  tgc/SmartSpaceConfig.cc
+  tgc/SmartSpaceStats.cc
   tgc/SpaceNotFound.cc
   tgc/TapeGc.cc
   tgc/Utils.cc

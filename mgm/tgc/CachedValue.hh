@@ -27,8 +27,8 @@
 #include "mgm/Namespace.hh"
 #include "mgm/tgc/CurrentAndPrev.hh"
 
+#include <ctime>
 #include <functional>
-#include <time.h>
 #include <mutex>
 
 /*----------------------------------------------------------------------------*/
@@ -55,7 +55,7 @@ public:
   //! @param maxAgeSecs age at which a call to get() will renew the cache. A
   //! value of zero means the a call to get() will always renew the cache.
   //--------------------------------------------------------------------------
-  CachedValue(std::function<ValueType()> valueGetter, const time_t maxAgeSecs):
+  CachedValue(std::function<ValueType()> valueGetter, const std::time_t maxAgeSecs):
     m_valueHasNeverBeenSet(true),
     m_valueGetter(valueGetter),
     m_maxAgeSecs(maxAgeSecs),
@@ -73,8 +73,8 @@ public:
   {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    const time_t now = time(nullptr);
-    const time_t age = now - m_timestamp;
+    const std::time_t now = time(nullptr);
+    const std::time_t age = now - m_timestamp;
 
     if(m_valueHasNeverBeenSet || age >= m_maxAgeSecs) {
       m_timestamp = now;
@@ -108,10 +108,10 @@ private:
   std::function<ValueType()> m_valueGetter;
 
   /// Age at which a call to get() will renew the cache
-  time_t m_maxAgeSecs;
+  std::time_t m_maxAgeSecs;
 
   /// The timestamp of when the value was last updated
-  time_t m_timestamp;
+  std::time_t m_timestamp;
 }; // class CachedValue
 
 EOSTGCNAMESPACE_END

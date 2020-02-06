@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: ITapeGcMgm.hh
+// File: SmartFreeAndUSedBytes.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,79 +21,91 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGMTGC_ITAPEGCMGM_HH__
-#define __EOSMGMTGC_ITAPEGCMGM_HH__
+#ifndef __EOSMGMTGCFREEBYTES_HH__
+#define __EOSMGMTGCFREEBYTES_HH__
 
-#include "mgm/Namespace.hh"
+#include "mgm/tgc/ITapeGcMgm.hh"
 #include "mgm/tgc/SpaceStats.hh"
-#include "mgm/tgc/SpaceConfig.hh"
-#include "namespace/interface/IFileMD.hh"
+#include "mgm/tgc/SmartSpaceConfig.hh"
 
-#include <cstdint>
+#include <ctime>
+#include <mutex>
 #include <string>
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file ITapeGcMgm.hh
+ * @file SmartFreeAndUSedBytes.hh
  *
- * @brief Specifies the tape-aware garbage collector's interface to the EOS MGM
- *
+ * @brief Class encapsulating how the tape-aware GC updates its internal
+ * statistics about the EOS space it is managing.
  */
 /*----------------------------------------------------------------------------*/
 EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
-//! Specifies the tape-aware garbage collector's interface to the EOS MGM
+//! Class encapsulating how the tape-aware GC updates its internal statistics
+//! about the EOS space it is managing
 //------------------------------------------------------------------------------
-class ITapeGcMgm {
+class SmartSpaceStats {
 public:
-  //----------------------------------------------------------------------------
-  //! Default constructor
-  //----------------------------------------------------------------------------
-  ITapeGcMgm() = default;
 
   //----------------------------------------------------------------------------
-  //! Virtual destructor
-  //----------------------------------------------------------------------------
-  virtual ~ITapeGcMgm() = 0;
-
-  //----------------------------------------------------------------------------
-  //! @return The configuration of a tape-aware garbage collector for the
-  //! specified space.
-  //! @param spaceName The name of the space
-  //----------------------------------------------------------------------------
-  virtual SpaceConfig getTapeGcSpaceConfig(const std::string &spaceName) = 0;
-
-  //----------------------------------------------------------------------------
-  //! @return Statistics about the specified space
-  //! @param space The name of the EOS space to be queried
-  //! @throw TapeAwareGcSpaceNotFound when the EOS space named m_spaceName
-  //! cannot be found
-  //----------------------------------------------------------------------------
-  [[nodiscard]] virtual SpaceStats getSpaceStats(const std::string &spaceName) const = 0;
-
-  //----------------------------------------------------------------------------
-  //! @param fid The file identifier
-  //! @return The size of the specified file in bytes.  If the file cannot be
-  //! found in the EOS namespace then a file size of 0 is returned.
-  //----------------------------------------------------------------------------
-  virtual std::uint64_t getFileSizeBytes(IFileMD::id_t fid) = 0;
-
-  //----------------------------------------------------------------------------
-  //! Determine if the specified file exists and is not scheduled for deletion
+  //! Constructor
   //!
-  //! @param fid The file identifier
-  //! @return True if the file exists in the EOS namespace and is not scheduled
-  //! for deletion
+  //! @param spaceName Name of the EOS space being managed
+  //! @param mgm Interface to the EOS MGM
+  //! @param config Configuration of the tape-aware garbage collector
   //----------------------------------------------------------------------------
-  virtual bool fileInNamespaceAndNotScheduledForDeletion(IFileMD::id_t fid) = 0;
+  SmartSpaceStats(const std::string &spaceName, ITapeGcMgm &mgm, SmartSpaceConfig &config);
 
   //----------------------------------------------------------------------------
-  //! Execute stagerrm as user root
+  //! Notify this object that a file has been queued for deletion
   //!
-  //! @param fid The file identifier
+  //! @param deletedFileSizeBytes The size of the deleted file in bytes
   //----------------------------------------------------------------------------
-  virtual void stagerrmAsRoot(const IFileMD::id_t fid) = 0;
+  void fileQueuedForDeletion(size_t deletedFileSizeBytes);
+
+  //----------------------------------------------------------------------------
+  //! @return statistics about the EOS space being managed
+  //----------------------------------------------------------------------------
+  SpaceStats get() const;
+
+  //----------------------------------------------------------------------------
+  //! @return timestamp at which the last query was made
+  //----------------------------------------------------------------------------
+  std::time_t getQueryTimestamp() const;
+
+private:
+
+  //----------------------------------------------------------------------------
+  //! Name of the EOS space being managed
+  //----------------------------------------------------------------------------
+  std::string m_spaceName;
+
+  //----------------------------------------------------------------------------
+  //! Interface to the EOS MGM
+  //----------------------------------------------------------------------------
+  ITapeGcMgm &m_mgm;
+
+  //----------------------------------------------------------------------------
+  //! Mutex to protect the member variables of this object
+  //----------------------------------------------------------------------------
+  mutable std::mutex m_mutex;
+
+  //----------------------------------------------------------------------------
+  //! The timestamp at which the last query was made
+  //----------------------------------------------------------------------------
+  mutable std::time_t m_queryTimestamp;
+
+  //----------------------------------------------------------------------------
+  //! Statistics about the EOS space being managed
+  //----------------------------------------------------------------------------
+  mutable SpaceStats m_stats;
+
+  //----------------------------------------------------------------------------
+  //! The configuration of the tape-aware garbage collector
+  //----------------------------------------------------------------------------
+  SmartSpaceConfig &m_config;
 };
 
 EOSTGCNAMESPACE_END

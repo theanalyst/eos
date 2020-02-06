@@ -42,9 +42,9 @@ m_nbCallsToStagerrmAsRoot(0)
 //! specified space.
 //! @param spaceName The name of the space
 //----------------------------------------------------------------------------
-TapeGcSpaceConfig
+SpaceConfig
 DummyTapeGcMgm::getTapeGcSpaceConfig(const std::string &spaceName) {
-  const TapeGcSpaceConfig defaultConfig;
+  const SpaceConfig defaultConfig;
 
   try {
     std::lock_guard<std::mutex> lock(m_mutex);
@@ -73,11 +73,11 @@ DummyTapeGcMgm::fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t /*
 }
 
 //----------------------------------------------------------------------------
-// Return numbers of free and used bytes within the specified space
+// Return statistics about the specified space
 //----------------------------------------------------------------------------
-ITapeGcMgm::FreeAndUsedBytes
-DummyTapeGcMgm::getSpaceFreeAndUsedBytes(const std::string &space) {
-  return FreeAndUsedBytes();
+SpaceStats
+DummyTapeGcMgm::getSpaceStats(const std::string &space) const {
+  return SpaceStats();
 }
 
 //----------------------------------------------------------------------------
@@ -106,7 +106,7 @@ DummyTapeGcMgm::stagerrmAsRoot(const IFileMD::id_t /* fid */)
 //----------------------------------------------------------------------------
 void
 DummyTapeGcMgm::setTapeGcSpaceConfig(const std::string &space,
-  const TapeGcSpaceConfig &config) {
+  const SpaceConfig &config) {
   std::lock_guard<std::mutex> lock(m_mutex);
 
   m_spaceToTapeGcConfig[space] = config;

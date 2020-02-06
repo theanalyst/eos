@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: TapeGcStats.hh
+// File: SpaceConfig.hh
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,59 +21,40 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSMGMTGCTAPEGCSTATS_HH__
-#define __EOSMGMTGCTAPEGCSTATS_HH__
+#ifndef __EOSMGMTGC_SPACECONFIG_HH__
+#define __EOSMGMTGC_SPACECONFIG_HH__
 
 #include "mgm/Namespace.hh"
-#include "mgm/tgc/SpaceStats.hh"
+#include "mgm/tgc/Constants.hh"
 
 #include <cstdint>
+#include <ctime>
 
 /*----------------------------------------------------------------------------*/
 /**
- * @file TapeGcStats.hh
+ * @file SpaceConfig.hh
  *
- * @brief Statistics about a tape-aware GC
- *
+ * @brief The configuration of a tape-aware garbage collector for a specific EOS
+ * space.
  */
 /*----------------------------------------------------------------------------*/
 EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
-//! Statistics about a tape-aware GC
+//! The configuration of a tape-aware garbage collector for a specific EOS
+//! space.
 //------------------------------------------------------------------------------
-struct TapeGcStats {
-  //----------------------------------------------------------------------------
-  //! Constructor.
-  //----------------------------------------------------------------------------
-  TapeGcStats():
-    nbStagerrms(0),
-    lruQueueSize(0),
-    queryTimestamp(0) {
+struct SpaceConfig {
+  std::time_t queryPeriodSecs;
+  std::uint64_t minFreeBytes;
+  std::uint64_t minUsedBytes;
+
+  SpaceConfig():
+    queryPeriodSecs(TGC_DEFAULT_QRY_PERIOD_SECS),
+    minFreeBytes(TGC_DEFAULT_MIN_FREE_BYTES),
+    minUsedBytes(TGC_DEFAULT_MIN_USED_BYTES)
+  {
   }
-
-  //----------------------------------------------------------------------------
-  //! Number of files successfully stagerrm'ed since boot.   This value is Zero
-  //! in the case of an error.
-  //----------------------------------------------------------------------------
-  std::uint64_t nbStagerrms;
-
-  //----------------------------------------------------------------------------
-  //! Size of the LRU queue.  This value is Zero in the case of an error.
-  //----------------------------------------------------------------------------
-  Lru::FidQueue::size_type lruQueueSize;
-
-  //----------------------------------------------------------------------------
-  //! Statistics about the EOS space being managed by the tape-aware garbage
-  //! collector
-  //----------------------------------------------------------------------------
-  SpaceStats spaceStats;
-
-  //----------------------------------------------------------------------------
-  //! Timestamp at which the EOS space was queried.  This value is zero in the
-  //! case of error.
-  //----------------------------------------------------------------------------
-  time_t queryTimestamp;
 };
 
 EOSTGCNAMESPACE_END

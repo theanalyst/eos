@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: Utils.cc
+// File: SmartSpaceConfig.cc
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,61 +21,51 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/Utils.hh"
+#include "common/Logging.hh"
+#include "mgm/tgc/Constants.hh"
+#include "mgm/tgc/SmartSpaceConfig.hh"
 
 EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
-// Return the integer representation of the specified string
+// Constructor
 //------------------------------------------------------------------------------
-std::uint64_t
-Utils::toUint64(const std::string &str)
+SmartSpaceConfig::SmartSpaceConfig(
+  ITapeGcMgm &mgm,
+  const std::string &spaceName,
+  const std::time_t maxConfigCacheAgeSecs):
+  m_config(std::bind(&ITapeGcMgm::getTapeGcSpaceConfig, &mgm, spaceName), maxConfigCacheAgeSecs)
 {
-  bool outOfRange = false;
-
-  if(isValidUInt(str)) {
-    try {
-      return std::stoul(str);
-    } catch(std::out_of_range &) {
-      outOfRange = true;
-    }
-  }
-
-  std::ostringstream errMsg;
-  errMsg << "Invalid unsigned 64-bit integer: value=" << str;
-  if(outOfRange) {
-    errMsg << ",reason='Out of range'";
-    throw OutOfRangeUint64(errMsg.str());
-  } else {
-    throw InvalidUint64(errMsg.str());
-  }
 }
 
 //------------------------------------------------------------------------------
-// Return true if the specified string is a valid unsigned integer
+// Returns the configuration
 //------------------------------------------------------------------------------
-bool
-Utils::isValidUInt(std::string str)
+SpaceConfig
+SmartSpaceConfig::get() const
 {
-  // left trim
-  str.erase(0, str.find_first_not_of(" \t"));
+  const auto config = m_config.get();
 
-  // An empty string is not a valid unsigned integer
-  if(str.empty()) {
-    return false;
+  if (config.prev.queryPeriodSecs != config.current.queryPeriodSecs) {
+    std::ostringstream msg;
+    msg << "msg=\"" << TGC_NAME_QRY_PERIOD_SECS << " has been changed from " <<
+      config.prev.queryPeriodSecs  << " to " << config.current.queryPeriodSecs << "\"";
+    eos_static_info(msg.str().c_str());
+  }
+  if (config.prev.minFreeBytes != config.current.minFreeBytes) {
+    std::ostringstream msg;
+    msg << "msg=\"" << TGC_NAME_MIN_FREE_BYTES << " has been changed from " << config.prev.minFreeBytes  << " to " <<
+      config.current.minFreeBytes << "\"";
+    eos_static_info(msg.str().c_str());
+  }
+  if (config.prev.minUsedBytes != config.current.minUsedBytes) {
+    std::ostringstream msg;
+    msg << "msg=\"" << TGC_NAME_MIN_USED_BYTES << " has been changed from " << config.prev.minUsedBytes  << " to " <<
+      config.current.minUsedBytes << "\"";
+    eos_static_info(msg.str().c_str());
   }
 
-  // For each character in the string
-  for(std::string::const_iterator itor = str.begin(); itor != str.end();
-    itor++) {
-
-    // If the current character is not a valid numerical digit
-    if(*itor < '0' || *itor > '9') {
-      return false;
-    }
-  }
-
-  return true;
+  return config.current;
 }
 
 EOSTGCNAMESPACE_END

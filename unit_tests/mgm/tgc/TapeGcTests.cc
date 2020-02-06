@@ -54,7 +54,8 @@ TEST_F(TgcTapeGcTest, constructor)
 
   ASSERT_EQ(0, stats.nbStagerrms);
   ASSERT_EQ(0, stats.lruQueueSize);
-  ASSERT_EQ(0, stats.freeBytes);
+  ASSERT_EQ(0, stats.spaceStats.freeBytes);
+  ASSERT_EQ(0, stats.spaceStats.usedBytes);
   ASSERT_EQ(0, stats.queryTimestamp);
 }
 
@@ -126,7 +127,7 @@ TEST_F(TgcTapeGcTest, tryToGarbageCollectASingleFile)
   ASSERT_EQ(0, mgm.getNbCallsToStagerrmAsRoot());
 
   {
-    TapeGcSpaceConfig config;
+    SpaceConfig config;
     config.minFreeBytes = 1;
     mgm.setTapeGcSpaceConfig(space, config);
   }

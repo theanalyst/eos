@@ -50,7 +50,7 @@ public:
   //!
   //! @param ofs The XRootD OFS plugin implementing the metadata handling of EOS
   //----------------------------------------------------------------------------
-  RealTapeGcMgm(XrdMgmOfs &ofs);
+  explicit RealTapeGcMgm(XrdMgmOfs &ofs);
 
   //----------------------------------------------------------------------------
   //! Delete copy constructor
@@ -72,22 +72,22 @@ public:
   //! specified space.
   //! @param spaceName The name of the space
   //----------------------------------------------------------------------------
-  TapeGcSpaceConfig getTapeGcSpaceConfig(const std::string &spaceName) override;
+  SpaceConfig getTapeGcSpaceConfig(const std::string &spaceName) override;
 
   //----------------------------------------------------------------------------
-  //! @return The numbers of free and used bytes within the specified space
+  //! @return Statistics about the specified space
   //! @param space The name of the EOS space to be queried
   //! @throw TapeAwareGcSpaceNotFound when the EOS space named m_spaceName
   //! cannot be found
   //----------------------------------------------------------------------------
-  FreeAndUsedBytes getSpaceFreeAndUsedBytes(const std::string &space) override;
+  [[nodiscard]] SpaceStats getSpaceStats(const std::string &space) const override;
 
   //----------------------------------------------------------------------------
   //! @param fid The file identifier
   //! @return The size of the specified file in bytes.  If the file cannot be
   //! found in the EOS namespace then a file size of 0 is returned.
   //----------------------------------------------------------------------------
-  uint64_t getFileSizeBytes(const IFileMD::id_t fid) override;
+  std::uint64_t getFileSizeBytes(IFileMD::id_t fid) override;
 
   //----------------------------------------------------------------------------
   //! Determine if the specified file exists and is not scheduled for deletion
@@ -96,14 +96,14 @@ public:
   //! @return True if the file exists in the EOS namespace and is not scheduled
   //! for deletion
   //----------------------------------------------------------------------------
-  bool fileInNamespaceAndNotScheduledForDeletion(const IFileMD::id_t fid) override;
+  bool fileInNamespaceAndNotScheduledForDeletion(IFileMD::id_t fid) override;
 
   //----------------------------------------------------------------------------
   //! Execute stagerrm as user root
   //!
   //! @param fid The file identifier
   //----------------------------------------------------------------------------
-  void stagerrmAsRoot(const IFileMD::id_t fid) override;
+  void stagerrmAsRoot(IFileMD::id_t fid) override;
 
 private:
 
@@ -119,8 +119,8 @@ private:
   //! @param memberName The name of the space configuration member.
   //! @param defaultValue The default value of the space configuration member.
   //----------------------------------------------------------------------------
-  uint64_t getSpaceConfigMemberUint64(const std::string &spaceName, const std::string &memberName,
-    uint64_t defaultValue) noexcept;
+  static std::uint64_t getSpaceConfigMemberUint64(const std::string &spaceName, const std::string &memberName,
+    std::uint64_t defaultValue) noexcept;
 };
 
 EOSTGCNAMESPACE_END

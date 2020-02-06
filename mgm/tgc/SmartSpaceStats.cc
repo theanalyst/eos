@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------
-// File: Utils.cc
+// File: SmartSpaceStats.cc
 // Author: Steven Murray - CERN
 // ----------------------------------------------------------------------
 
@@ -21,61 +21,62 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/tgc/Utils.hh"
+#include "mgm/tgc/SmartSpaceStats.hh"
 
 EOSTGCNAMESPACE_BEGIN
 
 //------------------------------------------------------------------------------
-// Return the integer representation of the specified string
+//! Constructor
 //------------------------------------------------------------------------------
-std::uint64_t
-Utils::toUint64(const std::string &str)
+SmartSpaceStats::SmartSpaceStats(const std::string &spaceName, ITapeGcMgm &mgm, SmartSpaceConfig &config):
+  m_spaceName(spaceName), m_mgm(mgm), m_queryTimestamp(0), m_config(config)
 {
-  bool outOfRange = false;
-
-  if(isValidUInt(str)) {
-    try {
-      return std::stoul(str);
-    } catch(std::out_of_range &) {
-      outOfRange = true;
-    }
-  }
-
-  std::ostringstream errMsg;
-  errMsg << "Invalid unsigned 64-bit integer: value=" << str;
-  if(outOfRange) {
-    errMsg << ",reason='Out of range'";
-    throw OutOfRangeUint64(errMsg.str());
-  } else {
-    throw InvalidUint64(errMsg.str());
-  }
 }
 
 //------------------------------------------------------------------------------
-// Return true if the specified string is a valid unsigned integer
+// Return statistics about the EOS space being managed
 //------------------------------------------------------------------------------
-bool
-Utils::isValidUInt(std::string str)
+SpaceStats
+SmartSpaceStats::get() const
 {
-  // left trim
-  str.erase(0, str.find_first_not_of(" \t"));
+  const std::time_t now = time(nullptr);
 
-  // An empty string is not a valid unsigned integer
-  if(str.empty()) {
-    return false;
+  const auto spaceConfig = m_config.get();
+
+  std::lock_guard<std::mutex> lock(m_mutex);
+  const std::time_t secsSinceLastQuery = now - m_queryTimestamp;
+
+  if(secsSinceLastQuery >= spaceConfig.queryPeriodSecs) {
+    m_stats = m_mgm.getSpaceStats(m_spaceName);
+    m_queryTimestamp = now;
   }
 
-  // For each character in the string
-  for(std::string::const_iterator itor = str.begin(); itor != str.end();
-    itor++) {
+  return m_stats;
+}
 
-    // If the current character is not a valid numerical digit
-    if(*itor < '0' || *itor > '9') {
-      return false;
-    }
+//----------------------------------------------------------------------------
+// Return timestamp at which the last query was made
+//----------------------------------------------------------------------------
+std::time_t
+SmartSpaceStats::getQueryTimestamp() const
+{
+  std::lock_guard<std::mutex> lock(m_mutex);
+  return m_queryTimestamp;
+}
+
+//------------------------------------------------------------------------------
+// Notify this object that a file has been queued for deletion
+//------------------------------------------------------------------------------
+void
+SmartSpaceStats::fileQueuedForDeletion(const size_t deletedFileSizeBytes)
+{
+  std::lock_guard<std::mutex> lock(m_mutex);
+
+  if(m_stats.freeBytes < deletedFileSizeBytes) {
+    m_stats.freeBytes = 0;
+  } else {
+    m_stats.freeBytes -= deletedFileSizeBytes;
   }
-
-  return true;
 }
 
 EOSTGCNAMESPACE_END
