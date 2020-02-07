@@ -47,7 +47,6 @@ before_script:
       else
         /kaniko/executor --build-arg PREBUILD_NAME="$PREBUILD_NAME" --build-arg CMAKE_OPTIONS="$CMAKE_OPTIONS" --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-cc7 --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}";
       fi
-    - ls -l `which sh` ; which bash
     - if [[ $PREBUILD_NAME == "slc6" ]]; then echo slc6; elif [[ $PREBUILD_NAME == "c8" ]]; then echo c8; elif [[ $PREBUILD_NAME =~ cc7 ]]; then echo cc7-star; else echo none; fi
     - echo "var PREBUILD_NAME:$PREBUILD_NAME
 #      elif [[ $PREBUILD_NAME == "cc7" ]]; then
@@ -102,6 +101,7 @@ prebuild-cc7_asan:
     CXXFLAGS: "-Wno-parentheses"  # Avoid boost header compilation errors
 #  only:
 #    - schedules
+  allow_failure: true
 
 prebuild-cc7_clang:
   <<: *prebuild-template_definition
@@ -119,6 +119,7 @@ prebuild-cc7_coverage:
 #  only:
 #    variables:
 #      - $COVERAGE_SCHEDULE
+  allow_failure: true
 
 
 #-------------------------------------------------------------------------------
