@@ -42,6 +42,7 @@ prebuild-c8:
   variables:
     PREBUILD_NAME: c8
   allow_failure: true # @todo remove allow_failure once c8 builds are solid
+  when: manual
 
 prebuild-cc7:
   <<: *prebuild-template_definition
