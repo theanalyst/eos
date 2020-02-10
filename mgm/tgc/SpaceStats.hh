@@ -43,10 +43,11 @@ EOSTGCNAMESPACE_BEGIN
 //! Structure to store the statistics about an EOS space
 /*----------------------------------------------------------------------------*/
 struct SpaceStats {
+  std::uint64_t totalBytes;
   std::uint64_t freeBytes;
   std::uint64_t usedBytes;
 
-  SpaceStats(): freeBytes(0), usedBytes(0) {}
+  SpaceStats(): totalBytes(0), freeBytes(0), usedBytes(0) {}
 };
 
 EOSTGCNAMESPACE_END

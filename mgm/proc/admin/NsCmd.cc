@@ -395,6 +395,13 @@ NsCmd::StatSubcmd(const eos::console::NsProto_StatProto& stat,
           oss << " " << tgcSpace << "=" << tgcSpaceStats.lruQueueSize;
         }
         oss << std::endl;
+        oss << "uid=all gid=all tgc.stats=totalbytes";
+        for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
+          const std::string &tgcSpace = itor->first;
+          const tgc::TapeGcStats &tgcStats = itor->second;
+          oss << " " << tgcSpace << "=" << tgcStats.spaceStats.totalBytes;
+        }
+        oss << std::endl;
         oss << "uid=all gid=all tgc.stats=freebytes";
         for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
           const std::string &tgcSpace = itor->first;
@@ -558,6 +565,13 @@ NsCmd::StatSubcmd(const eos::console::NsProto_StatProto& stat,
           const std::string &tgcSpace = itor->first;
           const tgc::TapeGcStats &tgcSpaceStats = itor->second;
           oss << " " << tgcSpace << "=" << tgcSpaceStats.lruQueueSize;
+        }
+        oss << std::endl;
+        oss << "ALL      tgc.stats=totalbytes            ";
+        for(auto itor = tgcStats.begin(); itor != tgcStats.end(); itor++) {
+          const std::string &tgcSpace = itor->first;
+          const tgc::TapeGcStats &tgcStats = itor->second;
+          oss << " " << tgcSpace << "=" << tgcStats.spaceStats.totalBytes;
         }
         oss << std::endl;
         oss << "ALL      tgc.stats=freebytes             ";
