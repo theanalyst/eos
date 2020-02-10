@@ -136,8 +136,9 @@ TapeGc::tryToGarbageCollectASingleFile() noexcept
     try {
       const auto spaceStats = m_spaceStats.get();
 
-      // Return no file was garbage collected if there is still enough free space
-      if(spaceStats.freeBytes >= config.minFreeBytes) return false;
+      // Return no file was garbage collected if there is still enough free
+      // space or if there is too little data available
+      if(spaceStats.freeBytes >= config.minFreeBytes || spaceStats.usedBytes <= config.minUsedBytes) return false;
     } catch(SpaceNotFound &) {
       // Return no file was garbage collected if the space was not found
       return false;
