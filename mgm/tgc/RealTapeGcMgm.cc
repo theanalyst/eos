@@ -144,7 +144,7 @@ RealTapeGcMgm::getSpaceStats(const std::string &space) const
     if(common::BootStatus::kBooted == fsSnapshot.mStatus &&
        common::ActiveStatus::kOnline == fsSnapshot.mActiveStatus &&
        common::ConfigStatus::kRW == fsSnapshot.mConfigStatus) {
-      stats.freeBytes += (std::uint64_t)fsSnapshot.mDiskBavail * (std::uint64_t)fsSnapshot.mDiskBsize;
+      stats.freeBytes += (std::uint64_t)fsSnapshot.mDiskBfree * (std::uint64_t)fsSnapshot.mDiskBsize;
       stats.usedBytes += (std::uint64_t)fsSnapshot.mDiskBused * (std::uint64_t)fsSnapshot.mDiskBsize;
     }
   }
