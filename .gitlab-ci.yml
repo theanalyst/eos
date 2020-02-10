@@ -1,7 +1,7 @@
 stages:
   - prebuild
-  - build:exotic
   - build:rpm
+  - build:exotic
   - build:dockerimage
   - test
   - coverage
@@ -1052,7 +1052,7 @@ clean_k8s_cluster:
 #-------------------------------------------------------------------------------
 
 eos_nginx_slc6:
-  stage: build:rpm
+  stage: build:exotic
   image: gitlab-registry.cern.ch/linuxsupport/slc6-base
   script:
     - yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git tar sudo createrepo
@@ -1076,7 +1076,7 @@ eos_nginx_slc6:
 
 
 eos_nginx_cc7:
-  stage: build:rpm
+  stage: build:exotic
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
     - yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git sssd-client sudo createrepo
@@ -1097,7 +1097,7 @@ eos_nginx_cc7:
 
 
 eos_apmon_slc6:
-  stage: build:rpm
+  stage: build:exotic
   image: gitlab-registry.cern.ch/linuxsupport/slc6-base
   script:
     - yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git tar sudo createrepo
@@ -1126,7 +1126,7 @@ eos_apmon_slc6:
 
 
 eos_apmon_cc7:
-  stage: build:rpm
+  stage: build:exotic
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
     - yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git sssd-client sudo createrepo
@@ -1147,7 +1147,7 @@ eos_apmon_cc7:
 
 
 eos_microhttpd_slc6:
-  stage: build:rpm
+  stage: build:exotic
   image: gitlab-registry.cern.ch/linuxsupport/slc6-base
   script:
     - yum install --nogpg -y gcc-c++ make rpm-build which git tar sudo createrepo
@@ -1168,7 +1168,7 @@ eos_microhttpd_slc6:
 
 
 eos_microhttpd_cc7:
-  stage: build:rpm
+  stage: build:exotic
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
     - yum install --nogpg -y gcc-c++ make rpm-build which git sssd-client sudo createrepo
@@ -1187,7 +1187,7 @@ eos_microhttpd_cc7:
 
 
 eos_docs:
-  stage: build:rpm
+  stage: build:exotic
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
     - yum install --nogpg -y make python-sphinx sssd-client sudo which git
@@ -1202,7 +1202,7 @@ eos_docs:
 
 
 eos_repopackage:
-  stage: build:rpm
+  stage: build:exotic
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
     - yum install --nogpg -y rpm-build sssd-client sudo createrepo
