@@ -28,11 +28,11 @@ default:
   script:
     - echo "var PREBUILD_NAME:$PREBUILD_NAME"
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-#    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-$PREBUILD_NAME --destination gitlab-registry.cern.ch/dss/eos/prebuild-$PREBUILD_NAME ;;
+    #    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-$PREBUILD_NAME --destination gitlab-registry.cern.ch/dss/eos/prebuild-$PREBUILD_NAME ;;
     - case $PREBUILD_NAME in
-        slc6) /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-slc6 --destination gitlab-registry.cern.ch/dss/eos/prebuild-slc6 ;;
-          c8) /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-c8 --destination gitlab-registry.cern.ch/dss/eos/prebuild-c8 ;;
-           *) echo "var PREBUILD_NAME:$PREBUILD_NAME not properly defined"; exit 1 ;;
+      slc6) /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-slc6 --destination gitlab-registry.cern.ch/dss/eos/prebuild-slc6 ;;
+      c8) /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-c8 --destination gitlab-registry.cern.ch/dss/eos/prebuild-c8 ;;
+      *) echo "var PREBUILD_NAME:$PREBUILD_NAME not properly defined"; exit 1 ;;
       esac
 
 prebuid-slc6:
@@ -56,8 +56,8 @@ prebuild-c8:
     - echo "var PREBUILD_NAME:$PREBUILD_NAME"
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - case $PREBUILD_NAME in
-        *cc7*) /kaniko/executor --build-arg PREBUILD_NAME="$PREBUILD_NAME" --build-arg CMAKE_OPTIONS="$CMAKE_OPTIONS" --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-cc7 --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}" ;;
-            *) echo "var PREBUILD_NAME:$PREBUILD_NAME not properly defined"; exit 1 ;;
+      *cc7*) /kaniko/executor --build-arg PREBUILD_NAME="$PREBUILD_NAME" --build-arg CMAKE_OPTIONS="$CMAKE_OPTIONS" --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-cc7 --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}" ;;
+      *) echo "var PREBUILD_NAME:$PREBUILD_NAME not properly defined"; exit 1 ;;
       esac
 
 prebuild-cc7:
@@ -92,8 +92,8 @@ prebuild-cc7_asan:
     PREBUILD_NAME: cc7_asan
     CMAKE_OPTIONS: "-DASAN=1"
     CXXFLAGS: "-Wno-parentheses"  # Avoid boost header compilation errors
-#  only:
-#    - schedules
+  #  only:
+  #    - schedules
   allow_failure: true
 
 prebuild-cc7_coverage:
@@ -364,10 +364,10 @@ build_cc7_xrd_testing: # Re-enable xrd_testing jobs once project ugprades to XRo
   tags:
     - docker_node
     - cc7
-#  only:
-#    - schedules
-#  except:
-#    - tags
+  #  only:
+  #    - schedules
+  #  except:
+  #    - tags
   when: manual
   allow_failure: true
 
@@ -392,9 +392,9 @@ build_cc7_coverage:
   tags:
     - docker_node
     - cc7
-#  only:
-#    variables:
-#      - $COVERAGE_SCHEDULE
+  #  only:
+  #    variables:
+  #      - $COVERAGE_SCHEDULE
   when: manual
 
 build_cc7_xrd_cta:
@@ -544,11 +544,13 @@ cc7_coverage_docker_image:
   before_script:
     - . /home/gitlab-runner/coe-cluster-config/st-gitlab-k8s-02/env_st-gitlab-k8s-02.sh # get access configs for the cluster
     - NAMESPACE=$(echo ${CI_JOB_NAME}-${CI_JOB_ID}-${CI_PIPELINE_ID} | tr _ -)
-    - if [[ "$CI_COMMIT_TAG" != "" ]];
-        then IMAGE_TAG="${BASETAG}${CI_COMMIT_TAG}";
-        else IMAGE_TAG="${BASETAG}${CI_PIPELINE_ID}";
+    - if [[ -n "$CI_COMMIT_TAG" ]]; then
+      IMAGE_TAG="${BASETAG}${CI_COMMIT_TAG}"; CLI_IMAGE_TAG="${CLI_BASETAG}${CI_COMMIT_TAG}";
+      else
+      IMAGE_TAG="${BASETAG}${CI_PIPELINE_ID}"; CLI_IMAGE_TAG="${CLI_BASETAG}${CI_PIPELINE_ID}";
       fi;
     - git clone https://gitlab.cern.ch/eos/eos-on-k8s.git
+    - ./eos-on-k8s/create-all.sh -i ${IMAGE_TAG} -u ${CLI_IMAGE_TAG} -n ${NAMESPACE} -q;
 
 .k8s_after_script_template: &k8s_after_script_template
   after_script:
@@ -559,21 +561,14 @@ cc7_coverage_docker_image:
     - rm -rf eos-on-k8s/
     - docker images -q | xargs docker rmi || true # remove unused images
 
-.k8s_system_test_template: &k8s_system_test_template
+.new_k8s_system_test_template: &new_k8s_system_test_template
   <<: *k8s_before_script_template
   script:
-    - if [[ "$CI_JOB_NAME" == k8s_system_qdb* ]]; then ./eos-on-k8s/create-all.sh -i ${IMAGE_TAG} -n ${NAMESPACE} -q;
-      elif [[ "$CI_JOB_NAME" == k8s_ubuntu_system ]]; then ./eos-on-k8s/create-all.sh -i ${IMAGE_TAG} -u ubuntu_bionic_client_${IMAGE_TAG} -n ${NAMESPACE} -q;
-      else echo "CI_JOB_NAME:$CI_JOB_NAME not found"; exit 1;
-      fi
-    - if [[ "$CI_JOB_NAME" == k8s_system_qdb* ]]; then
-      kubectl cp $NAMESPACE/$(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-cli1):/usr/sbin/eos-fsck-test ./eos-fsck-test;
-      chmod +x eos-fsck-test; ./eos-fsck-test --type k8s $NAMESPACE ; rm -rf eos-fsck-test;
-      fi
-    - if [[ "$CI_JOB_NAME" == k8s_ubuntu_system ]];
-        then ./gitlab-ci/k8s_system_test_script.sh --only-client ${NAMESPACE};
-        else ./gitlab-ci/k8s_system_test_script.sh ${NAMESPACE};
-      fi
+    - kubectl exec --namespace=$NAMESPACE $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- eos-instance-test-ci
+    - kubectl cp $NAMESPACE/$(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-cli1):/usr/sbin/eos-fsck-test ./eos-fsck-test;
+      chmod +x eos-fsck-test; ./eos-fsck-test --type k8s $NAMESPACE ; rm -rf eos-fsck-test
+    - if [[ $CI_JOB_NAME != "k8s_ubuntu_system" ]]; then
+      ./gitlab-ci/new_system_test_script.sh --type k8s ${NAMESPACE}
   <<: *k8s_after_script_template
   artifacts:
     when: on_failure
@@ -581,10 +576,53 @@ cc7_coverage_docker_image:
     paths:
       - eos-logs/
 
+
+new_k8s_system_qdb:
+  stage: test
+  script:
+    - kubectl exec --namespace=$NAMESPACE $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- eos-instance-test-ci
+    - kubectl cp $NAMESPACE/$(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-cli1):/usr/sbin/eos-fsck-test ./eos-fsck-test;
+      chmod +x eos-fsck-test; ./eos-fsck-test --type k8s $NAMESPACE ; rm -rf eos-fsck-test;
+    - ./gitlab-ci/new_system_test_script.sh --type k8s ${NAMESPACE};
+  tags:
+    - shell-with-docker
+    - k8s_node
+
+new_k8s_system_qdb_xt: # xt stands for xrd_testing. Must shorten to not hit HOST_NAME_MAX
+  stage: test
+  script:
+    - kubectl exec --namespace=$NAMESPACE $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- eos-instance-test-ci
+    - kubectl cp $NAMESPACE/$(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-cli1):/usr/sbin/eos-fsck-test ./eos-fsck-test;
+      chmod +x eos-fsck-test; ./eos-fsck-test --type k8s $NAMESPACE ; rm -rf eos-fsck-test;
+    - ./gitlab-ci/new_system_test_script.sh --type k8s ${NAMESPACE};
+  variables:
+    BASETAG: "xrd_testing_"
+  tags:
+    - shell-with-docker
+    - k8s_node
+  only:
+    - schedules
+  allow_failure: true
+  retry: 1
+
+new_k8s_ubuntu_system:
+  stage: test
+  script:
+    - ./gitlab-ci/new_system_test_script.sh --type k8s ${NAMESPACE};
+  variables:
+    CLI_BASETAG: "ubuntu_bionic_client_"
+  tags:
+    - shell-with-docker
+    - k8s_node
+  only:
+    - schedules
+  allow_failure: true
+  retry: 1
+
+
 .k8s_unit_test_template: &k8s_unit_test_template
   <<: *k8s_before_script_template
   script:
-    - ./eos-on-k8s/create-mgm.sh -i ${IMAGE_TAG} -n ${NAMESPACE}
     # generic unit tests
     - if [[ "$CI_JOB_NAME" =~ "asan" ]]; then export LSAN_OPTIONS="suppressions=/var/eos/test/LeakSanitizer.supp" ; else export LSAN_OPTIONS="" ; fi
     - kubectl exec -n $NAMESPACE -i $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- bash -c "LSAN_OPTIONS=${LSAN_OPTIONS} eos-unit-tests"
@@ -595,43 +633,11 @@ cc7_coverage_docker_image:
     - kubectl exec -n $NAMESPACE -i $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- bash -c "ASAN_OPTIONS=${ASAN_OPTIONS} eos-ns-quarkdb-tests"
   <<: *k8s_after_script_template
 
-k8s_system_qdb:
-  stage: test
-  <<: *k8s_system_test_template
-  tags:
-    - shell-with-docker
-    - k8s_node
-
 k8s_unit:
-  stage: test
   <<: *k8s_unit_test_template
   tags:
     - shell-with-docker
     - k8s_node
-  allow_failure: true
-  retry: 1
-
-k8s_ubuntu_system:
-  stage: test
-  <<: *k8s_system_test_template
-  tags:
-    - shell-with-docker
-    - k8s_node
-  only:
-    - schedules
-  allow_failure: true
-  retry: 1
-
-k8s_system_qdb_xt: # xt stands for xrd_testing. Must shorten to not hit HOST_NAME_MAX
-  stage: test
-  <<: *k8s_system_test_template
-  variables:
-    BASETAG: "xrd_testing_"
-  tags:
-    - shell-with-docker
-    - k8s_node
-  only:
-    - schedules
   allow_failure: true
   retry: 1
 
@@ -679,14 +685,13 @@ k8s_stress:
     - sudo ./eos-docker/scripts/shutdown_services.sh
     - ./eos-docker/scripts/remove_unused_images.sh
     - docker pull gitlab-registry.cern.ch/dss/${EOS_IMG_NAME}${CI_COMMIT_TAG-$CI_PIPELINE_ID}
+    - sudo ./eos-docker/scripts/start_services.sh -q -i gitlab-registry.cern.ch/dss/${EOS_IMG_NAME}${CI_COMMIT_TAG-$CI_PIPELINE_ID};
+
     - docker exec -i eos-mgm1 eos-instance-test-ci
 
-    - if [[ "$CI_JOB_NAME" == system_test_qdb* ]];
-        then sudo ./eos-docker/scripts/start_services.sh -q -i gitlab-registry.cern.ch/dss/${EOS_IMG_NAME}${CI_COMMIT_TAG-$CI_PIPELINE_ID};
-        else sudo ./eos-docker/scripts/start_services.sh -i gitlab-registry.cern.ch/dss/${EOS_IMG_NAME}${CI_COMMIT_TAG-$CI_PIPELINE_ID};
-      fi
+    - if [[ "$CI_JOB_NAME" == system_test_qdb* ]]; then docker cp eos-cli1:/usr/sbin/eos-fsck-test .; ./eos-fsck-test --type docker; rm -rf eos-fsck-test; fi
+
     - docker exec -i eos-cli1 git clone https://gitlab.cern.ch/dss/eosclient-tests.git
-    # - if [[ "$CI_JOB_NAME" == system_test_qdb* ]]; then docker cp eos-cli1:/usr/sbin/eos-fsck-test .; ./eos-fsck-test --type docker; rm -rf eos-fsck-test; fi
     - docker exec -di eos-cli1 /bin/bash -c 'mkdir /eos1/; mount -t fuse eosxd -ofsname=mount-1 /eos1/'
     - docker exec -di eos-cli1 /bin/bash -c 'mkdir /eos2/; mount -t fuse eosxd -ofsname=mount-2 /eos2/'
     - docker exec -i eos-cli1 env EOS_MGM_URL=root://eos-mgm1.eoscluster.cern.ch bash -c 'cd /eosclient-tests; git checkout rtb_clone; prepare/clone_test.sh prepare; rc=$?; git checkout master; exit $rc'
@@ -719,6 +724,7 @@ k8s_stress:
     - docker pull gitlab-registry.cern.ch/dss/${UBUNTU_EOS_IMG_NAME}${CI_COMMIT_TAG-$CI_PIPELINE_ID}
     # Run the following tests only on the NS in QuarkDB
     - sudo ./eos-docker/scripts/start_services.sh -q -i gitlab-registry.cern.ch/dss/eos:${CI_COMMIT_TAG-$CI_PIPELINE_ID} -u gitlab-registry.cern.ch/dss/${UBUNTU_EOS_IMG_NAME}${CI_COMMIT_TAG-$CI_PIPELINE_ID};
+
     - docker exec -i eos-cli1 git clone https://gitlab.cern.ch/dss/eosclient-tests.git
     - docker exec -di eos-cli1 /bin/bash -c 'mkdir /eos1/; mount -t fuse eosxd -ofsname=mount-1 /eos1/'
     - docker exec -di eos-cli1 /bin/bash -c 'mkdir /eos2/; mount -t fuse eosxd -ofsname=mount-2 /eos2/'
@@ -1031,13 +1037,13 @@ clean_k8s_cluster:
   script:
     - set +o pipefail
     - . /home/gitlab-runner/coe-cluster-config/st-gitlab-k8s-02/env_st-gitlab-k8s-02.sh # get access configs for the cluster
-    - kubectl get pods --no-headers --all-namespaces | 
-      grep -E 'ImagePullBackOff|ErrImagePull|Evicted' | 
-      awk '{print $2 " --namespace=" $1}' | 
+    - kubectl get pods --no-headers --all-namespaces |
+      grep -E 'ImagePullBackOff|ErrImagePull|Evicted' |
+      awk '{print $2 " --namespace=" $1}' |
       xargs --no-run-if-empty -n2 kubectl delete pods
-    - kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:.metadata.creationTimestamp" | 
-      grep -v 'default\|kube-public\|kube-system' | 
-      awk '$2 <= "'$( date --utc -d "3 days ago" +"%Y-%m-%dT%H:%M:%SZ" )'" { print $1 }' | 
+    - kubectl get namespaces --no-headers -o custom-columns=":metadata.name,:.metadata.creationTimestamp" |
+      grep -v 'default\|kube-public\|kube-system' |
+      awk '$2 <= "'$( date --utc -d "3 days ago" +"%Y-%m-%dT%H:%M:%SZ" )'" { print $1 }' |
       xargs --no-run-if-empty kubectl delete namespaces
   dependencies: []
   tags:

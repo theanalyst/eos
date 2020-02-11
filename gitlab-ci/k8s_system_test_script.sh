@@ -48,6 +48,13 @@ if [[ -z $ONLY_CLIENT ]]; then
 	-- eos-instance-test-ci
 fi
 
+
+
+
+
+
+
+
 kubectl exec --namespace=${NAMESPACE} $(get_podname eos-cli1) \
 	-- git clone https://gitlab.cern.ch/dss/eosclient-tests.git
 kubectl exec --namespace=${NAMESPACE} $(get_podname eos-cli1) \
