@@ -34,6 +34,7 @@ default:
       c8) /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-c8 --destination gitlab-registry.cern.ch/dss/eos/prebuild-c8 ;;
       *) echo "var PREBUILD_NAME:$PREBUILD_NAME not properly defined"; exit 1 ;;
       esac
+  when: manual
 
 prebuid-slc6:
   <<: *prebuild-template_definition
@@ -45,7 +46,6 @@ prebuild-c8:
   variables:
     PREBUILD_NAME: c8
   allow_failure: true # @todo remove allow_failure once c8 builds are solid
-  when: manual
 
 .prebuid_cc7-template: &prebuild_cc7-template_definition
   stage: prebuild
@@ -59,7 +59,8 @@ prebuild-c8:
       *cc7*) /kaniko/executor --build-arg PREBUILD_NAME="$PREBUILD_NAME" --build-arg CMAKE_OPTIONS="$CMAKE_OPTIONS" --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-cc7 --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}" ;;
       *) echo "var PREBUILD_NAME:$PREBUILD_NAME not properly defined"; exit 1 ;;
       esac
-
+  when: manual
+  
 prebuild-cc7:
   <<: *prebuild_cc7-template_definition
   variables:
@@ -121,16 +122,17 @@ build_cc7:
   stage: build:rpm
   image: gitlab-registry.cern.ch/dss/eos/prebuild-cc7
   script:
+    - yum install -y moreutils
     - git submodule update --init --recursive
     - mkdir build ; cd build/
     - cmake3 ../ -DPACKAGEONLY=1
-    - make srpm
+    - make srpm | ts
     - cd ../
     - echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-7/x86_64/\ngpgcheck=0\nenabled=1\npriority=2\n' >> /etc/yum.repos.d/eos-depend.repo
     - yum-builddep --nogpgcheck --setopt="cern*.exclude=xrootd*" -y build/SRPMS/*
     - if [[ $CI_COMMIT_TAG ]]; then BUILD_TYPE=tag; else BUILD_TYPE=commit; fi
     - if [ "$BUILD_TYPE" == "commit" ]; then source gitlab-ci/setup_ccache.sh; else export CCACHE_DISABLE=1; fi
-    - rpmbuild --rebuild --with server --define "_rpmdir build/RPMS/" --define "_build_name_fmt %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" build/SRPMS/*
+    - rpmbuild --rebuild --with server --define "_rpmdir build/RPMS/" --define "_build_name_fmt %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" build/SRPMS/* | ts
     - ccache -s
     - if [ "$BUILD_TYPE" == "tag" ]; then gpg --allow-secret-key-import --import /keys/stci-debian-repo.sec; printf "" | setsid rpmsign --define='%_gpg_name stci@cern.ch' --define='%_signature gpg' --addsign build/RPMS/*.rpm; fi
     - mkdir cc7_artifacts
@@ -151,17 +153,18 @@ build_slc6:
   stage: build:rpm
   image: gitlab-registry.cern.ch/dss/eos/prebuild-slc6
   script:
+    - yum install -y moreutils
     - git submodule update --init --recursive
     - mkdir build
     - cd build
     - cmake3 .. -DPACKAGEONLY=1
-    - make srpm
+    - make srpm | ts
     - cd ..
     - echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-6/x86_64/\ngpgcheck=0\nenabled=1\npriority=1\n' >> /etc/yum.repos.d/eos-depend.repo
     - yum-builddep --nogpgcheck --setopt="cern*.exclude=xrootd*" -y build/SRPMS/*
     - if [[ $CI_COMMIT_TAG ]]; then BUILD_TYPE=tag; else BUILD_TYPE=commit; fi
     - if [ "$BUILD_TYPE" == "commit" ]; then source gitlab-ci/setup_ccache_slc6.sh; else export CCACHE_DISABLE=1; fi
-    - rpmbuild --rebuild --with server --define "_rpmdir build/RPMS/" --define "_build_name_fmt %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" build/SRPMS/*
+    - rpmbuild --rebuild --with server --define "_rpmdir build/RPMS/" --define "_build_name_fmt %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" build/SRPMS/* | ts
     - ccache -s
     - if [ "$BUILD_TYPE" == "tag" ]; then gpg --allow-secret-key-import --import /keys/stci-debian-repo.sec; printf "" | setsid rpmsign --define='%_gpg_name stci@cern.ch' --define='%_signature gpg' --addsign build/RPMS/*.rpm; fi
     - mkdir slc6_artifacts

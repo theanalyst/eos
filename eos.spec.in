@@ -279,8 +279,6 @@ The EOS software package.
 
 
 %build
-secs_to_human() { echo "$(( ${1} / 3600 ))h $(( (${1} / 60) % 60 ))m $(( ${1} % 60 ))s" }
-start=$(date +%s)
 test -e $RPM_BUILD_ROOT && rm -r $RPM_BUILD_ROOT
 mkdir -p build
 cd build
@@ -297,19 +295,13 @@ cd build
     CC=clang CXX=clang++ %{cmake} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=true %{build_flags}
   %endif
 %endif
-echo "Time Elapsed:"
-secs_to_human "$(($(date +%s) - ${start}))"
 %{__make} %{_smp_mflags}
 
 %install
-secs_to_human() { echo "$(( ${1} / 3600 ))h $(( (${1} / 60) % 60 ))m $(( ${1} % 60 ))s" }
-start=$(date +%s)
 cd build
 %{__make} install DESTDIR=$RPM_BUILD_ROOT
 export QA_RPATHS=3
 echo "Installed!"
-echo "Time Elapsed:"
-secs_to_human "$(($(date +%s) - ${start}))"
 
 %clean
 rm -rf $RPM_BUILD_ROOT
