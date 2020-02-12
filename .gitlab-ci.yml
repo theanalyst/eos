@@ -565,13 +565,14 @@ cc7_coverage_docker_image:
     - docker images -q | xargs docker rmi || true # remove unused images
 
 .new_k8s_system_test_template: &new_k8s_system_test_template
+  stage: test
   <<: *k8s_before_script_template
   script:
-    - kubectl exec --namespace=$NAMESPACE $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- eos-instance-test-ci
+    - if [[ $CI_JOB_NAME != "k8s_ubuntu_system" ]]; then
+        kubectl exec --namespace=$NAMESPACE $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- eos-instance-test-ci
     - kubectl cp $NAMESPACE/$(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-cli1):/usr/sbin/eos-fsck-test ./eos-fsck-test;
       chmod +x eos-fsck-test; ./eos-fsck-test --type k8s $NAMESPACE ; rm -rf eos-fsck-test
-    - if [[ $CI_JOB_NAME != "k8s_ubuntu_system" ]]; then
-      ./gitlab-ci/new_system_test_script.sh --type k8s ${NAMESPACE}
+    - ./gitlab-ci/new_system_test_script.sh --type k8s ${NAMESPACE}
   <<: *k8s_after_script_template
   artifacts:
     when: on_failure
@@ -581,44 +582,32 @@ cc7_coverage_docker_image:
 
 
 new_k8s_system_qdb:
-  stage: test
-  script:
-    - kubectl exec --namespace=$NAMESPACE $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- eos-instance-test-ci
-    - kubectl cp $NAMESPACE/$(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-cli1):/usr/sbin/eos-fsck-test ./eos-fsck-test;
-      chmod +x eos-fsck-test; ./eos-fsck-test --type k8s $NAMESPACE ; rm -rf eos-fsck-test;
-    - ./gitlab-ci/new_system_test_script.sh --type k8s ${NAMESPACE};
+  <<: *new_k8s_system_test_template
   tags:
     - shell-with-docker
     - k8s_node
 
 new_k8s_system_qdb_xt: # xt stands for xrd_testing. Must shorten to not hit HOST_NAME_MAX
-  stage: test
-  script:
-    - kubectl exec --namespace=$NAMESPACE $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- eos-instance-test-ci
-    - kubectl cp $NAMESPACE/$(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-cli1):/usr/sbin/eos-fsck-test ./eos-fsck-test;
-      chmod +x eos-fsck-test; ./eos-fsck-test --type k8s $NAMESPACE ; rm -rf eos-fsck-test;
-    - ./gitlab-ci/new_system_test_script.sh --type k8s ${NAMESPACE};
+  <<: *new_k8s_system_test_template
   variables:
     BASETAG: "xrd_testing_"
   tags:
     - shell-with-docker
     - k8s_node
-  only:
-    - schedules
+#  only:
+#    - schedules
   allow_failure: true
   retry: 1
 
 new_k8s_ubuntu_system:
-  stage: test
-  script:
-    - ./gitlab-ci/new_system_test_script.sh --type k8s ${NAMESPACE};
+  <<: *new_k8s_system_test_template
   variables:
     CLI_BASETAG: "ubuntu_bionic_client_"
   tags:
     - shell-with-docker
     - k8s_node
-  only:
-    - schedules
+#  only:
+#    - schedules
   allow_failure: true
   retry: 1
 
