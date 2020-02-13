@@ -430,7 +430,8 @@ cc7_docker_image_commit:
   variables:
     TO: gitlab-registry.cern.ch/dss/eos:${CI_PIPELINE_ID}
     DOCKER_FILE: eos-docker/Dockerfile
-  dependencies:
+#  dependencies:
+  needs:
     - build_cc7
     - clone_docker
   only:
@@ -448,7 +449,8 @@ cc7_docker_image_tag:
     TO: gitlab-registry.cern.ch/dss/eos:${CI_COMMIT_TAG}
     DOCKER_FILE: eos-docker/Dockerfile
     NO_CACHE: 1
-  dependencies:
+  #  dependencies:
+  needs:
     - build_cc7
     - clone_docker
   only:
@@ -465,7 +467,8 @@ ubuntu_bionic_docker_image_commit:
   variables:
     TO: gitlab-registry.cern.ch/dss/eos:ubuntu_bionic_client_${CI_PIPELINE_ID}
     DOCKER_FILE: eos-docker/Dockerfile_ubuntu_bionic
-  dependencies:
+  #  dependencies:
+  needs:
     - build_ubuntu_bionic
     - clone_docker
 #  only:
@@ -483,13 +486,14 @@ ubuntu_bionic_docker_image_tag:
     TO: gitlab-registry.cern.ch/dss/eos:ubuntu_bionic_client_${CI_COMMIT_TAG}
     DOCKER_FILE: eos-docker/Dockerfile_ubuntu_bionic
     NO_CACHE: 1
-  dependencies:
+  #  dependencies:
+  needs:
     - build_ubuntu_bionic
     - clone_docker
   only:
     - tags
 
-cc7_docker_image_xrd_testing:
+cc7_xrd_testing_docker_image:
   stage: build:dockerimage
   tags:
     - docker-image-build
@@ -498,7 +502,8 @@ cc7_docker_image_xrd_testing:
   variables:
     TO: gitlab-registry.cern.ch/dss/eos:xrd_testing_${CI_PIPELINE_ID}
     DOCKER_FILE: eos-docker/Dockerfile_xrd_testing
-  dependencies:
+  #  dependencies:
+  needs:
     - build_cc7_xrd_testing
     - clone_docker
 #  only:
@@ -517,7 +522,8 @@ cc7_asan_docker_image:
     TO: gitlab-registry.cern.ch/dss/eos:asan_${CI_PIPELINE_ID}
     DOCKER_FILE: eos-docker/Dockerfile_asan
     BUILD_ARG: BRANCH=${BRANCH}
-  dependencies:
+  #  dependencies:
+  needs:
     - build_cc7_asan
     - clone_docker
 #  only:
@@ -578,7 +584,7 @@ cc7_coverage_docker_image:
   <<: *k8s_before_script_template
   script:
     - if [[ $CI_JOB_NAME != "new_k8s_ubuntu_system" ]]; then
-        date; kubectl exec --namespace=$NAMESPACE $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- eos-instance-test-ci; date
+        date; kubectl exec --namespace=$NAMESPACE $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- eos-instance-test-ci; date;
       fi
     - kubectl cp $NAMESPACE/$(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-cli1):/usr/sbin/eos-fsck-test ./eos-fsck-test;
       date; chmod +x eos-fsck-test; ./eos-fsck-test --type k8s $NAMESPACE ; rm -rf eos-fsck-test; date
@@ -592,6 +598,9 @@ cc7_coverage_docker_image:
 
 new_k8s_system_qdb:
   <<: *new_k8s_system_test_template
+  #  dependencies:
+  needs:
+    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
   tags:
     - k8s_node
 
@@ -599,6 +608,9 @@ new_k8s_ubuntu_system:
   <<: *new_k8s_system_test_template
   variables:
     CLI_BASETAG: "ubuntu_bionic_client_"
+  #  dependencies:
+  needs:
+    - ubuntu_bionic_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
   tags:
     - k8s_node
   #  only:
@@ -610,6 +622,9 @@ new_k8s_system_qdb_xt: # xt stands for xrd_testing. Must shorten to not hit HOST
   <<: *new_k8s_system_test_template
   variables:
     BASETAG: "xrd_testing_"
+  #  dependencies:
+  needs:
+    - cc7_xrd_testing_docker_image # @todo that would need tag as well, if it is a tag pipeline...
   tags:
     - k8s_node
 #  only:
@@ -633,6 +648,9 @@ new_k8s_system_qdb_xt: # xt stands for xrd_testing. Must shorten to not hit HOST
 
 k8s_unit:
   <<: *k8s_unit_test_template
+  #  dependencies:
+  needs:
+    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
   tags:
     - k8s_node
 
@@ -640,6 +658,9 @@ k8s_unit_asan:
   <<: *k8s_unit_test_template
   variables:
     BASETAG: "asan_"
+  #  dependencies:
+  needs:
+    - cc7_asan_docker_image # @todo that would need tag as well, if it is a tag pipeline...
   tags:
     - k8s_node
 #  only:
@@ -654,6 +675,9 @@ k8s_stress:
       kubectl exec -n $NAMESPACE -i $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) --
       hammer-runner.py --strict-exit-code 1 --gitlab --url eos-mgm1.eos-mgm1.$NAMESPACE.svc.cluster.local//eos/dockertest/hammer/ --protocols xroot --threads 1 2 10 100 --operations write stat read delete --runs 3 --nfiles 10000
   <<: *k8s_after_script_template
+  #  dependencies:
+  needs:
+    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
   tags:
     - k8s_node
 #  only:
