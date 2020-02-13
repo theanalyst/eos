@@ -1,4 +1,4 @@
-#!/usr/bin/env bash -ve
+#!/bin/bash -ve
 
 function usage() {
   echo "usage: $(basename $0) --type 'docker'|'k8s <k8s_namespace>' [--only-client]"
