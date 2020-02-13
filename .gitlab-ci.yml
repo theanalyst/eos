@@ -2,6 +2,7 @@ stages:
   - prebuild
   - build:rpm
   - build:exotic
+  - build:manual
   - build:dockerimage
   - test
   - coverage
@@ -60,7 +61,7 @@ prebuild-c8:
       *cc7*) /kaniko/executor --build-arg PREBUILD_NAME="$PREBUILD_NAME" --build-arg CMAKE_OPTIONS="$CMAKE_OPTIONS" --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-cc7 --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}" ;;
       *) echo "var PREBUILD_NAME:$PREBUILD_NAME not properly defined"; exit 1 ;;
       esac
-#  when: manual
+  when: manual
 
 prebuild-cc7:
   <<: *prebuild_cc7-template_definition
@@ -350,6 +351,7 @@ build_ubuntu_bionic:
     expire_in: 1 day
     paths:
       - ${BUILD_NAME}_artifacts/
+  when: manual # @todo remove when:manual
 
 build_cc7_xrd_testing: # Re-enable xrd_testing jobs once project ugprades to XRootD 5
   <<: *build_cc7_exotic-template_definition
@@ -548,7 +550,6 @@ cc7_coverage_docker_image:
 
 .k8s_before_script_template: &k8s_before_script_template
   before_script:
-    - yum install moreutils # ts
     - . /home/gitlab-runner/coe-cluster-config/st-gitlab-k8s-02/env_st-gitlab-k8s-02.sh # get access configs for the cluster
     - git clone https://gitlab.cern.ch/eos/eos-on-k8s.git
     - NAMESPACE=$(echo ${CI_JOB_NAME}-${CI_JOB_ID}-${CI_PIPELINE_ID} | tr _ -)
@@ -577,11 +578,11 @@ cc7_coverage_docker_image:
   <<: *k8s_before_script_template
   script:
     - if [[ $CI_JOB_NAME != "new_k8s_ubuntu_system" ]]; then
-        kubectl exec --namespace=$NAMESPACE $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- eos-instance-test-ci | ts;
+        date; kubectl exec --namespace=$NAMESPACE $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- eos-instance-test-ci; date
       fi
     - kubectl cp $NAMESPACE/$(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-cli1):/usr/sbin/eos-fsck-test ./eos-fsck-test;
-      chmod +x eos-fsck-test; ./eos-fsck-test --type k8s $NAMESPACE ; rm -rf eos-fsck-test
-    - ./gitlab-ci/new_system_test_script.sh --type k8s ${NAMESPACE} | ts
+      date; chmod +x eos-fsck-test; ./eos-fsck-test --type k8s $NAMESPACE ; rm -rf eos-fsck-test; date
+    - date; ./gitlab-ci/new_system_test_script.sh --type k8s ${NAMESPACE}; date
   <<: *k8s_after_script_template
   artifacts:
     when: on_failure
@@ -592,7 +593,6 @@ cc7_coverage_docker_image:
 new_k8s_system_qdb:
   <<: *new_k8s_system_test_template
   tags:
-    - shell-with-docker
     - k8s_node
 
 new_k8s_ubuntu_system:
@@ -600,7 +600,6 @@ new_k8s_ubuntu_system:
   variables:
     CLI_BASETAG: "ubuntu_bionic_client_"
   tags:
-    - shell-with-docker
     - k8s_node
   #  only:
   #    - schedules
@@ -612,7 +611,6 @@ new_k8s_system_qdb_xt: # xt stands for xrd_testing. Must shorten to not hit HOST
   variables:
     BASETAG: "xrd_testing_"
   tags:
-    - shell-with-docker
     - k8s_node
 #  only:
 #    - schedules
@@ -620,6 +618,7 @@ new_k8s_system_qdb_xt: # xt stands for xrd_testing. Must shorten to not hit HOST
   retry: 1
 
 .k8s_unit_test_template: &k8s_unit_test_template
+  stage: test
   <<: *k8s_before_script_template
   script:
     # generic unit tests
@@ -635,16 +634,13 @@ new_k8s_system_qdb_xt: # xt stands for xrd_testing. Must shorten to not hit HOST
 k8s_unit:
   <<: *k8s_unit_test_template
   tags:
-    - shell-with-docker
     - k8s_node
 
 k8s_unit_asan:
-  stage: test
   <<: *k8s_unit_test_template
   variables:
     BASETAG: "asan_"
   tags:
-    - shell-with-docker
     - k8s_node
 #  only:
 #    - schedules
@@ -654,13 +650,11 @@ k8s_stress:
   stage: test
   <<: *k8s_before_script_template
   script:
-    - ./eos-on-k8s/create-all.sh -i ${IMAGE_TAG} -n ${NAMESPACE} -q
     - > # new lines are folded into spaces
       kubectl exec -n $NAMESPACE -i $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) --
       hammer-runner.py --strict-exit-code 1 --gitlab --url eos-mgm1.eos-mgm1.$NAMESPACE.svc.cluster.local//eos/dockertest/hammer/ --protocols xroot --threads 1 2 10 100 --operations write stat read delete --runs 3 --nfiles 10000
   <<: *k8s_after_script_template
   tags:
-    - shell-with-docker
     - k8s_node
 #  only:
 #    - schedules
@@ -886,7 +880,6 @@ publish_koji_cc7:
   only:
     - tags
 
-
 publish_koji_slc6:
   stage: publish
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
@@ -904,7 +897,6 @@ publish_koji_slc6:
   only:
     - tags
 
-
 rpm_commit_artifacts:
   stage: publish
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
@@ -918,7 +910,6 @@ rpm_commit_artifacts:
     - tags
   allow_failure: true
   when: manual
-
 
 rpm_testing_artifacts:
   stage: publish
@@ -935,7 +926,6 @@ rpm_testing_artifacts:
     - tags
   retry: 2
 
-
 rpm_stable_artifacts:
   stage: publish
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
@@ -951,7 +941,6 @@ rpm_stable_artifacts:
     - tags
   dependencies: []
   when: manual
-
 
 debian_artifacts:
   stage: publish
@@ -975,7 +964,6 @@ debian_artifacts:
     - tags
   retry: 2
   allow_failure: true
-
 
 debian_artifacts_volume:
   stage: publish
@@ -1011,7 +999,6 @@ clean_rpm_artifacts:
     - triggers
     - schedules
 
-
 clean_debian_artifacts:
   stage: clean
   image: ubuntu:bionic
@@ -1028,7 +1015,6 @@ clean_debian_artifacts:
   allow_failure: true
   only:
     - schedules
-
 
 clean_k8s_cluster:
   stage: clean
@@ -1051,12 +1037,13 @@ clean_k8s_cluster:
   only:
     - schedules
 
+
 #-------------------------------------------------------------------------------
 # Manually triggered builds
 #-------------------------------------------------------------------------------
 
 eos_nginx_slc6:
-  stage: build:exotic
+  stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/slc6-base
   script:
     - yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git tar sudo createrepo
@@ -1078,9 +1065,8 @@ eos_nginx_slc6:
   environment:
     name: nginx-slc6-prod
 
-
 eos_nginx_cc7:
-  stage: build:exotic
+  stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
     - yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git sssd-client sudo createrepo
@@ -1099,9 +1085,8 @@ eos_nginx_cc7:
   environment:
     name: nginx-cc7-prod
 
-
 eos_apmon_slc6:
-  stage: build:exotic
+  stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/slc6-base
   script:
     - yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git tar sudo createrepo
@@ -1128,9 +1113,8 @@ eos_apmon_slc6:
   environment:
     name: apmon-slc6-prod
 
-
 eos_apmon_cc7:
-  stage: build:exotic
+  stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
     - yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git sssd-client sudo createrepo
@@ -1149,9 +1133,8 @@ eos_apmon_cc7:
   environment:
     name: apmon-cc7-prod
 
-
 eos_microhttpd_slc6:
-  stage: build:exotic
+  stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/slc6-base
   script:
     - yum install --nogpg -y gcc-c++ make rpm-build which git tar sudo createrepo
@@ -1170,9 +1153,8 @@ eos_microhttpd_slc6:
     - fedora_rawhide
   when: manual
 
-
 eos_microhttpd_cc7:
-  stage: build:exotic
+  stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
     - yum install --nogpg -y gcc-c++ make rpm-build which git sssd-client sudo createrepo
@@ -1189,9 +1171,8 @@ eos_microhttpd_cc7:
     - docker_node
   when: manual
 
-
 eos_docs:
-  stage: build:exotic
+  stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
     - yum install --nogpg -y make python-sphinx sssd-client sudo which git
@@ -1204,9 +1185,8 @@ eos_docs:
     - docker_node
   when: manual
 
-
 eos_repopackage:
-  stage: build:exotic
+  stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
     - yum install --nogpg -y rpm-build sssd-client sudo createrepo
