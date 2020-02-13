@@ -201,6 +201,7 @@ add_custom_target(
 
 add_custom_command(
   TARGET dist POST_BUILD
+  COMMAND cat ARGS "${CMAKE_CURRENT_SOURCE_DIR}/eos.spec"
   COMMAND rm ARGS -rf "${CMAKE_CURRENT_SOURCE_DIR}/eos.spec"
   COMMENT "Clean generated spec file")
 
