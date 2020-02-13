@@ -345,20 +345,6 @@ build_ubuntu_bionic:
     expire_in: 1 day
     paths:
       - ${BUILD_NAME}_artifacts/
-  when: manual
-
-build_cc7_clang:
-  <<: *build_cc7_exotic-template_definition
-  variables:
-    BUILD_NAME: cc7_clang
-    CMAKE_OPTIONS: "-DCLANG_BUILD=1"
-    RPMBUILD_OPTIONS: "--with clang"
-  tags:
-    - docker_node
-    - cc7
-  #  only:
-  #    - schedules
-  allow_failure: true
 
 build_cc7_xrd_testing: # Re-enable xrd_testing jobs once project ugprades to XRootD 5
   <<: *build_cc7_exotic-template_definition
@@ -384,6 +370,21 @@ build_cc7_asan:
     - docker_node
 #  only:
 #    - schedules
+  allow_failure: true # @todo remove allow_failure
+
+build_cc7_clang:
+  <<: *build_cc7_exotic-template_definition
+  variables:
+    BUILD_NAME: cc7_clang
+    CMAKE_OPTIONS: "-DCLANG_BUILD=1"
+    RPMBUILD_OPTIONS: "--with clang"
+  tags:
+    - docker_node
+    - cc7
+  #  only:
+  #    - schedules
+  allow_failure: true # @note really allow?
+  when: manual
 
 build_cc7_coverage:
   <<: *build_cc7_exotic-template_definition
@@ -396,6 +397,7 @@ build_cc7_coverage:
   only:
     variables:
       - $COVERAGE_SCHEDULE
+  when: manual
 
 build_cc7_xrd_cta:
   <<: *build_cc7_exotic-template_definition
@@ -405,6 +407,7 @@ build_cc7_xrd_cta:
     - docker_node
     - cc7
   allow_failure: true
+  when: manual
 
 
 #-------------------------------------------------------------------------------
@@ -540,6 +543,7 @@ cc7_coverage_docker_image:
 
 .k8s_before_script_template: &k8s_before_script_template
   before_script:
+    - yum install moreutils # ts
     - . /home/gitlab-runner/coe-cluster-config/st-gitlab-k8s-02/env_st-gitlab-k8s-02.sh # get access configs for the cluster
     - git clone https://gitlab.cern.ch/eos/eos-on-k8s.git
     - NAMESPACE=$(echo ${CI_JOB_NAME}-${CI_JOB_ID}-${CI_PIPELINE_ID} | tr _ -)
@@ -567,12 +571,12 @@ cc7_coverage_docker_image:
   stage: test
   <<: *k8s_before_script_template
   script:
-    - if [[ $CI_JOB_NAME != "k8s_ubuntu_system" ]]; then
-        kubectl exec --namespace=$NAMESPACE $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- eos-instance-test-ci;
+    - if [[ $CI_JOB_NAME != "new_k8s_ubuntu_system" ]]; then
+        kubectl exec --namespace=$NAMESPACE $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- eos-instance-test-ci | ts;
       fi
     - kubectl cp $NAMESPACE/$(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-cli1):/usr/sbin/eos-fsck-test ./eos-fsck-test;
       chmod +x eos-fsck-test; ./eos-fsck-test --type k8s $NAMESPACE ; rm -rf eos-fsck-test
-    - ./gitlab-ci/new_system_test_script.sh --type k8s ${NAMESPACE}
+    - ./gitlab-ci/new_system_test_script.sh --type k8s ${NAMESPACE} | ts
   <<: *k8s_after_script_template
   artifacts:
     when: on_failure
@@ -580,12 +584,23 @@ cc7_coverage_docker_image:
     paths:
       - eos-logs/
 
-
 new_k8s_system_qdb:
   <<: *new_k8s_system_test_template
   tags:
     - shell-with-docker
     - k8s_node
+
+new_k8s_ubuntu_system:
+  <<: *new_k8s_system_test_template
+  variables:
+    CLI_BASETAG: "ubuntu_bionic_client_"
+  tags:
+    - shell-with-docker
+    - k8s_node
+  #  only:
+  #    - schedules
+  allow_failure: true
+  retry: 1
 
 new_k8s_system_qdb_xt: # xt stands for xrd_testing. Must shorten to not hit HOST_NAME_MAX
   <<: *new_k8s_system_test_template
@@ -598,19 +613,6 @@ new_k8s_system_qdb_xt: # xt stands for xrd_testing. Must shorten to not hit HOST
 #    - schedules
   allow_failure: true
   retry: 1
-
-new_k8s_ubuntu_system:
-  <<: *new_k8s_system_test_template
-  variables:
-    CLI_BASETAG: "ubuntu_bionic_client_"
-  tags:
-    - shell-with-docker
-    - k8s_node
-#  only:
-#    - schedules
-  allow_failure: true
-  retry: 1
-
 
 .k8s_unit_test_template: &k8s_unit_test_template
   <<: *k8s_before_script_template
@@ -648,7 +650,7 @@ k8s_stress:
   <<: *k8s_before_script_template
   script:
     - ./eos-on-k8s/create-all.sh -i ${IMAGE_TAG} -n ${NAMESPACE} -q
-    - |
+    - > # new lines are folded into spaces
       kubectl exec -n $NAMESPACE -i $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) --
       hammer-runner.py --strict-exit-code 1 --gitlab --url eos-mgm1.eos-mgm1.$NAMESPACE.svc.cluster.local//eos/dockertest/hammer/ --protocols xroot --threads 1 2 10 100 --operations write stat read delete --runs 3 --nfiles 10000
   <<: *k8s_after_script_template
