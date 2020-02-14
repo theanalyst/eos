@@ -199,9 +199,13 @@ add_custom_target(
   COMMAND ${CMAKE_MAKE_PROGRAM} package_source
   DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/eos.spec")
 
+#add_custom_command(
+#  TARGET dist POST_BUILD
+#  COMMAND cat ARGS "${CMAKE_CURRENT_SOURCE_DIR}/eos.spec"
+#  COMMAND rm ARGS -rf "${CMAKE_CURRENT_SOURCE_DIR}/eos.spec"
+#  COMMENT "Clean generated spec file")
 add_custom_command(
   TARGET dist POST_BUILD
-  COMMAND cat ARGS "${CMAKE_CURRENT_SOURCE_DIR}/eos.spec"
   COMMAND rm ARGS -rf "${CMAKE_CURRENT_SOURCE_DIR}/eos.spec"
   COMMENT "Clean generated spec file")
 

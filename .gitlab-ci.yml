@@ -119,7 +119,7 @@ prebuild-cc7_xrd_cta:
 # Build RPMs
 #-------------------------------------------------------------------------------
 
-build_cc7:
+.build_cc7:
   stage: build:rpm
   image: gitlab-registry.cern.ch/dss/eos/prebuild-cc7
   before_script:
@@ -152,7 +152,7 @@ build_cc7:
     - docker_node
     - cc7
 
-build_slc6:
+.build_slc6:
   stage: build:rpm
   image: gitlab-registry.cern.ch/dss/eos/prebuild-slc6
   before_script:
@@ -185,7 +185,7 @@ build_slc6:
     - docker_node
     - slc6
 
-macosx_dmg:
+.macosx_dmg:
   stage: build:rpm
   script:
     - git submodule update --init --recursive
@@ -251,7 +251,7 @@ clone_docker:
       - ${EOS_ARCH}_artifacts/
   allow_failure: true
 
-build_fedora_stable:
+.build_fedora_stable:
   image: fedora:31
   <<: *build_fedora-template_definition
   variables:
@@ -263,7 +263,7 @@ build_fedora_stable:
     - schedules
     - tags
 
-build_fedora_rawhide:
+.build_fedora_rawhide:
   image: registry.fedoraproject.org/fedora:rawhide
   <<: *build_fedora-template_definition
   variables:
@@ -306,7 +306,7 @@ build_fedora_rawhide:
       - ${EOS_ARCH}_artifacts/
 #  allow_failure: true @note why allow_failure?
 
-build_ubuntu_bionic:
+.build_ubuntu_bionic:
   image: ubuntu:bionic
   before_script:
     - apt-get update
@@ -353,7 +353,7 @@ build_ubuntu_bionic:
       - ${BUILD_NAME}_artifacts/
   when: manual # @todo remove when:manual
 
-build_cc7_xrd_testing: # Re-enable xrd_testing jobs once project ugprades to XRootD 5
+.build_cc7_xrd_testing: # Re-enable xrd_testing jobs once project ugprades to XRootD 5
   <<: *build_cc7_exotic-template_definition
   variables:
     BUILD_NAME: cc7_xrd_testing
@@ -366,7 +366,7 @@ build_cc7_xrd_testing: # Re-enable xrd_testing jobs once project ugprades to XRo
     - tags
   allow_failure: true
 
-build_cc7_asan:
+.build_cc7_asan:
   <<: *build_cc7_exotic-template_definition
   variables:
     BUILD_NAME: cc7_asan
@@ -379,7 +379,7 @@ build_cc7_asan:
 #    - schedules
   allow_failure: true # @todo remove allow_failure
 
-build_cc7_clang:
+.build_cc7_clang:
   <<: *build_cc7_exotic-template_definition
   variables:
     BUILD_NAME: cc7_clang
@@ -393,7 +393,7 @@ build_cc7_clang:
   allow_failure: true # @note really allow?
   when: manual
 
-build_cc7_coverage:
+.build_cc7_coverage:
   <<: *build_cc7_exotic-template_definition
   variables:
     BUILD_NAME: cc7_coverage
@@ -406,7 +406,7 @@ build_cc7_coverage:
       - $COVERAGE_SCHEDULE
   when: manual
 
-build_cc7_xrd_cta:
+.build_cc7_xrd_cta:
   <<: *build_cc7_exotic-template_definition
   variables:
     BUILD_NAME: cc7_xrd_cta
@@ -421,7 +421,7 @@ build_cc7_xrd_cta:
 # Build docker images
 #-------------------------------------------------------------------------------
 
-cc7_docker_image_commit:
+.cc7_docker_image_commit:
   stage: build:dockerimage
   tags:
     - docker-image-build
@@ -439,7 +439,7 @@ cc7_docker_image_commit:
   except:
     - tags
 
-cc7_docker_image_tag:
+.cc7_docker_image_tag:
   stage: build:dockerimage
   tags:
     - docker-image-build
@@ -458,7 +458,7 @@ cc7_docker_image_tag:
 
 # schedules ------------------------------
 
-ubuntu_bionic_docker_image_commit:
+.ubuntu_bionic_docker_image_commit:
   stage: build:dockerimage
   tags:
     - docker-image-build
@@ -476,7 +476,7 @@ ubuntu_bionic_docker_image_commit:
   except:
     - tags
 
-ubuntu_bionic_docker_image_tag:
+.ubuntu_bionic_docker_image_tag:
   stage: build:dockerimage
   tags:
     - docker-image-build
@@ -493,7 +493,7 @@ ubuntu_bionic_docker_image_tag:
   only:
     - tags
 
-cc7_xrd_testing_docker_image:
+.cc7_xrd_testing_docker_image:
   stage: build:dockerimage
   tags:
     - docker-image-build
@@ -512,7 +512,7 @@ cc7_xrd_testing_docker_image:
     - tags
   allow_failure: true
 
-cc7_asan_docker_image:
+.cc7_asan_docker_image:
   stage: build:dockerimage
   tags:
     - docker-image-build
@@ -532,7 +532,7 @@ cc7_asan_docker_image:
     - tags
   allow_failure: true
 
-cc7_coverage_docker_image:
+.cc7_coverage_docker_image:
   stage: build:dockerimage
   tags:
     - docker-image-build
@@ -558,8 +558,12 @@ cc7_coverage_docker_image:
   before_script:
     - if [[ $CI_JOB_NAME =~ "k8s" ]]; then
         ./gitlab-ci/before_script_k8s_test.sh;
+        source ./gitlab-ci/utilities_func_for_tests.sh --type k8s $NAMESPACE
+
       else
         ./gitlab-ci/before_script_docker_test.sh;
+        source ./gitlab-ci/utilities_func_for_tests.sh --type docker
+
       fi
 
 .dock8s_after_script_template: &dock8s_after_script_template
@@ -575,14 +579,16 @@ cc7_coverage_docker_image:
   <<: *dock8s_before_script_template
   script:
 
-    - source ./gitlab-ci/utilities_func_for_tests.sh
-
-    - if [[ ! $CI_JOB_NAME =~ "ubuntu" ]]; then
+    - |
+      if [[ ! $CI_JOB_NAME =~ "ubuntu" ]]; then
         date; exec_cmd eos-mgm1 eos-instance-test-ci; date;
       fi
-    - if [[ ! $CI_JOB_NAME =~ "ubuntu" ]]; then
+    - if [[ (! $CI_JOB_NAME =~ "ubuntu") && ($CI_JOB_NAME =~ "k8s" &&]]; then
         kubectl cp $NAMESPACE/$(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-cli1):/usr/sbin/eos-fsck-test ./eos-fsck-test;
         chmod +x eos-fsck-test; date; ./eos-fsck-test --type k8s $NAMESPACE; date; rm -rf eos-fsck-test;
+      elif [[ (! $CI_JOB_NAME =~ "ubuntu") && ($CI_JOB_NAME =~ "k8s" &&]]; then
+        docker cp eos-cli1:/usr/sbin/eos-fsck-test .;
+        chmod +x eos-fsck-test; date; ./eos-fsck-test --type docker; date; rm -rf eos-fsck-test;
       fi
 
     # @todo(esindril): run "all" tests in schedule mode once these are properly supported
@@ -596,7 +602,7 @@ cc7_coverage_docker_image:
     - exec_cmd eos-cli1 "git clone https://gitlab.cern.ch/dss/eosclient-tests.git"
     - exec_cmd eos-cli1 'atd; at now <<< "mkdir /eos1/; mount -t fuse eosxd -ofsname=mount-1 /eos1/; mkdir /eos2/; mount -t fuse eosxd -ofsname=mount-2 /eos2/;"'
     - exec_cmd eos-cli1 'count=0; while [[ $count -le 10 ]] && ( [[ ! -d /eos1/dockertest/ ]] || [[ ! -d /eos2/dockertest/ ]] ); do echo "Wait for mount... $count"; (( count++ )); sleep 1; done;'
-    - exec_cmd eos-cli1 env EOS_MGM_URL=root://eos-mgm1.eoscluster.cern.ch bash -c 'cd /eosclient-tests; git checkout rtb_clone; prepare/clone_test.sh prepare; rc=$?; git checkout master; exit $rc'
+#    - exec_cmd eos-cli1 env EOS_MGM_URL=root://eos-mgm1.eoscluster.cern.ch bash -c 'cd /eosclient-tests; git checkout rtb_clone; prepare/clone_test.sh prepare; rc=$?; git checkout master; exit $rc'
     - exec_cmd eos-cli1 "su - eos-user -c 'mkdir /eos1/dockertest/fusex_tests/; cd /eos1/dockertest/fusex_tests/; /usr/sbin/fusex-benchmark'"
 
     - exec_cmd eos-cli1 " /bin/bash -c 'cd eosclient-tests &&  for n in prepare/*.sh; do /bin/bash $n prepare; done' "
@@ -615,8 +621,8 @@ cc7_coverage_docker_image:
 
 new-k8s_system_qdb:
   <<: *dock8s_system_test_template
-  needs:
-    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
+#  needs:
+#    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
   tags:
     - k8s_node
   allow_failure: true
@@ -626,9 +632,9 @@ new-k8s_ubuntu_system:
   <<: *dock8s_system_test_template
   variables:
     CLI_BASETAG: "ubuntu_bionic_client_"
-  needs:
-    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
-    - ubuntu_bionic_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
+#  needs:
+#    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
+#    - ubuntu_bionic_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
   #  only:
   #    - schedules
   tags:
@@ -641,9 +647,9 @@ new-dock_system_qdb:
   <<: *dock8s_system_test_template
   variables:
     EOS_IMG_NAME: "eos:"
-  needs:
-    - clone_docker
-    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
+#  needs:
+#    - clone_docker
+#    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
   tags:
     - shell-with-docker
   allow_failure: true
@@ -654,10 +660,10 @@ new-dock_ubuntu_system:
   <<: *dock8s_system_test_template
   variables:
     UBUNTU_EOS_IMG_NAME: "eos:ubuntu_bionic_client_"
-  needs:
-    - clone_docker
-    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
-    - ubuntu_bionic_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
+#  needs:
+#    - clone_docker
+#    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
+#    - ubuntu_bionic_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
 #  only:
 #    - schedules
   tags:
@@ -674,11 +680,8 @@ new-dock_ubuntu_system:
     - . /home/gitlab-runner/coe-cluster-config/st-gitlab-k8s-02/env_st-gitlab-k8s-02.sh # get access configs for the cluster
     - git clone https://gitlab.cern.ch/eos/eos-on-k8s.git
     - NAMESPACE=$(echo ${CI_JOB_NAME}-${CI_JOB_ID}-${CI_PIPELINE_ID} | tr _ -)
-    - if [[ -n "$CI_COMMIT_TAG" ]]; then
-        IMAGE_TAG="${BASETAG}${CI_COMMIT_TAG}"; CLI_IMAGE_TAG="${BASETAG}${CLI_BASETAG}${CI_COMMIT_TAG}";
-      else
-        IMAGE_TAG="${BASETAG}${CI_PIPELINE_ID}"; CLI_IMAGE_TAG="${BASETAG}${CLI_BASETAG}${CI_PIPELINE_ID}";
-      fi;
+#    - IMAGE_TAG="${BASETAG}${CI_COMMIT_TAG}${CI_PIPELINE_ID}"; CLI_IMAGE_TAG="${BASETAG}${CLI_BASETAG}${CI_COMMIT_TAG}${CI_PIPELINE_ID}"; # always only one between $CI_COMMIT_TAG $CI_PIPELINE_ID exists
+    - IMAGE_TAG="${BASETAG}1414091"; CLI_IMAGE_TAG="${BASETAG}${CLI_BASETAG}1414091"; # @todo temporary test with this
     - if [[ "$CI_JOB_NAME" =~ "k8s_unit" ]]; then
         ./eos-on-k8s/create-mgm.sh -i ${IMAGE_TAG} -n ${NAMESPACE} -q;
       else
@@ -698,12 +701,14 @@ new-dock_ubuntu_system:
   stage: test
   <<: *k8s_before_script_template
   script:
-    - if [[ $CI_JOB_NAME != "new_k8s_ubuntu_system" ]]; then
+    - if [[ ! $CI_JOB_NAME =~ "ubuntu" ]]; then
         date; kubectl exec --namespace=$NAMESPACE $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- eos-instance-test-ci; date;
+      fi
+    - if [[ ! $CI_JOB_NAME =~ "ubuntu" ]]; then
         kubectl cp $NAMESPACE/$(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-cli1):/usr/sbin/eos-fsck-test ./eos-fsck-test;
         date; chmod +x eos-fsck-test; ./eos-fsck-test --type k8s $NAMESPACE ; rm -rf eos-fsck-test; date;
       fi
-    - date; ./gitlab-ci/new_system_test_script.sh --type k8s ${NAMESPACE}; date
+    - date; ./gitlab-ci/k8s_system_test_script.sh ${NAMESPACE}; date
   <<: *k8s_after_script_template
   artifacts:
     when: on_failure
@@ -714,8 +719,8 @@ new-dock_ubuntu_system:
 k8s_system_qdb:
   <<: *k8s_system_test_template
   #  dependencies:
-  needs:
-    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
+#  needs:
+#    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
   tags:
     - k8s_node
 
@@ -724,9 +729,9 @@ k8s_ubuntu_system:
   variables:
     CLI_BASETAG: "ubuntu_bionic_client_"
   #  dependencies:
-  needs:
-    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
-    - ubuntu_bionic_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
+#  needs:
+#    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
+#    - ubuntu_bionic_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
   tags:
     - k8s_node
   #  only:
@@ -734,13 +739,13 @@ k8s_ubuntu_system:
   allow_failure: true
   retry: 1
 
-k8s_system_qdb_xt: # xt stands for xrd_testing. Must shorten to not hit HOST_NAME_MAX
+.k8s_system_qdb_xt: # xt stands for xrd_testing. Must shorten to not hit HOST_NAME_MAX
   <<: *k8s_system_test_template
   variables:
     BASETAG: "xrd_testing_"
   #  dependencies:
-  needs:
-    - cc7_xrd_testing_docker_image # @todo that would need tag as well, if it is a tag pipeline...
+#  needs:
+#    - cc7_xrd_testing_docker_image # @todo that would need tag as well, if it is a tag pipeline...
   tags:
     - k8s_node
 #  only:
@@ -765,18 +770,18 @@ k8s_system_qdb_xt: # xt stands for xrd_testing. Must shorten to not hit HOST_NAM
 k8s_unit:
   <<: *k8s_unit_test_template
   #  dependencies:
-  needs:
-    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
+#  needs:
+#    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
   tags:
     - k8s_node
 
-k8s_unit_asan:
+.k8s_unit_asan:
   <<: *k8s_unit_test_template
   variables:
     BASETAG: "asan_"
   #  dependencies:
-  needs:
-    - cc7_asan_docker_image # @todo that would need tag as well, if it is a tag pipeline...
+#  needs:
+#    - cc7_asan_docker_image # @todo that would need tag as well, if it is a tag pipeline...
   tags:
     - k8s_node
 #  only:
@@ -787,13 +792,13 @@ k8s_stress:
   stage: test
   <<: *k8s_before_script_template
   script:
-    - > # new lines are folded into spaces
-      kubectl exec -n $NAMESPACE -i $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) --
+    - | # new lines are folded into spaces
+      kubectl exec -n $NAMESPACE -i $(kubectl get pods -n $NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=eos-mgm1) -- \
       hammer-runner.py --strict-exit-code 1 --gitlab --url eos-mgm1.eos-mgm1.$NAMESPACE.svc.cluster.local//eos/dockertest/hammer/ --protocols xroot --threads 1 2 10 100 --operations write stat read delete --runs 3 --nfiles 10000
   <<: *k8s_after_script_template
   #  dependencies:
-  needs:
-    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
+#  needs:
+#    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
   tags:
     - k8s_node
 #  only:
@@ -816,8 +821,10 @@ k8s_stress:
 
     - sudo ./eos-docker/scripts/shutdown_services.sh
     - ./eos-docker/scripts/remove_unused_images.sh
-    - docker pull gitlab-registry.cern.ch/dss/${EOS_IMG_NAME}${CI_COMMIT_TAG-$CI_PIPELINE_ID}
-    - sudo ./eos-docker/scripts/start_services.sh -q -i gitlab-registry.cern.ch/dss/${EOS_IMG_NAME}${CI_COMMIT_TAG-$CI_PIPELINE_ID};
+#    - docker pull gitlab-registry.cern.ch/dss/${EOS_IMG_NAME}${CI_COMMIT_TAG-$CI_PIPELINE_ID}
+#    - sudo ./eos-docker/scripts/start_services.sh -q -i gitlab-registry.cern.ch/dss/${EOS_IMG_NAME}${CI_COMMIT_TAG-$CI_PIPELINE_ID};
+    - docker pull gitlab-registry.cern.ch/dss/${EOS_IMG_NAME}1414091
+    - sudo ./eos-docker/scripts/start_services.sh -q -i gitlab-registry.cern.ch/dss/${EOS_IMG_NAME}1414091;
 
     - docker exec -i eos-mgm1 eos-instance-test-ci
 
@@ -939,23 +946,23 @@ ubuntu_system_test:
   allow_failure: true
   retry: 1
 
-unit_test:
+.unit_test:
   stage: test
   <<: *unit_test_template
-  dependencies:
-    - build_cc7
+#  dependencies:
+#    - build_cc7
   tags:
     - docker_node
 
-unit_test_asan:
+.unit_test_asan:
   stage: test
   <<: *unit_test_template
   variables:
     BUILD_NAME: cc7_asan
     LSAN_OPTIONS: "suppressions=/var/eos/test/LeakSanitizer.supp"  # Suppress known memory leaks
     ASAN_OPTIONS: "fast_unwind_on_malloc=0"  # Avoid indirect leaks from linked dependencies
-  dependencies:
-    - build_cc7_asan
+#  dependencies:
+#    - build_cc7_asan
   tags:
     - docker_node
   only:
@@ -967,8 +974,10 @@ stress_test:
   script:
     - sudo ./eos-docker/scripts/shutdown_services.sh
     - ./eos-docker/scripts/remove_unused_images.sh
-    - docker pull gitlab-registry.cern.ch/dss/eos:${CI_COMMIT_TAG-$CI_PIPELINE_ID}
-    - sudo ./eos-docker/scripts/start_services.sh -i gitlab-registry.cern.ch/dss/eos:${CI_COMMIT_TAG-$CI_PIPELINE_ID}
+#    - docker pull gitlab-registry.cern.ch/dss/eos:${CI_COMMIT_TAG-$CI_PIPELINE_ID}
+#    - sudo ./eos-docker/scripts/start_services.sh -i gitlab-registry.cern.ch/dss/eos:${CI_COMMIT_TAG-$CI_PIPELINE_ID}
+    - docker pull gitlab-registry.cern.ch/dss/eos:1414091
+    - sudo ./eos-docker/scripts/start_services.sh -i gitlab-registry.cern.ch/dss/eos:1414091
     - docker exec -i eos-mgm1 hammer-runner.py --strict-exit-code 1 --gitlab --url eos-mgm1.eoscluster.cern.ch//eos/dockertest/hammer/ --protocols xroot --threads 1 2 10 100 --operations write stat read delete --runs 3 --nfiles 10000
     - sudo ./eos-docker/scripts/shutdown_services.sh
   tags:
@@ -1003,7 +1012,7 @@ coverage_report:
 # RPM publishing
 #-------------------------------------------------------------------------------
 
-publish_koji_cc7:
+.publish_koji_cc7:
   stage: publish
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
@@ -1020,7 +1029,7 @@ publish_koji_cc7:
   only:
     - tags
 
-publish_koji_slc6:
+.publish_koji_slc6:
   stage: publish
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
@@ -1037,7 +1046,7 @@ publish_koji_slc6:
   only:
     - tags
 
-rpm_commit_artifacts:
+.rpm_commit_artifacts:
   stage: publish
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
@@ -1051,7 +1060,7 @@ rpm_commit_artifacts:
   allow_failure: true
   when: manual
 
-rpm_testing_artifacts:
+.rpm_testing_artifacts:
   stage: publish
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
@@ -1066,7 +1075,7 @@ rpm_testing_artifacts:
     - tags
   retry: 2
 
-rpm_stable_artifacts:
+.rpm_stable_artifacts:
   stage: publish
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
@@ -1082,7 +1091,7 @@ rpm_stable_artifacts:
   dependencies: []
   when: manual
 
-debian_artifacts:
+.debian_artifacts:
   stage: publish
   image: ubuntu:bionic
   script:
@@ -1105,7 +1114,7 @@ debian_artifacts:
   retry: 2
   allow_failure: true
 
-debian_artifacts_volume:
+.debian_artifacts_volume:
   stage: publish
   image: ubuntu:bionic
   script:
@@ -1182,7 +1191,7 @@ clean_k8s_cluster:
 # Manually triggered builds
 #-------------------------------------------------------------------------------
 
-eos_nginx_slc6:
+.eos_nginx_slc6:
   stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/slc6-base
   script:
@@ -1205,7 +1214,7 @@ eos_nginx_slc6:
   environment:
     name: nginx-slc6-prod
 
-eos_nginx_cc7:
+.eos_nginx_cc7:
   stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
@@ -1225,7 +1234,7 @@ eos_nginx_cc7:
   environment:
     name: nginx-cc7-prod
 
-eos_apmon_slc6:
+.eos_apmon_slc6:
   stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/slc6-base
   script:
@@ -1253,7 +1262,7 @@ eos_apmon_slc6:
   environment:
     name: apmon-slc6-prod
 
-eos_apmon_cc7:
+.eos_apmon_cc7:
   stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
@@ -1273,7 +1282,7 @@ eos_apmon_cc7:
   environment:
     name: apmon-cc7-prod
 
-eos_microhttpd_slc6:
+.eos_microhttpd_slc6:
   stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/slc6-base
   script:
@@ -1293,7 +1302,7 @@ eos_microhttpd_slc6:
     - fedora_rawhide
   when: manual
 
-eos_microhttpd_cc7:
+.eos_microhttpd_cc7:
   stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
@@ -1311,7 +1320,7 @@ eos_microhttpd_cc7:
     - docker_node
   when: manual
 
-eos_docs:
+.eos_docs:
   stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:
@@ -1325,7 +1334,7 @@ eos_docs:
     - docker_node
   when: manual
 
-eos_repopackage:
+.eos_repopackage:
   stage: build:manual
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
   script:

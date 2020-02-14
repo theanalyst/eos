@@ -51,10 +51,6 @@ fi
 
 
 
-
-
-
-
 kubectl exec --namespace=${NAMESPACE} $(get_podname eos-cli1) \
 	-- git clone https://gitlab.cern.ch/dss/eosclient-tests.git
 kubectl exec --namespace=${NAMESPACE} $(get_podname eos-cli1) \
