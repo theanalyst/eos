@@ -30,11 +30,15 @@ function exec_cmd_docker() {
 # and the rest is the command to be executed
 function exec_cmd_k8s() {
   set -o xtrace
-  kubectl exec --namespace=$K8S_NAMESPACE $(kubectl get pods --namespace=$K8S_NAMESPACE --no-headers -o custom-columns=":metadata.name" -l app=$1) -- /bin/bash -l -c "${@:2}"
+  kubectl exec --namespace=$K8S_NAMESPACE $(get_podname $1) -- /bin/bash -l -c "${@:2}"
   set +o xtrace
 }
 
-env
+function get_podname () {
+    local app=$1
+    kubectl get pods --namespace=$K8S_NAMESPACE -l app=$app | grep -E '([0-9]+)/\1' | awk '{print $1}' # Get only READY pods
+}
+
 
 # Set up global variables
 IS_DOCKER=""
@@ -70,5 +74,3 @@ else
   exit 1
 fi
 
-
-env
