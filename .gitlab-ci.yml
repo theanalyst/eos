@@ -627,15 +627,19 @@ new-dock_system:
     # fi
     # until then just run the "ci" tests
 
-    - exec_cmd eos-cli1 "git clone https://gitlab.cern.ch/dss/eosclient-tests.git"
+    - exec_cmd eos-cli1 'git clone https://gitlab.cern.ch/dss/eosclient-tests.git'
     - exec_cmd eos-cli1 'atd; at now <<< "mkdir /eos1/; mount -t fuse eosxd -ofsname=mount-1 /eos1/; mkdir /eos2/; mount -t fuse eosxd -ofsname=mount-2 /eos2/;"'
-    - exec_cmd eos-cli1 'count=0; while [[ $count -le 10 ]] && ( [[ ! -d /eos1/dockertest/ ]] || [[ ! -d /eos2/dockertest/ ]] ); do echo "Wait for mount... $count"; (( count++ )); sleep 1; done;'
-#    - exec_cmd eos-cli1 env EOS_MGM_URL=root://eos-mgm1.eoscluster.cern.ch bash -c 'cd /eosclient-tests; git checkout rtb_clone; prepare/clone_test.sh prepare; rc=$?; git checkout master; exit $rc'
+    - exec_cmd eos-cli1 'count=0; while [[ $count -le 10 ]] && ( [[ ! -d /eos1/dockertest/ ]] || [[ ! -d /eos2/dockertest/ ]] ); do echo "Wait for mount... $count"; (( count++ )); sleep 1; done; echo "Mounted";'
+
+#     looks like it works like this on k8s. Possibly, to enable docker setup do:  < env EOS_MGM_URL="${EOS_MGM_URL:-root://eos-mgm1.eoscluster.cern.ch}" >
+#    - exec_cmd eos-cli1 " bash -c 'cd /eosclient-tests; git checkout rtb_clone; prepare/clone_test.sh prepare; rc=$?; git checkout master; exit $rc'"
+
     - exec_cmd eos-cli1 "su - eos-user -c 'mkdir /eos1/dockertest/fusex_tests/; cd /eos1/dockertest/fusex_tests/; /usr/sbin/fusex-benchmark'"
 
-    - exec_cmd eos-cli1 " /bin/bash -c 'cd eosclient-tests &&  for n in prepare/*.sh; do /bin/bash $n prepare; done' "
-    - exec_cmd eos-cli1 "su - eos-user -c 'python /eosclient-tests/run.py --workdir=\"/eos1/dockertest /eos2/dockertest\" ci'"
-    - exec_cmd eos-cli1 " /bin/bash -c 'cd eosclient-tests &&  for n in prepare/*.sh; do /bin/bash $n cleanup; done' "
+    - exec_cmd eos-cli1 'cd eosclient-tests; for n in prepare/*.sh; do /bin/bash $n prepare; done '
+#    - exec_cmd eos-cli1 "su - eos-user -c 'python /eosclient-tests/run.py --workdir=\"/eos1/dockertest /eos2/dockertest\" ci'"
+    - exec_cmd eos-cli1 'su - eos-user -c "python /eosclient-tests/run.py --workdir=\"/eos1/dockertest /eos2/dockertest\" ci"'
+    - exec_cmd eos-cli1 ' cd eosclient-tests;  for n in prepare/*.sh; do /bin/bash $n cleanup; done '
 
   <<: *dock8s_after_script_template
   artifacts:
