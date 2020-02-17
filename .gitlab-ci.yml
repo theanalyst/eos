@@ -1,5 +1,8 @@
 stages:
+  - prebuild
   - build:rpm
+  - build:exotic
+  - build:manual
   - build:dockerimage
   - test
   - coverage
@@ -7,9 +10,107 @@ stages:
   - clean
 
 
-before_script:
-  - source gitlab-ci/export_branch.sh
-  - echo "Exporting BRANCH=${BRANCH}"
+default:
+  before_script:
+    - source gitlab-ci/export_branch.sh
+    - echo "Exporting BRANCH=${BRANCH}"
+    - source gitlab-ci/export_commit-type.sh
+    - echo "Exporting COMMIT_TYPE=${COMMIT_TYPE}"
+
+
+#-------------------------------------------------------------------------------
+# Prebuild
+#-------------------------------------------------------------------------------
+
+# Using different images since their behaviour look inconsistent. Worth a ticket
+.prebuid-template: &prebuild-template_definition
+  stage: prebuild
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+  script:
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - case $PREBUILD_NAME in
+      slc6) /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-slc6 --destination gitlab-registry.cern.ch/dss/eos/prebuild-slc6 ;;
+      c8) /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-c8 --destination gitlab-registry.cern.ch/dss/eos/prebuild-c8 ;;
+      *) echo "var PREBUILD_NAME:$PREBUILD_NAME not properly defined"; exit 1 ;;
+      esac
+#  when: manual
+
+.prebuid_cc7-template: &prebuild_cc7-template_definition
+  stage: prebuild
+  image:
+    name: gitlab-registry.cern.ch/ci-tools/docker-image-builder
+    entrypoint: [""]
+  script:
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - case $PREBUILD_NAME in
+      *cc7*) /kaniko/executor --build-arg PREBUILD_NAME="$PREBUILD_NAME" --build-arg CMAKE_OPTIONS="$CMAKE_OPTIONS" --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-cc7 --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}" ;;
+      *) echo "var PREBUILD_NAME:$PREBUILD_NAME not properly defined"; exit 1 ;;
+      esac
+#  when: manual
+
+prebuid-slc6:
+  <<: *prebuild-template_definition
+  variables:
+    PREBUILD_NAME: slc6
+
+prebuild-c8:
+  <<: *prebuild-template_definition
+  variables:
+    PREBUILD_NAME: c8
+  allow_failure: true # @todo remove allow_failure once c8 builds are solid
+
+prebuild-cc7:
+  <<: *prebuild_cc7-template_definition
+  variables:
+    PREBUILD_NAME: cc7
+
+# schedules ------------------------------
+
+prebuild-cc7_clang:
+  <<: *prebuild_cc7-template_definition
+  variables:
+    PREBUILD_NAME: cc7_clang
+    CMAKE_OPTIONS: "-DCLANG_BUILD=1"
+  #  only:
+  #    - schedules
+  allow_failure: true
+
+prebuild-cc7_xrd_testing:
+  <<: *prebuild_cc7-template_definition
+  variables:
+    PREBUILD_NAME: cc7_xrd_testing
+  #  only:
+  #    - schedules
+  except:
+    - tags
+  allow_failure: true
+
+prebuild-cc7_asan:
+  <<: *prebuild_cc7-template_definition
+  variables:
+    PREBUILD_NAME: cc7_asan
+    CMAKE_OPTIONS: "-DASAN=1"
+    CXXFLAGS: "-Wno-parentheses"  # Avoid boost header compilation errors
+  #  only:
+  #    - schedules
+  allow_failure: true
+
+prebuild-cc7_coverage:
+  <<: *prebuild_cc7-template_definition
+  variables:
+    PREBUILD_NAME: cc7_coverage
+  only:
+    variables:
+      - $COVERAGE_SCHEDULE
+  allow_failure: true
+
+prebuild-cc7_xrd_cta:
+  <<: *prebuild_cc7-template_definition
+  variables:
+    PREBUILD_NAME: cc7_xrd_cta
+  allow_failure: true
 
 
 #-------------------------------------------------------------------------------
