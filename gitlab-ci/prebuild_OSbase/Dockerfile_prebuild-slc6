@@ -6,6 +6,14 @@ WORKDIR /builds/dss/eos/
 
 RUN yum install --nogpg -y gcc-c++ cmake3 make rpm-build which git yum-plugin-priorities tar ccache sl-release-scl
 
+
+    - yum install --nogpg -y gcc-c++ make cmake3 rpm-build which git yum-plugin-priorities tar ccache sl-release-scl
+    - git submodule update --init --recursive
+    # Install custom cmake version that has minimal support for features needed
+    # by EOS i.e. anything >= 3.12 works fine. To be dropped together with SLC6
+    # support.
+    - ./misc/slc6/cmake-3.15.5-Linux-x86_64.sh --prefix=/usr/ --skip-license
+
 RUN source gitlab-ci/export_branch.sh \
     && echo "Exporting BRANCH=${BRANCH}" \
     && git submodule update --init --recursive \
@@ -15,5 +23,8 @@ RUN source gitlab-ci/export_branch.sh \
     && cd ../ \
     && echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-6/x86_64/\ngpgcheck=0\nenabled=1\npriority=1\n' >> /etc/yum.repos.d/eos-depend.repo \
     && yum-builddep --nogpgcheck --setopt="cern*.exclude=xrootd*" -y build/SRPMS/*
+
+# just to install 'ts', nice to benchmark the build time.
+RUN yum install -y moreutils
 
 ENTRYPOINT /bin/bash

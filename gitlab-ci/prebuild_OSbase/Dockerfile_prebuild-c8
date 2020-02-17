@@ -14,7 +14,10 @@ RUN source gitlab-ci/export_branch.sh \
     && cd build \
     && cmake ../ -DPACKAGEONLY=1 && make srpm \
     && cd ../ \
-    && echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-8/x86_64/\ngpgcheck=0\nenabled=1\nexclude=xrootd*\npriority=4\n' >> /etc/yum.repos.d/eos-depend.repo \
+    && echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-8/x86_64/\ngpgcheck=0\nenabled=1\npriority=4\n' >> /etc/yum.repos.d/eos-depend.repo \
     && dnf builddep --nogpgcheck --allowerasing -y build/SRPMS/*
+
+# just to install 'ts', nice to benchmark the build time.
+RUN yum install -y moreutils
 
 ENTRYPOINT /bin/bash

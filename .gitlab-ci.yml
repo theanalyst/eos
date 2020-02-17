@@ -35,7 +35,7 @@ default:
       c8) /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-c8 --destination gitlab-registry.cern.ch/dss/eos/prebuild-c8 ;;
       *) echo "var PREBUILD_NAME:$PREBUILD_NAME not properly defined"; exit 1 ;;
       esac
-#  when: manual
+  when: manual
 
 .prebuid_cc7-template: &prebuild_cc7-template_definition
   stage: prebuild
@@ -48,7 +48,7 @@ default:
       *cc7*) /kaniko/executor --build-arg PREBUILD_NAME="$PREBUILD_NAME" --build-arg CMAKE_OPTIONS="$CMAKE_OPTIONS" --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-cc7 --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}" ;;
       *) echo "var PREBUILD_NAME:$PREBUILD_NAME not properly defined"; exit 1 ;;
       esac
-#  when: manual
+  when: manual
 
 prebuid-slc6:
   <<: *prebuild-template_definition
@@ -117,18 +117,13 @@ prebuild-cc7_xrd_cta:
 # Build RPMs
 #-------------------------------------------------------------------------------
 
-
 build_cc7:
   stage: build:rpm
   image: gitlab-registry.cern.ch/dss/eos/prebuild-cc7
-  before_script:
-    - yum install -y moreutils
   script:
     - git submodule update --init --recursive
-    - ls -l;
     - mkdir build
     - cd build/
-    - ls -l;
     - cmake3 ../ -DPACKAGEONLY=1
     - make srpm | ts
     - cd ../
@@ -154,9 +149,11 @@ build_cc7:
 build_slc6:
   stage: build:rpm
   image: gitlab-registry.cern.ch/dss/eos/prebuild-slc6
-  before_script:
-    - yum install -y moreutils
   script:
+    # Install custom cmake version that has minimal support for features needed
+    # by EOS i.e. anything >= 3.12 works fine. To be dropped together with SLC6
+    # support.
+    - ./misc/slc6/cmake-3.15.5-Linux-x86_64.sh --prefix=/usr/ --skip-license
     - git submodule update --init --recursive
     - mkdir build
     - cd build
@@ -223,10 +220,8 @@ clone_docker:
 # schedules ------------------------------
 .build_c8_template: &build_c8_template_definition
   stage: build:rpm
-  image: gitlab-registry.cern.ch/linuxsupport/c8-base
+  image: gitlab-registry.cern.ch/dss/eos/prebuild-c8
   script:
-    - dnf install -y epel-release
-    - dnf install --nogpg -y gcc-c++ cmake ccache make dnf-plugins-core python2 python3 python3-setuptools rpm-build rpm-sign which git tar
     - git submodule update --init --recursive
     - mkdir build; cd build
     - cmake ../ -DPACKAGEONLY=1 ; make srpm ; cd ../
@@ -248,15 +243,16 @@ clone_docker:
     paths:
       - ${BUILD_NAME}_artifacts/
 
+
 build_c8:
   <<: *build_c8_template_definition
   variables:
     BUILD_NAME: c8
   tags:
     - docker_node
-  only:
-    - schedules
-    - tags
+#  only:
+#    - schedules
+#    - tags
 
 .build_fedora-template: &build_fedora-template_definition
   stage: build:rpm
@@ -386,7 +382,7 @@ build_ubuntu_bionic:
     expire_in: 1 day
     paths:
       - ${BUILD_NAME}_artifacts/
-  when: manual # @todo remove when:manual, let it be schedules
+#  when: manual # @todo remove when:manual, let it be schedules
 
 build_cc7_xrd_testing: # Re-enable xrd_testing jobs once project ugprades to XRootD 5
   <<: *build_cc7_exotic-template_definition
@@ -399,7 +395,7 @@ build_cc7_xrd_testing: # Re-enable xrd_testing jobs once project ugprades to XRo
   #    - schedules
   except:
     - tags
-  allow_failure: true
+#  allow_failure: true
 
 build_cc7_asan:
   <<: *build_cc7_exotic-template_definition
@@ -412,7 +408,7 @@ build_cc7_asan:
     - docker_node
   #  only:
   #    - schedules
-  allow_failure: true # @todo remove allow_failure
+#  allow_failure: true # @todo remove allow_failure
 
 build_cc7_clang:
   <<: *build_cc7_exotic-template_definition
@@ -425,8 +421,7 @@ build_cc7_clang:
     - cc7
   #  only:
   #    - schedules
-  allow_failure: true # @note really allow?
-  when: manual
+#  allow_failure: true # @note really allow?
 
 build_cc7_coverage:
   <<: *build_cc7_exotic-template_definition
@@ -439,7 +434,6 @@ build_cc7_coverage:
   only:
     variables:
       - $COVERAGE_SCHEDULE
-  when: manual
 
 build_cc7_xrd_cta:
   <<: *build_cc7_exotic-template_definition
@@ -448,32 +442,11 @@ build_cc7_xrd_cta:
   tags:
     - docker_node
     - cc7
-  allow_failure: true
-  when: manual
 
 
 #-------------------------------------------------------------------------------
 # Build docker images
 #-------------------------------------------------------------------------------
-
-cc7_docker_image_commit:
-  stage: build:dockerimage
-  tags:
-    - docker-image-build
-  script:
-    - ""
-  variables:
-    TO: gitlab-registry.cern.ch/dss/eos:${CI_PIPELINE_ID}
-    DOCKER_FILE: eos-docker/Dockerfile
-  dependencies:
-    - build_cc7
-    - clone_docker
-  only:
-    - branches
-  except:
-    - beryl_aquamarine
-    - tags
-
 
 c8_docker_image_commit:
   stage: build:dockerimage
@@ -494,6 +467,40 @@ c8_docker_image_commit:
     - beryl_aquamarine
     - tags
 
+cc7_docker_image_commit:
+  stage: build:dockerimage
+  tags:
+    - docker-image-build
+  script:
+    - ""
+  variables:
+    TO: gitlab-registry.cern.ch/dss/eos:${CI_PIPELINE_ID}
+    DOCKER_FILE: eos-docker/Dockerfile
+  needs:
+    - build_cc7
+    - clone_docker
+  only:
+    - branches
+  except:
+    - tags
+
+cc7_docker_image_tag:
+  stage: build:dockerimage
+  tags:
+    - docker-image-build
+  script:
+    - ""
+  variables:
+    TO: gitlab-registry.cern.ch/dss/eos:${CI_COMMIT_TAG}
+    DOCKER_FILE: eos-docker/Dockerfile
+    NO_CACHE: 1
+  needs:
+    - build_cc7
+    - clone_docker
+  only:
+    - tags
+
+# schedules ------------------------------
 
 ubuntu_bionic_docker_image_commit:
   stage: build:dockerimage
@@ -504,33 +511,49 @@ ubuntu_bionic_docker_image_commit:
   variables:
     TO: gitlab-registry.cern.ch/dss/eos:ubuntu_bionic_client_${CI_PIPELINE_ID}
     DOCKER_FILE: eos-docker/Dockerfile_ubuntu_bionic
-  dependencies:
+  needs:
     - build_ubuntu_bionic
     - clone_docker
-  only:
-    - dev
-    - master
-  allow_failure: true
+  #  only:
+  #    - schedules
+  except:
+    - tags
 
-
-.ubuntu_disco_docker_image_commit:
+ubuntu_bionic_docker_image_tag:
   stage: build:dockerimage
   tags:
     - docker-image-build
   script:
     - ""
   variables:
-    TO: gitlab-registry.cern.ch/dss/eos:ubuntu_disco_client_${CI_PIPELINE_ID}
-    DOCKER_FILE: eos-docker/Dockerfile_ubuntu_disco
-  dependencies:
-    - build_ubuntu_disco
+    TO: gitlab-registry.cern.ch/dss/eos:ubuntu_bionic_client_${CI_COMMIT_TAG}
+    DOCKER_FILE: eos-docker/Dockerfile_ubuntu_bionic
+    NO_CACHE: 1
+  needs:
+    - build_ubuntu_bionic
     - clone_docker
   only:
-    - schedules
+    - tags
+
+.cc7_xrd_testing_docker_image:
+  stage: build:dockerimage
+  tags:
+    - docker-image-build
+  script:
+    - ""
+  variables:
+    TO: gitlab-registry.cern.ch/dss/eos:xrd_testing_${CI_PIPELINE_ID}
+    DOCKER_FILE: eos-docker/Dockerfile_xrd_testing
+  needs:
+    - build_cc7_xrd_testing
+    - clone_docker
+  #  only:
+  #    - schedules
+  except:
+    - tags
   allow_failure: true
 
-
-cc7_asan_docker_image:
+.cc7_asan_docker_image:
   stage: build:dockerimage
   tags:
     - docker-image-build
@@ -540,17 +563,17 @@ cc7_asan_docker_image:
     TO: gitlab-registry.cern.ch/dss/eos:asan_${CI_PIPELINE_ID}
     DOCKER_FILE: eos-docker/Dockerfile_asan
     BUILD_ARG: BRANCH=${BRANCH}
-  dependencies:
+  #  dependencies:
+  needs:
     - build_cc7_asan
     - clone_docker
-  only:
-    - schedules
+  #  only:
+  #    - schedules
   except:
     - tags
   allow_failure: true
 
-
-cc7_coverage_docker_image:
+.cc7_coverage_docker_image:
   stage: build:dockerimage
   tags:
     - docker-image-build
@@ -566,95 +589,6 @@ cc7_coverage_docker_image:
   only:
     variables:
       - $COVERAGE_SCHEDULE
-
-
-cc7_docker_image_xrd_testing:
-  stage: build:dockerimage
-  tags:
-    - docker-image-build
-  script:
-    - ""
-  variables:
-    TO: gitlab-registry.cern.ch/dss/eos:xrd_testing_${CI_PIPELINE_ID}
-    DOCKER_FILE: eos-docker/Dockerfile_xrd_testing
-  dependencies:
-    - build_cc7_xrd_testing
-    - clone_docker
-  only:
-    - schedules
-  except:
-    - tags
-  allow_failure: true
-
-
-cc7_docker_image_tag:
-  stage: build:dockerimage
-  tags:
-    - docker-image-build
-  script:
-    - ""
-  variables:
-    TO: gitlab-registry.cern.ch/dss/eos:${CI_COMMIT_TAG}
-    DOCKER_FILE: eos-docker/Dockerfile
-    NO_CACHE: 1
-  dependencies:
-    - build_cc7
-    - clone_docker
-  only:
-    - tags
-
-
-ubuntu_bionic_docker_image_tag:
-  stage: build:dockerimage
-  tags:
-    - docker-image-build
-  script:
-    - ""
-  variables:
-    TO: gitlab-registry.cern.ch/dss/eos:ubuntu_bionic_client_${CI_COMMIT_TAG}
-    DOCKER_FILE: eos-docker/Dockerfile_ubuntu_bionic
-    NO_CACHE: 1
-  dependencies:
-    - build_ubuntu_bionic
-    - clone_docker
-  only:
-    - tags
-  allow_failure: true
-
-
-.ubuntu_disco_docker_image_tag:
-  stage: build:dockerimage
-  tags:
-    - docker-image-build
-  script:
-    - ""
-  variables:
-    TO: gitlab-registry.cern.ch/dss/eos:ubuntu_disco_client_${CI_COMMIT_TAG}
-    DOCKER_FILE: eos-docker/Dockerfile_ubuntu_disco
-  dependencies:
-    - build_ubuntu_disco
-    - clone_docker
-  only:
-    - tags
-  allow_failure: true
-
-
-prod_docker_image_tag:
-  stage: build:dockerimage
-  tags:
-    - docker-image-build
-  script:
-    - ""
-  variables:
-    TO: gitlab-registry.cern.ch/dss/eos/eos-prod:${CI_COMMIT_TAG}
-    DOCKER_FILE: eos-docker/projects/eos/Dockerfile
-    NO_CACHE: 1
-  dependencies:
-    - build_cc7
-    - clone_docker
-  only:
-    - tags
-  allow_failure: true
 
 
 #-------------------------------------------------------------------------------
@@ -1163,7 +1097,6 @@ publish_koji_cc7:
   only:
     - tags
 
-
 publish_koji_slc6:
   stage: publish
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
@@ -1181,7 +1114,6 @@ publish_koji_slc6:
   only:
     - tags
 
-
 rpm_commit_artifacts:
   stage: publish
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
@@ -1195,7 +1127,6 @@ rpm_commit_artifacts:
     - tags
   allow_failure: true
   when: manual
-
 
 rpm_testing_artifacts:
   stage: publish
@@ -1212,7 +1143,6 @@ rpm_testing_artifacts:
     - tags
   retry: 2
 
-
 rpm_stable_artifacts:
   stage: publish
   image: gitlab-registry.cern.ch/linuxsupport/cc7-base
@@ -1228,7 +1158,6 @@ rpm_stable_artifacts:
     - tags
   dependencies: []
   when: manual
-
 
 debian_artifacts:
   stage: publish
@@ -1253,7 +1182,6 @@ debian_artifacts:
     - tags
   retry: 2
   allow_failure: true
-
 
 debian_artifacts_volume:
   stage: publish
@@ -1289,7 +1217,6 @@ clean_rpm_artifacts:
     - triggers
     - schedules
 
-
 clean_debian_artifacts:
   stage: clean
   image: ubuntu:bionic
@@ -1306,7 +1233,6 @@ clean_debian_artifacts:
   allow_failure: true
   only:
     - schedules
-
 
 clean_k8s_cluster:
   stage: clean
