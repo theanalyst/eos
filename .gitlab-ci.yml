@@ -161,7 +161,7 @@ build_cc7:
     - mkdir build
     - cd build/
     - cmake3 ../ -DPACKAGEONLY=1
-    - make srpm | ts
+    - make srpm
     - cd ../
     - echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-7/x86_64/\ngpgcheck=0\nenabled=1\npriority=2\n' >> /etc/yum.repos.d/eos-depend.repo
     - yum-builddep --nogpgcheck --setopt="cern*.exclude=xrootd*" -y build/SRPMS/*
@@ -194,7 +194,7 @@ build_slc6:
     - mkdir build
     - cd build
     - cmake3 .. -DPACKAGEONLY=1
-    - make srpm | ts
+    - make srpm
     - cd ..
     - echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-6/x86_64/\ngpgcheck=0\nenabled=1\npriority=1\n' >> /etc/yum.repos.d/eos-depend.repo
     - yum-builddep --nogpgcheck --setopt="cern*.exclude=xrootd*" -y build/SRPMS/*
@@ -286,8 +286,6 @@ clone_docker:
     paths:
       - ${EOS_ARCH}_artifacts/
   dependencies: []
-  allow_failure: true # @todo remove allow_failure (all?)
-  when: manual # @todo remove when:manual, let it be schedules
 
 build_ubuntu_bionic:
   image: ubuntu:bionic
@@ -315,17 +313,15 @@ build_ubuntu_bionic:
   image: gitlab-registry.cern.ch/dss/eos/prebuild-${BUILD_NAME}
   script:
     - git submodule update --init --recursive
-    - ls -l;
     - mkdir build
     - cd build/
-    - ls -l;
     - cmake3 ../ -DPACKAGEONLY=1 ${CMAKE_OPTIONS}
     - make srpm
     - cd ../
     - echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-7/x86_64/\ngpgcheck=0\nenabled=1\npriority=2\n' >> /etc/yum.repos.d/eos-depend.repo
     - yum-builddep --nogpgcheck --setopt="cern*.exclude=xrootd*" -y build/SRPMS/*
     - if [ "$COMMIT_TYPE" == "tag" ]; then export CCACHE_DISABLE=1; else source gitlab-ci/setup_ccache.sh; fi
-    - rpmbuild --rebuild --with server ${RPMBUILD_OPTIONS} --define "_rpmdir build/RPMS/" --define "_build_name_fmt %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" build/SRPMS/*
+    - rpmbuild --rebuild --with server ${RPMBUILD_OPTIONS} --define "_rpmdir build/RPMS/" --define "_build_name_fmt %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" build/SRPMS/* | ts
     - ccache -s
     - if [ "$COMMIT_TYPE" == "tag" ]; then gpg --allow-secret-key-import --import /keys/stci-debian-repo.sec; printf "" | setsid rpmsign --define='%_gpg_name stci@cern.ch' --define='%_signature gpg' --addsign build/RPMS/*.rpm; fi
     - mkdir ${BUILD_NAME}_artifacts
@@ -391,6 +387,15 @@ build_cc7_coverage:
     - cc7
 
 build_cc7_xrd_cta:
+  # @note drop before_script once repos and specs are properly set elsewhere
+  before_script:
+    - source gitlab-ci/export_branch.sh
+    - echo "Exporting BRANCH=${BRANCH}"
+    - source gitlab-ci/export_commit-type.sh
+    - echo "Exporting COMMIT_TYPE=${COMMIT_TYPE}"
+    - echo -e '[xrootd-cta]\nname=XRootD CTA-CI repository\nbaseurl=https://cta-ci-repo.web.cern.ch/cta-ci-repo/xrootd_tag/\ngpgcheck=0\nenabled=1\npriority=1\nprotect=0\n' >> /etc/yum.repos.d/xrootd-cta.repo
+    - sed -i "s/eos_xrootd_version_min 0:4.11.2/eos_xrootd_version_min 0:4.11.0/g" eos.spec.in
+    - sed -i "s/xrootd_version_min 1:4.11.2/xrootd_version_min 1:4.11.0/g" eos.spec.in
   <<: *build_cc7_exotic-template_definition
   variables:
     BUILD_NAME: cc7_xrd_cta
@@ -464,7 +469,7 @@ c8_docker_image_commit:
   variables:
     TO: gitlab-registry.cern.ch/dss/eos:c8_${CI_PIPELINE_ID}
     DOCKER_FILE: eos-docker/Dockerfile_c8
-  needs:
+  dependencies:
     - build_c8
     - clone_docker
   only:
@@ -483,7 +488,7 @@ cc7_docker_image_commit:
   variables:
     TO: gitlab-registry.cern.ch/dss/eos:${CI_PIPELINE_ID}
     DOCKER_FILE: eos-docker/Dockerfile
-  needs:
+  dependencies:
     - build_cc7
     - clone_docker
   only:
@@ -501,7 +506,7 @@ cc7_docker_image_tag:
     TO: gitlab-registry.cern.ch/dss/eos:${CI_COMMIT_TAG}
     DOCKER_FILE: eos-docker/Dockerfile
     NO_CACHE: 1
-  needs:
+  dependencies:
     - build_cc7
     - clone_docker
   only:
@@ -518,7 +523,7 @@ ubuntu_bionic_docker_image_commit:
   variables:
     TO: gitlab-registry.cern.ch/dss/eos:ubuntu_bionic_client_${CI_PIPELINE_ID}
     DOCKER_FILE: eos-docker/Dockerfile_ubuntu_bionic
-  needs:
+  dependencies:
     - build_ubuntu_bionic
     - clone_docker
   #  only:
@@ -536,7 +541,7 @@ ubuntu_bionic_docker_image_tag:
     TO: gitlab-registry.cern.ch/dss/eos:ubuntu_bionic_client_${CI_COMMIT_TAG}
     DOCKER_FILE: eos-docker/Dockerfile_ubuntu_bionic
     NO_CACHE: 1
-  needs:
+  dependencies:
     - build_ubuntu_bionic
     - clone_docker
   only:
@@ -551,7 +556,7 @@ cc7_xrd_testing_docker_image:
   variables:
     TO: gitlab-registry.cern.ch/dss/eos:xrd_testing_${CI_PIPELINE_ID}
     DOCKER_FILE: eos-docker/Dockerfile_xrd_testing
-  needs:
+  dependencies:
     - build_cc7_xrd_testing
     - clone_docker
   #  only:
@@ -559,7 +564,6 @@ cc7_xrd_testing_docker_image:
   except:
     - tags
   allow_failure: true
-  when: manual # @todo remove when:manual, let it be schedules
 
 cc7_asan_docker_image:
   stage: build:dockerimage
@@ -571,7 +575,7 @@ cc7_asan_docker_image:
     TO: gitlab-registry.cern.ch/dss/eos:asan_${CI_PIPELINE_ID}
     DOCKER_FILE: eos-docker/Dockerfile_asan
     BUILD_ARG: BRANCH=${BRANCH}
-  needs:
+  dependencies:
     - build_cc7_asan
     - clone_docker
   #  only:
@@ -579,7 +583,6 @@ cc7_asan_docker_image:
   except:
     - tags
   allow_failure: true
-  when: manual # @todo remove when:manual, let it be schedules
 
 .cc7_coverage_docker_image:
   stage: build:dockerimage
@@ -591,7 +594,7 @@ cc7_asan_docker_image:
     TO: gitlab-registry.cern.ch/dss/eos:coverage_${CI_PIPELINE_ID}
     DOCKER_FILE: eos-docker/Dockerfile_coverage
     BUILD_ARG: BRANCH=${BRANCH}
-  needs:
+  dependencies:
     - build_cc7_coverage
     - clone_docker
   only:
@@ -607,19 +610,19 @@ cc7_asan_docker_image:
 .dock8s_before_script_template: &dock8s_before_script_template
   before_script:
     - if [[ $CI_JOB_NAME =~ "k8s" ]]; then
-      source ./gitlab-ci/before_script_k8s_test.sh;
-      source ./gitlab-ci/utilities_func_for_tests.sh --type k8s $K8S_NAMESPACE;
+        source ./gitlab-ci/before_script_k8s_test.sh;
+        source ./gitlab-ci/utilities_func_for_tests.sh --type k8s $K8S_NAMESPACE;
       elif [[ $CI_JOB_NAME =~ "dock" ]]; then
-      source ./gitlab-ci/before_script_docker_test.sh;
-      source ./gitlab-ci/utilities_func_for_tests.sh --type docker;
+        source ./gitlab-ci/before_script_docker_test.sh;
+        source ./gitlab-ci/utilities_func_for_tests.sh --type docker;
       fi
 
 .dock8s_after_script_template: &dock8s_after_script_template
   after_script:
-    - if [[ ! $CI_JOB_NAME =~ "k8s" ]]; then
-      ./gitlab-ci/after_script_k8s_test.sh;
+    - if [[ $CI_JOB_NAME =~ "k8s" ]]; then
+        ./gitlab-ci/after_script_k8s_test.sh;
       elif [[ $CI_JOB_NAME =~ "dock" ]]; then
-      ./gitlab-ci/after_script_docker_test.sh;
+        ./gitlab-ci/after_script_docker_test.sh;
       fi
 
 .dock8s_system_test_template: &dock8s_system_test_template
@@ -643,26 +646,44 @@ cc7_asan_docker_image:
 
 new-k8s_system:
   <<: *dock8s_system_test_template
-  needs:
-    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
+  allow_failure: true
+  retry: 1
   tags:
     - k8s_node
-  allow_failure: true
-  retry: 1
 
-new-dock_system:
-  stage: test
+new-k8s_system_xt: # xt stands for xrd_testing. Must shorten to not hit HOST_NAME_MAX
   <<: *dock8s_system_test_template
   variables:
-    EOS_IMG_NAME: "eos:"
-    CLI_EOS_IMG_NAME: "eos:"
-  needs:
-    - clone_docker
-    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
-  tags:
-    - shell-with-docker
+    BASETAG: "xrd_testing_"
+#  only:
+#    - schedules
   allow_failure: true
   retry: 1
+  tags:
+    - shell-with-docker
+    - k8s_node
+
+new-dock_system:
+  <<: *dock8s_system_test_template
+  dependencies:
+    - clone_docker
+  allow_failure: true
+  retry: 1
+  tags:
+    - shell-with-docker
+
+new-dock-system_xt:
+  <<: *dock8s_system_test_template
+  variables:
+    BASETAG: "xrd_testing_"
+  dependencies:
+    - clone_docker
+#  only:
+#    - schedules
+  allow_failure: true
+  retry: 1
+  tags:
+    - shell-with-docker
 
 .dock8s_fusex_test_template: &dock8s_fusex_test_template
   stage: test
@@ -699,50 +720,105 @@ new-dock_system:
 
 new-k8s_fusex:
   <<: *dock8s_fusex_test_template
-  needs:
-    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
-  tags:
-    - k8s_node
   allow_failure: true
   retry: 1
+  tags:
+    - k8s_node
 
 new-k8s_fusex_ubuntu:
   <<: *dock8s_fusex_test_template
   variables:
     CLI_BASETAG: "ubuntu_bionic_client_"
-  needs:
-    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
-    - ubuntu_bionic_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
   #  only:
   #    - schedules
+  allow_failure: true
+  retry: 1
   tags:
     - k8s_node
-  allow_failure: true
-  retry: 1
 
 new-dock_fusex:
-  stage: test
   <<: *dock8s_fusex_test_template
-  needs:
+  dependencies:
     - clone_docker
-    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
-  tags:
-    - shell-with-docker
   allow_failure: true
   retry: 1
+  tags:
+    - shell-with-docker
 
 new-dock_fusex_ubuntu:
-  stage: test
   <<: *dock8s_fusex_test_template
   variables:
     CLI_BASETAG: "ubuntu_bionic_client_"
-  needs:
+  dependencies:
     - clone_docker
-    - cc7_docker_image_commit # @todo that would need tag as well, if it is a tag pipeline...
-  tags:
-    - shell-with-docker
   allow_failure: true
   retry: 1
+  tags:
+    - shell-with-docker
+
+new-k8s_stress:
+  stage: test
+  <<: *dock8s_before_script_template
+  script:
+    - TEST_URL="eos-mgm1.eos-mgm1.$K8S_NAMESPACE.svc.cluster.local"
+    - exec_cmd eos-mgm1 "hammer-runner.py --strict-exit-code 1 --gitlab --url ${TEST_URL}//eos/dockertest/hammer/ --protocols xroot --threads 1 2 10 100 --operations write stat read delete --runs 3 --nfiles 10000"
+  <<: *dock8s_after_script_template
+  allow_failure: true
+  retry: 1
+  tags:
+    - k8s_node
+
+new-dock_stress:
+  stage: test
+  <<: *dock8s_before_script_template
+  script:
+    - TEST_URL="eos-mgm1.eoscluster.cern.ch"
+    - exec_cmd eos-mgm1 "hammer-runner.py --strict-exit-code 1 --gitlab --url ${TEST_URL}//eos/dockertest/hammer/ --protocols xroot --threads 1 2 10 100 --operations write stat read delete --runs 3 --nfiles 10000"
+  <<: *dock8s_after_script_template
+  dependencies:
+    - clone_docker
+  allow_failure: true
+  retry: 1
+  tags:
+    - shell-with-docker
+
+.new-unit_test_template: &new-unit_test_template_definition
+  stage: test
+#  image: gitlab-registry.cern.ch/dss/${}
+  script:
+    # generic unit tests
+    - eos-unit-tests
+    - eos-fst-unit-tests
+    - eos-fusex-tests
+    # namespace specific unit tests
+    - export EOS_QUARKDB_HOSTPORT=localhost:9999
+    - export EOS_QUARKDB_PASSWD=password_must_be_atleast_32_characters
+    - quarkdb-create --path /var/lib/quarkdb/node-1 --clusterID ns-test --nodes $EOS_QUARKDB_HOSTPORT
+    - mkdir /var/log/quarkdb
+    - chown -R daemon:daemon /var/lib/quarkdb /var/log/quarkdb
+    - echo redis.password $EOS_QUARKDB_PASSWD >> /etc/xrd.cf.quarkdb
+    - (xrootd -c /etc/xrd.cf.quarkdb -l /var/log/quarkdb/xrdlog.quarkdb -Rdaemon &) ; sleep 3
+    - eos-ns-quarkdb-tests
+  dependencies: []
+
+new-unit_test:
+  image: gitlab-registry.cern.ch/dss/eos:${CI_COMMIT_TAG}${CI_PIPELINE_ID}
+  <<: *new-unit_test_template_definition
+  except:
+    - schedules
+  tags:
+    - docker_node
+
+new-unit_test_asan:
+  image: gitlab-registry.cern.ch/dss/eos:asan_${CI_COMMIT_TAG}${CI_PIPELINE_ID}
+  <<: *new-unit_test_template_definition
+  variables:
+    LSAN_OPTIONS: "suppressions=/var/eos/test/LeakSanitizer.supp"  # Suppress known memory leaks. For the generic tests
+    ASAN_OPTIONS: "fast_unwind_on_malloc=0"  # Avoid indirect leaks from linked dependencies. For the namespace tests
+#  only:
+#    - schedules
+  tags:
+    - docker_node
 
 
 #-------------------------------------------------------------------------------
@@ -791,15 +867,6 @@ new-dock_fusex_ubuntu:
     paths:
       - eos-logs/
 
-k8s_system_qdb:
-  stage: test
-  <<: *k8s_system_test_script_template
-  tags:
-    - shell-with-docker
-    - k8s_node
-  allow_failure: true
-  retry: 1
-
 k8s_system_qdb_xt: # xt stands for xrd_testing. Must shorten to not hit HOST_NAME_MAX
   stage: test
   <<: *k8s_system_test_script_template
@@ -810,19 +877,6 @@ k8s_system_qdb_xt: # xt stands for xrd_testing. Must shorten to not hit HOST_NAM
     - k8s_node
   only:
     - schedules
-  allow_failure: true
-  retry: 1
-
-k8s_ubuntu_system:
-  stage: test
-  <<: *k8s_system_test_script_template
-  tags:
-    - shell-with-docker
-    - k8s_node
-  only:
-    - dev
-    - master
-    - tags
   allow_failure: true
   retry: 1
 
