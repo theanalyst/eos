@@ -2,7 +2,6 @@ stages:
   - build:manual
   - prebuild
   - build:rpm
-  - build:exotic
   - build:dockerimage
   - test
   - coverage
@@ -304,12 +303,8 @@ build_ubuntu_bionic:
     - docker_node
     - ubuntu
 
-#-------------------------------------------------------------------------------
-# Build exotics RPMs
-#-------------------------------------------------------------------------------
-
 .build_cc7_exotic-template: &build_cc7_exotic-template_definition
-  stage: build:exotic
+  stage: build:rpm
   image: gitlab-registry.cern.ch/dss/eos/prebuild-${BUILD_NAME}
   script:
     - git submodule update --init --recursive
@@ -404,7 +399,7 @@ build_cc7_xrd_cta:
     - cc7
 
 .build_fedora-template: &build_fedora-template_definition
-  stage: build:exotic
+  stage: build:rpm
   script:
     - dnf install --nogpg -y gcc-c++ cmake3 make rpm-build which git tar dnf-plugins-core ccache rpm-sign
     - git submodule update --init --recursive
