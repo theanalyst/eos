@@ -6,4 +6,4 @@ export K8S_NAMESPACE=$(echo ${CI_JOB_NAME}-${CI_JOB_ID}-${CI_PIPELINE_ID} | tr _
 ./eos-on-k8s/delete-all.sh ${K8S_NAMESPACE}
 rm -rf eos-on-k8s/
 
-docker system prune --all --force # remove unused docker resources
+docker system prune --all --filter until=30m --force # remove unused docker resources
