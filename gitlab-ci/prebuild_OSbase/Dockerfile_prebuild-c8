@@ -20,4 +20,4 @@ RUN source gitlab-ci/export_branch.sh \
 # just to install 'ts', nice to benchmark the build time.
 RUN yum install -y moreutils
 
-ENTRYPOINT ["/bin/bash", "-c"]
+ENTRYPOINT /bin/bash
