@@ -42,8 +42,6 @@ default:
   <<: *prebuild-template_definition
   variables:
     PREBUILD_NAME: cc7
-  only:
-    - schedules
 
 .prebuid-slc6:
   <<: *prebuild-template_definition
@@ -771,7 +769,6 @@ k8s_system_xt: # xt stands for xrd_testing. Must shorten to not hit HOST_NAME_MA
   only:
     - schedules
   tags:
-    - shell-with-docker
     - k8s_node
 
 dock_fusex_ubuntu:
