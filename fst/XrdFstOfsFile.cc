@@ -33,7 +33,6 @@
 #include "fst/layout/LayoutPlugin.hh"
 #include "fst/checksum/ChecksumPlugins.hh"
 #include "fst/storage/FileSystem.hh"
-#include "authz/XrdCapability.hh"
 #include "XrdOss/XrdOssApi.hh"
 #include "fst/io/FileIoPluginCommon.hh"
 #include "namespace/utils/Etag.hh"
@@ -197,7 +196,6 @@ XrdFstOfsFile::open(const char* path, XrdSfsFileOpenMode open_mode,
 
   eos_info("ns_path=%s fst_path=%s", mNsPath.c_str(), mFstPath.c_str());
 
-
   if (mNsPath.beginswith("/replicate:")) {
     if (gOFS.openedForWriting.isOpen(mFsId, mFileId)) {
       eos_err("msg=\"forbid replica open, file %s opened in RW mode",
@@ -240,7 +238,8 @@ XrdFstOfsFile::open(const char* path, XrdSfsFileOpenMode open_mode,
     return SFS_OK;
   }
 
-  OpenFileTracker::CreationBarrier creationSerialization(gOFS.runningCreation, mFsId, mFileId);
+  OpenFileTracker::CreationBarrier creationSerialization(gOFS.runningCreation,
+      mFsId, mFileId);
 
   if ((retc = mLayout->GetFileIo()->fileExists())) {
     // We have to distinguish if an Exists call fails or return ENOENT, otherwise
@@ -793,7 +792,6 @@ XrdFstOfsFile::write(XrdSfsFileOffset fileOffset, const char* buffer,
     mHasWrite = true;
   }
 
-
   if (rc < 0) {
     int envlen = 0;
     // Indicate the deletion flag for write errors
@@ -1012,11 +1010,13 @@ XrdFstOfsFile::truncate(XrdSfsFileOffset fsize)
   }
 
   int rc = mLayout->Truncate(fsize);
+
   if (!rc) {
     if (fsize != openSize) {
       mHasWrite = true;
     }
   }
+
   return rc;
 }
 
@@ -1229,7 +1229,6 @@ XrdFstOfsFile::_close()
         // Checksum error: checksum was preset and does not match
         // Target size error: target size was preset and does not match
         // Minimum size error: target minimum size was preset and does not match
-
         // Set the file to be deleted
         deleteOnClose = true;
         mLayout->Remove();
@@ -1251,7 +1250,6 @@ XrdFstOfsFile::_close()
 
       // Store the entry server information before closing the layout
       bool isEntryServer = mLayout->IsEntryServer();
-
       // First we assume that, if we have writes, we update it
       closeSize = openSize;
 
@@ -2509,7 +2507,7 @@ XrdFstOfsFile::ProcessTpcOpaque(std::string& opaque, const XrdSecEntity* client)
       // Store also the decoded capability info
       XrdOucEnv tmp_env(opaque.c_str());
       XrdOucEnv* cap_env {nullptr};
-      int caprc = gCapabilityEngine.Extract(&tmp_env, cap_env);
+      int caprc = eos::common::SymKey::ExtractCapability(&tmp_env, cap_env);
 
       if (caprc == ENOKEY) {
         delete cap_env;
@@ -2645,7 +2643,8 @@ XrdFstOfsFile::ProcessTpcOpaque(std::string& opaque, const XrdSecEntity* client)
       (mTpcFlag == kTpcSrcCanDo)) {
     mOpenOpaque.reset(new XrdOucEnv(opaque.c_str()));
     XrdOucEnv* ptr_opaque {nullptr};
-    int caprc = gCapabilityEngine.Extract(mOpenOpaque.get(), ptr_opaque);
+    int caprc = eos::common::SymKey::ExtractCapability(mOpenOpaque.get(),
+                ptr_opaque);
     mCapOpaque.reset(ptr_opaque);
 
     if (caprc) {
@@ -2774,7 +2773,7 @@ XrdFstOfsFile::MakeReportEnv(XrdOucString& reportString)
              , (unsigned long long) openSize
              , (unsigned long long) closeSize
              , eos::common::SecEntity::ToEnv(mSecString.c_str(),
-                                             (sec_tpc ? "tpc" : 0)).c_str());
+                 (sec_tpc ? "tpc" : 0)).c_str());
     reportString = report;
   }
 
@@ -3064,23 +3063,22 @@ XrdFstOfsFile::QueueForArchiving(const struct stat& statinfo,
   eos::common::SymKey::Base64Decode(mEventAttributes.c_str(), decodedAttributes);
   std::map<std::string, std::string> attributes;
   eos::common::StringConversion::GetKeyValueMap(decodedAttributes.c_str(),
-                                                attributes,
-                                                eos::common::WF_CUSTOM_ATTRIBUTES_TO_FST_EQUALS,
-                                                eos::common::WF_CUSTOM_ATTRIBUTES_TO_FST_SEPARATOR, nullptr);
-
+      attributes,
+      eos::common::WF_CUSTOM_ATTRIBUTES_TO_FST_EQUALS,
+      eos::common::WF_CUSTOM_ATTRIBUTES_TO_FST_SEPARATOR, nullptr);
   const int notifyRc = NotifyProtoWfEndPointClosew(mFmd->mProtoFmd.fid(),
-                                                   mFmd->mProtoFmd.lid(),
-                                                   statinfo.st_size,
-                                                   mFmd->mProtoFmd.checksum(),
-                                                   mEventOwnerUid,
-                                                   mEventOwnerGid,
-                                                   mEventRequestor,
-                                                   mEventRequestorGroup,
-                                                   mEventInstance,
-                                                   mCapOpaque->Get("mgm.path"),
-                                                   mCapOpaque->Get("mgm.manager"),
-                                                   attributes,
-                                                   queueing_errmsg);
+                       mFmd->mProtoFmd.lid(),
+                       statinfo.st_size,
+                       mFmd->mProtoFmd.checksum(),
+                       mEventOwnerUid,
+                       mEventOwnerGid,
+                       mEventRequestor,
+                       mEventRequestorGroup,
+                       mEventInstance,
+                       mCapOpaque->Get("mgm.path"),
+                       mCapOpaque->Get("mgm.manager"),
+                       attributes,
+                       queueing_errmsg);
 
   // Note: error variable defined in XrdSfsFile interface
   if (notifyRc == 0) {
@@ -3368,20 +3366,19 @@ XrdFstOfsFile::ExtractLogId(const char* opaque) const
 //------------------------------------------------------------------------------
 int
 XrdFstOfsFile::NotifyProtoWfEndPointClosew(uint64_t file_id,
-                                           uint32_t file_lid, uint64_t file_size,
-                                           const std::string& file_checksum,
-                                           uint32_t owner_uid, uint32_t owner_gid,
-                                           const std::string& requestor_name,
-                                           const std::string& requestor_groupname,
-                                           const std::string& instance_name,
-                                           const std::string& fullpath,
-                                           const std::string& manager_name,
-                                           const std::map<std::string, std::string>& xattrs,
-                                           std::string& errmsg_wfe)
+    uint32_t file_lid, uint64_t file_size,
+    const std::string& file_checksum,
+    uint32_t owner_uid, uint32_t owner_gid,
+    const std::string& requestor_name,
+    const std::string& requestor_groupname,
+    const std::string& instance_name,
+    const std::string& fullpath,
+    const std::string& manager_name,
+    const std::map<std::string, std::string>& xattrs,
+    std::string& errmsg_wfe)
 {
   using namespace eos::common;
   cta::xrd::Request request;
-
   auto notification = request.mutable_notification();
   notification->mutable_cli()->mutable_user()->set_username(requestor_name);
   notification->mutable_cli()->mutable_user()->set_groupname(requestor_groupname);
@@ -3394,7 +3391,8 @@ XrdFstOfsFile::NotifyProtoWfEndPointClosew(uint64_t file_id,
   notification->mutable_wf()->set_event(cta::eos::Workflow::CLOSEW);
   notification->mutable_wf()->mutable_instance()->set_name(instance_name);
   auto xrdname = getenv("XRDNAME");
-  auto requester_instance = std::string(gOFS.mHostName) + ":" + (xrdname ? std::string(xrdname) : "NULL");
+  auto requester_instance = std::string(gOFS.mHostName) + ":" +
+                            (xrdname ? std::string(xrdname) : "NULL");
   notification->mutable_wf()->set_requester_instance(requester_instance);
   notification->mutable_file()->set_lpath(fullpath);
   notification->mutable_file()->set_fid(file_id);
@@ -3415,17 +3413,14 @@ XrdFstOfsFile::NotifyProtoWfEndPointClosew(uint64_t file_id,
   std::ostringstream srcStream;
   std::ostringstream reportStream;
   std::ostringstream errorReportStream;
-
   srcStream << "root://" << manager_name << "/" << fullpath << "?eos.lfn=fxid:"
             << fxidString;
   notification->mutable_wf()->mutable_instance()->set_url(srcStream.str());
-
   reportStream << "eosQuery://" << manager_name
                << "//eos/wfe/passwd?mgm.pcmd=event&mgm.fid=" << fxidString
                << "&mgm.logid=cta&mgm.event=sync::archived&mgm.workflow=default&mgm.path=/dummy_path&mgm.ruid=0&mgm.rgid=0"
                "&cta_archive_file_id=" << ctaArchiveFileId;
   notification->mutable_transport()->set_report_url(reportStream.str());
-
   errorReportStream << "eosQuery://" << manager_name
                     << "//eos/wfe/passwd?mgm.pcmd=event&mgm.fid=" << fxidString
                     << "&mgm.logid=cta&mgm.event=" << ARCHIVE_FAILED_WORKFLOW_NAME
@@ -3434,7 +3429,6 @@ XrdFstOfsFile::NotifyProtoWfEndPointClosew(uint64_t file_id,
                     << "&mgm.errmsg=";
   notification->mutable_transport()->set_error_report_url(
     errorReportStream.str());
-
   // Communication with service
   std::string endPoint;
   std::string resource;
@@ -3501,7 +3495,7 @@ XrdFstOfsFile::NotifyProtoWfEndPointClosew(uint64_t file_id,
 // Send archive failed event to the manager
 //------------------------------------------------------------------------------
 int XrdFstOfsFile::SendArchiveFailedToManager(const uint64_t fid,
-                                              const std::string& errmsg)
+    const std::string& errmsg)
 {
   const auto fxidString = eos::common::StringConversion::FastUnsignedToAsciiHex(
                             fid);
