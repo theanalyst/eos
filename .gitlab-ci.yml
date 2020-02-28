@@ -21,7 +21,6 @@ default:
 # Prebuild @note stick to v0.16.0 until < https://github.com/GoogleContainerTools/kaniko/issues/1038 > is fixed
 #-------------------------------------------------------------------------------
 
-# @todo commit a :stable image manually, and a :latest on daily schedules
 .prebuid-template: &prebuild-template_definition
   stage: prebuild
   image:
@@ -30,9 +29,9 @@ default:
   script:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - case $PREBUILD_NAME in
-       slc6) /kaniko/executor --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}:stable" --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-slc6 --context $CI_PROJECT_DIR ;;
-         c8) /kaniko/executor --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}:stable" --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-c8 --context $CI_PROJECT_DIR ;;
-      *cc7*) /kaniko/executor --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}:stable" --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-cc7 --context $CI_PROJECT_DIR --build-arg PREBUILD_NAME="$PREBUILD_NAME" --build-arg CMAKE_OPTIONS="$CMAKE_OPTIONS" ;;
+       slc6) /kaniko/executor --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}" --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-slc6 --context $CI_PROJECT_DIR ;;
+         c8) /kaniko/executor --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}" --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-c8 --context $CI_PROJECT_DIR ;;
+      *cc7*) /kaniko/executor --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}" --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-cc7 --context $CI_PROJECT_DIR --build-arg PREBUILD_NAME="$PREBUILD_NAME" --build-arg CMAKE_OPTIONS="$CMAKE_OPTIONS" ;;
           *) echo "var PREBUILD_NAME:$PREBUILD_NAME not properly defined"; exit 1 ;;
       esac
 #  only:
@@ -90,7 +89,7 @@ prebuild-cc7_coverage:
 
 build_cc7:
   stage: build:rpm
-  image: gitlab-registry.cern.ch/dss/eos/prebuild-cc7:stable
+  image: gitlab-registry.cern.ch/dss/eos/prebuild-cc7
   script:
     - git submodule update --init --recursive
     - mkdir build
@@ -119,7 +118,7 @@ build_cc7:
 
 build_slc6:
   stage: build:rpm
-  image: gitlab-registry.cern.ch/dss/eos/prebuild-slc6:stable
+  image: gitlab-registry.cern.ch/dss/eos/prebuild-slc6
   script:
     # Install custom cmake version that has minimal support for features needed
     # by EOS i.e. anything >= 3.12 works fine. To be dropped together with SLC6
@@ -293,13 +292,13 @@ build_fedora_rawhide:
 
 build_c8:
   stage: build:rpm
-  image: gitlab-registry.cern.ch/dss/eos/prebuild-c8:stable
+  image: gitlab-registry.cern.ch/dss/eos/prebuild-c8
   script:
     - git submodule update --init --recursive
     - mkdir build
     - cd build/
     - cmake ../ -DPACKAGEONLY=1
-    - make srpm | ts
+    - make srpm
     - cd ../
     - echo -e '[eos-depend]\nname=EOS dependencies\nbaseurl=http://storage-ci.web.cern.ch/storage-ci/eos/'${BRANCH}'-depend/el-8/x86_64/\ngpgcheck=0\nenabled=1\npriority=4\n' >> /etc/yum.repos.d/eos-depend.repo
     - dnf builddep --nogpgcheck --allowerasing -y build/SRPMS/*
@@ -323,7 +322,7 @@ build_c8:
 
 .build_cc7_exotic-template: &build_cc7_exotic-template_definition
   stage: build:rpm
-  image: gitlab-registry.cern.ch/dss/eos/prebuild-${BUILD_NAME}:stable
+  image: gitlab-registry.cern.ch/dss/eos/prebuild-${BUILD_NAME}
   script:
     - git submodule update --init --recursive
     - mkdir build
@@ -337,8 +336,7 @@ build_c8:
     - rpmbuild --rebuild --with server ${RPMBUILD_OPTIONS} --define "_rpmdir build/RPMS/" --define "_build_name_fmt %%{NAME}-%%{VERSION}-%%{RELEASE}.%%{ARCH}.rpm" build/SRPMS/* | ts
     - ccache -s
     - if [ "$COMMIT_TYPE" == "tag" ]; then gpg --allow-secret-key-import --import /keys/stci-debian-repo.sec; printf "" | setsid rpmsign --define='%_gpg_name stci@cern.ch' --define='%_signature gpg' --addsign build/RPMS/*.rpm; fi
-    - mkdir ${BUILD_NAME}_artifacts
-    - cp -R build/SRPMS/ build/RPMS/ ${BUILD_NAME}_artifacts
+    - mkdir ${BUILD_NAME}_artifacts; cp -R build/SRPMS/ build/RPMS/ ${BUILD_NAME}_artifacts
   cache:
     key: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     paths:
@@ -351,6 +349,9 @@ build_c8:
   allow_failure: true
   only:
     - schedules
+  tags:
+    - docker_node
+    - cc7
 
 build_cc7_asan:
   <<: *build_cc7_exotic-template_definition
@@ -359,8 +360,6 @@ build_cc7_asan:
     CMAKE_OPTIONS: "-DASAN=1"
     RPMBUILD_OPTIONS: "--with asan"
     CXXFLAGS: "-Wno-parentheses"    # Avoid boost header compilation errors
-  tags:
-    - docker_node
 
 build_cc7_clang:
   <<: *build_cc7_exotic-template_definition
@@ -368,9 +367,6 @@ build_cc7_clang:
     BUILD_NAME: cc7_clang
     CMAKE_OPTIONS: "-DCLANG_BUILD=1"
     RPMBUILD_OPTIONS: "--with clang"
-  tags:
-    - docker_node
-    - cc7
 
 build_cc7_xrd_testing: # Re-enable xrd_testing jobs once project ugprades to XRootD 5
   before_script:
@@ -384,9 +380,6 @@ build_cc7_xrd_testing: # Re-enable xrd_testing jobs once project ugprades to XRo
     BUILD_NAME: cc7_xrd_testing
   except:
     - tags
-  tags:
-    - docker_node
-    - cc7
 
 build_cc7_xrd_cta:
   # @note drop 'before_script:' once repos and specs are properly set elsewhere
@@ -401,9 +394,6 @@ build_cc7_xrd_cta:
   <<: *build_cc7_exotic-template_definition
   variables:
     BUILD_NAME: cc7_xrd_cta
-  tags:
-    - docker_node
-    - cc7
 
 build_cc7_coverage:
   <<: *build_cc7_exotic-template_definition
@@ -413,9 +403,6 @@ build_cc7_coverage:
   only:
     variables:
       - $COVERAGE_SCHEDULE
-  tags:
-    - docker_node
-    - cc7
 
 
 #-------------------------------------------------------------------------------
@@ -633,14 +620,14 @@ k8s_system:
   dependencies: []
   retry: 1
   tags:
-    - k8s_node
+    - shell-with-kubernetes
 
 k8s_fusex:
   <<: *dock8s_fusex_test_template
   dependencies: []
   retry: 1
   tags:
-    - k8s_node
+    - shell-with-kubernetes
 
 k8s_stress:
   stage: test
@@ -652,7 +639,7 @@ k8s_stress:
   dependencies: []
   retry: 1
   tags:
-    - k8s_node
+    - shell-with-kubernetes
 
 dock_system:
   <<: *dock8s_system_test_template
@@ -720,7 +707,7 @@ k8s_fusex_ubuntu:
     - schedules
     - tags
   tags:
-    - k8s_node
+    - shell-with-kubernetes
 
 k8s_system_c8:
   <<: *dock8s_system_test_template
@@ -733,7 +720,7 @@ k8s_system_c8:
   only:
     - schedules
   tags:
-    - k8s_node
+    - shell-with-kubernetes
 
 k8s_system_xt: # xt stands for xrd_testing. Must shorten to not hit HOST_NAME_MAX
   <<: *dock8s_system_test_template
@@ -745,7 +732,7 @@ k8s_system_xt: # xt stands for xrd_testing. Must shorten to not hit HOST_NAME_MA
   only:
     - schedules
   tags:
-    - k8s_node
+    - shell-with-kubernetes
 
 dock_fusex_ubuntu:
   <<: *dock8s_fusex_test_template
@@ -1024,7 +1011,7 @@ clean_k8s_cluster:
       xargs --no-run-if-empty kubectl delete namespaces
   dependencies: []
   tags:
-    - k8s_node
+    - shell-with-kubernetes
   allow_failure: true
   only:
     - schedules
