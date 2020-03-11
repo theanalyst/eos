@@ -30,9 +30,7 @@ default:
   script:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - case $PREBUILD_NAME in
-       slc6) /kaniko/executor --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}:stable" --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-slc6 --context $CI_PROJECT_DIR ;;
-         c8) /kaniko/executor --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}:stable" --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-c8 --context $CI_PROJECT_DIR ;;
-      *cc7*) /kaniko/executor --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}:stable" --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-cc7 --context $CI_PROJECT_DIR --build-arg PREBUILD_NAME="$PREBUILD_NAME" --build-arg CMAKE_OPTIONS="$CMAKE_OPTIONS" ;;
+         c8) /kaniko/executor --destination "gitlab-registry.cern.ch/dss/eos/prebuild-${PREBUILD_NAME}" --dockerfile $CI_PROJECT_DIR/gitlab-ci/prebuild_OSbase/Dockerfile_prebuild-c8 --context $CI_PROJECT_DIR ;;
           *) echo "var PREBUILD_NAME:$PREBUILD_NAME not properly defined"; exit 1 ;;
       esac
 #  only:
