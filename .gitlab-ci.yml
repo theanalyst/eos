@@ -397,6 +397,8 @@ build_cc7_opt_xrootd:
     BUILD_NAME: cc7_opt_xrootd
     CMAKE_OPTIONS: "-DEOS_XROOTD=1"
     RPMBUILD_OPTIONS: "--with eos_xrootd_rh"
+  only:
+    - 4.7.5-cta
   except:
     - tags
   when: manual
