@@ -401,8 +401,6 @@ build_cc7_opt_xrootd:
     - tags
   when: manual
   allow_failure: true
-  only:
-    - master
   tags:
     - docker_node
     - cc7
