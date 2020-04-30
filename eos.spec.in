@@ -3,7 +3,7 @@
 #-------------------------------------------------------------------------------
 %define _unpackaged_files_terminate_build 0
 %define distribution %(/usr/lib/rpm/redhat/dist.sh --distnum)
-%define devtoolset devtoolset-8
+%define devtoolset devtoolset-9
 %define cmake cmake3
 %define compiler gcc
 
@@ -53,7 +53,7 @@
 %endif
 
 %if %{?_with_asan:1}%{!?_with_asan:0}
-  %define devtoolset devtoolset-8
+  %define devtoolset devtoolset-9
 %endif
 
 %if %{?fedora:1}%{!?fedora:0}
