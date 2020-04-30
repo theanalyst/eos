@@ -344,7 +344,7 @@ cd build
   %if 0%{distribution} == 6 || 0%{distribution} == 7
     source /opt/rh/%{devtoolset}/enable
 
-    echo "#!/usr/bin/bash\nwhich gcc\nsource /opt/rh/%{devtoolset}/enable\nwhich gcc\n\n\n" > prepend
+    printf "%s\n%s\n%s\n%s\n\n\n" '#!/usr/bin/bash' "which gcc" "source /opt/rh/%{devtoolset}/enable" "which gcc" > prepend
     cat prepend /usr/lib/rpm/find-debuginfo.sh > final
     rm prepend
     mv final /usr/lib/rpm/find-debuginfo.sh
