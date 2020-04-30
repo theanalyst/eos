@@ -343,6 +343,8 @@ cd build
 %if "%{?compiler}" == "gcc"
   %if 0%{distribution} == 6 || 0%{distribution} == 7
     source /opt/rh/%{devtoolset}/enable
+    (echo "#!/usr/bin/bash\nwhich gcc\nsource /opt/rh/%{devtoolset}/enable\nwhich gcc\n\n\n"; cat /usr/lib/rpm/find-debuginfo.sh) > /usr/lib/rpm/find-debuginfo.sh
+    cat /usr/lib/rpm/find-debuginfo.sh
   %endif
 %endif
 
