@@ -222,12 +222,12 @@ ScanDir::RunNsScan(ThreadAssistant& assistant) noexcept
   size_t sleep_sec = (1.0 * mNsIntervalSec * random() / RAND_MAX);
   eos_info("msg=\"delay ns scan thread by %llu seconds\" fsid=%lu dirpath=\"%s\"",
            sleep_sec, mFsId, mDirPath.c_str());
-  assistant.wait_for(seconds(sleep_sec));
+  assistant.wait_for(std::chrono::seconds(sleep_sec));
 
   while (!assistant.terminationRequested()) {
     AccountMissing();
     CleanupUnlinked();
-    assistant.wait_for(seconds(mNsIntervalSec));
+    assistant.wait_for(std::chrono::seconds(mNsIntervalSec));
   }
 }
 
@@ -465,7 +465,7 @@ ScanDir::RunDiskScan(ThreadAssistant& assistant) noexcept
   if (mBgThread) {
     // Get a random smearing and avoid that all start at the same time! 0-4 hours
     size_t sleeper = (1.0 * mDiskIntervalSec * random() / RAND_MAX);
-    assistant.wait_for(seconds(sleeper));
+    assistant.wait_for(std::chrono::seconds(sleeper));
   }
 
   while (!assistant.terminationRequested()) {
@@ -754,11 +754,11 @@ ScanDir::DoRescan(const std::string& timestamp_sec) const
 
   // Used only during testing
   if (mClock.IsFake()) {
-    steady_clock::time_point old_ts(seconds(std::stoull(timestamp_sec)));
+    steady_clock::time_point old_ts(std::chrono::seconds(std::stoull(timestamp_sec)));
     steady_clock::time_point now_ts(mClock.getTime());
     elapsed_sec = duration_cast<seconds>(now_ts - old_ts).count();
   } else {
-    system_clock::time_point old_ts(seconds(std::stoull(timestamp_sec)));
+    system_clock::time_point old_ts(std::chrono::seconds(std::stoull(timestamp_sec)));
     system_clock::time_point now_ts(system_clock::now());
     elapsed_sec = duration_cast<seconds>(now_ts - old_ts).count();
   }
@@ -913,7 +913,7 @@ ScanDir::EnforceAndAdjustScanRate(const off_t offset,
                                           (scan_rate * 1024 * 1024));
 
     if (expect_duration > scan_duration) {
-      std::this_thread::sleep_for(milliseconds(expect_duration - scan_duration));
+      std::this_thread::sleep_for(std::chrono::milliseconds(expect_duration - scan_duration));
     }
 
     // Adjust the rate according to the load information
