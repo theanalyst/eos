@@ -36,9 +36,6 @@ default:
                 --context $CI_PROJECT_DIR --build-arg PREBUILD_NAME="$PREBUILD_NAME" --build-arg CMAKE_OPTIONS="$CMAKE_OPTIONS" --build-arg CXXFLAGS="$CXXFLAGS" ;;
           *) echo "var PREBUILD_NAME:$PREBUILD_NAME not properly defined"; exit 1 ;;
       esac
-  only:
-    variables:
-      - $PREBUILD_TRIGGER
 
 prebuid-slc6:
   <<: *prebuild-template_definition

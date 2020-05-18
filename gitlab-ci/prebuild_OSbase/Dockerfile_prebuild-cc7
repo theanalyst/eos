@@ -6,6 +6,8 @@ WORKDIR /builds/dss/eos/
 
 # if the working directory is a not the top-level dir of a git repo OR git remote is not set to the EOS repo url
 RUN yum install --nogpg -y git \
+    && git rev-parse --git-dir || true
+    && git config --get remote.origin.url || true
     && if [[ $(git rev-parse --git-dir) != ".git" || $(git config --get remote.origin.url) != "https://gitlab.cern.ch/dss/eos.git" ]]; \
         then pwd && ls -la && sleep 600 && git clone https://gitlab.cern.ch/dss/eos.git . ; fi
 
