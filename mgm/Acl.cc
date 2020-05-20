@@ -23,6 +23,8 @@
 #include "mgm/Acl.hh"
 #include "mgm/Egroup.hh"
 #include "mgm/XrdMgmOfs.hh"
+#include "namespace/utils/Attributes.hh"
+#include "namespace/interface/IView.hh"
 #include "common/StringConversion.hh"
 #include <regex.h>
 
@@ -32,10 +34,11 @@ EOSMGMNAMESPACE_BEGIN
 // Constructor
 //------------------------------------------------------------------------------
 Acl::Acl(std::string sysacl, std::string useracl,
-         const eos::common::VirtualIdentity& vid, bool allowUserAcl)
+         const eos::common::VirtualIdentity& vid, bool allowUserAcl,
+         uid_t uid, gid_t gid, mode_t modebits)
 {
   std::string tokenacl = TokenAcl(vid);
-  Set(sysacl, useracl, tokenacl, vid, allowUserAcl);
+  Set(sysacl, useracl, tokenacl, vid, allowUserAcl, uid, gid, modebits);
 }
 
 
@@ -50,12 +53,37 @@ Acl::Acl(std::string sysacl, std::string useracl,
 //------------------------------------------------------------------------------
 
 Acl::Acl(const eos::IContainerMD::XAttrMap& attrmap,
-         const eos::common::VirtualIdentity& vid)
+         const eos::common::VirtualIdentity& vid,
+         uid_t uid, gid_t gid, mode_t modebits)
 {
   // define the acl rules from the attributes
-  SetFromAttrMap(attrmap, vid);
+  SetFromAttrMap(attrmap, vid, false, NULL, uid, gid, modebits);
 }
 
+//------------------------------------------------------------------------------
+//!
+//! Constructor
+//!
+//! @param std::shared_ptr<eos::IContainerMD> ptr to container
+//! @param std::shared_ptr<eos::IFileMD> ptr to file or NULL
+//! @param vid virtual id to match ACL
+//!
+//------------------------------------------------------------------------------
+
+Acl::Acl(std::shared_ptr<eos::IContainerMD> cmd,
+         std::shared_ptr<eos::IFileMD> fmd,
+         const eos::common::VirtualIdentity& vid,
+         bool allowUserAcl) {
+
+    eos::IFileMD::XAttrMap attrmapF;
+    if (fmd != nullptr) attrmapF = fmd->getAttributes();
+
+    SetFromAttrMap(cmd->getAttributes(), vid, !allowUserAcl,
+            (fmd != nullptr) ? &attrmapF : NULL,
+            (fmd != nullptr) ? fmd->getCUid() : cmd->getCUid(),
+            (fmd != nullptr) ? fmd->getCGid() : cmd->getCGid(),
+            (fmd != nullptr) ? fmd->getFlags() : cmd->getMode());
+}
 //------------------------------------------------------------------------------
 // Constructor by path
 //------------------------------------------------------------------------------
@@ -64,15 +92,28 @@ Acl::Acl(const char* path, XrdOucErrInfo& error,
          eos::IContainerMD::XAttrMap& attrmap, bool lockNs)
 {
   if (path && strlen(path)) {
-    int rc = gOFS->_attr_ls(path, error, vid, 0, attrmap, lockNs);
-
+    /*int rc = gOFS->_attr_ls(path, error, vid, 0, attrmap, lockNs);*/
+    int rc = 0;
+    eos::FileOrContainerMD item = gOFS->eosView->getItem(path).get();
+    if (item.file) {
+        file_uid = item.file->getCUid();
+        file_gid = item.file->getCGid();
+        mbits = item.file->getFlags();
+        listAttributes(gOFS->eosView, item.file.get(), attrmap, false);
+    } else if (item.container) {
+        file_uid = item.container->getCUid();
+        file_gid = item.container->getCGid();
+        mbits = item.container->getMode();
+        listAttributes(gOFS->eosView, item.container.get(), attrmap, false);
+    }
+        
     if (rc) {
       eos_static_info("attr-ls failed: path=%s errno=%d", path, errno);
     }
   }
 
   // Set the acl rules from the attributes
-  SetFromAttrMap(attrmap, vid);
+  SetFromAttrMap(attrmap, vid, false, NULL, file_uid, file_gid, mbits);
 }
 
 //------------------------------------------------------------------------------
@@ -80,8 +121,9 @@ Acl::Acl(const char* path, XrdOucErrInfo& error,
 //------------------------------------------------------------------------------
 void
 Acl::SetFromAttrMap(const eos::IContainerMD::XAttrMap& attrmap,
-                    const eos::common::VirtualIdentity& vid, eos::IFileMD::XAttrMap* attrmapF,
-                    bool sysaclOnly)
+                    const eos::common::VirtualIdentity& vid, bool sysaclOnly,
+                    eos::IFileMD::XAttrMap* attrmapF,
+                    uid_t uid, gid_t gid, mode_t fmodebits)
 {
   bool evalUseracl = false;
   std::string useracl;
@@ -117,7 +159,7 @@ Acl::SetFromAttrMap(const eos::IContainerMD::XAttrMap& attrmap,
                      sysAcl.c_str(), useracl.c_str(), tokenacl.c_str(), evalUseracl);
   }
 
-  Set(sysAcl, useracl, tokenacl, vid, evalUseracl);
+  Set(sysAcl, useracl, tokenacl, vid, evalUseracl, file_uid, file_gid, fmodebits);
 }
 
 //------------------------------------------------------------------------------
@@ -125,7 +167,8 @@ Acl::SetFromAttrMap(const eos::IContainerMD::XAttrMap& attrmap,
 //------------------------------------------------------------------------------
 void
 Acl::Set(std::string sysacl, std::string useracl, std::string tokenacl,
-         const eos::common::VirtualIdentity& vid, bool allowUserAcl)
+         const eos::common::VirtualIdentity& vid, bool allowUserAcl,
+         uid_t uid, gid_t gid, mode_t fmodebits)
 {
   std::string acl = "";
 
@@ -150,6 +193,10 @@ Acl::Set(std::string sysacl, std::string useracl, std::string tokenacl,
     allowUserAcl = false;
   }
 
+  mbits = fmodebits;
+  file_uid = uid;
+  file_gid = gid;
+
   // By default nothing is granted
   mHasAcl = false;
   mCanRead = false;
@@ -159,8 +206,8 @@ Acl::Set(std::string sysacl, std::string useracl, std::string tokenacl,
   mCanWriteOnce = false;
   mCanUpdate = false;
   mCanNotUpdate = false;
-  mCanBrowse = false;
-  mCanNotBrowse = false;
+  mCanStat = false;
+  mCanNotStat = false;
   mCanChmod = false;
   mCanNotChmod = false;
   mCanChown = false;
@@ -171,6 +218,8 @@ Acl::Set(std::string sysacl, std::string useracl, std::string tokenacl,
   mIsMutable = true;
   mCanArchive = false;
   mCanPrepare = false;
+
+  bool saw_u = false, saw_g = false, saw_o = false;
 
   // no acl definition
   if (!acl.length()) {
@@ -184,7 +233,7 @@ Acl::Set(std::string sysacl, std::string useracl, std::string tokenacl,
   int num_sysacl_rules =
     rules.size();     /* number of entries in sysacl, used to limit "+" (reallow) */
 
-  if (allowUserAcl) {
+  if (allowUserAcl && acl.length()) {
     eos::common::StringConversion::Tokenize(useracl, rules,
                                             delimiter);  /* append to rules */
   }
@@ -201,7 +250,10 @@ Acl::Set(std::string sysacl, std::string useracl, std::string tokenacl,
   memset(denials, 0, sizeof(denials));        /* start with no denials */
   memset(reallows, 0, sizeof(reallows));      /* nor reallows */
 
-  for (const auto& chk_gid : vid.allowed_gids) {
+
+  if (acl.length() > 0) {
+   for (const auto& chk_gid : vid.allowed_gids) {
+    if (acl.length() == 0) break;
     // Only check non-system groups
     if (chk_gid < 3) {
       continue;
@@ -245,17 +297,17 @@ Acl::Set(std::string sysacl, std::string useracl, std::string tokenacl,
     keytag += vid.key;
     keytag += ":";;
 
-    if (EOS_LOGS_DEBUG) eos_static_debug("%s %s %s %s %s", usertag.c_str(),
-                                           grouptag.c_str(),
-                                           usr_name_tag.c_str(), grp_name_tag.c_str(), keytag.c_str());
+    if (EOS_LOGS_DEBUG)
+        eos_static_debug("%s %s %s %s %s",
+           usertag.c_str(), grouptag.c_str(),
+           usr_name_tag.c_str(), grp_name_tag.c_str(), keytag.c_str());
 
     // Rule interpretation logic
     int sysacl_rules_remaining = num_sysacl_rules;
 
     for (it = rules.begin(); it != rules.end(); it++) {
       bool egroupmatch = false;
-      /* when negative, we're in user.acl */
-      sysacl_rules_remaining -= 1;
+      sysacl_rules_remaining -= 1;              /* when negative, we're in user.acl */
 
       // Check for e-group membership
       if (!it->compare(0, strlen("egroup:"), "egroup:")) {
@@ -279,6 +331,10 @@ Acl::Set(std::string sysacl, std::string useracl, std::string tokenacl,
           (!it->compare(0, keytag.length(), keytag)) ||
           (!it->compare(0, usr_name_tag.length(), usr_name_tag)) ||
           (!it->compare(0, grp_name_tag.length(), grp_name_tag))) {
+
+        if (it->at(0) == 'u') saw_u = true;
+        else if (it->at(0) == 'g') saw_g = true;
+
         std::vector<std::string> entry;
         std::string delimiter = ":";
         eos::common::StringConversion::Tokenize(*it, entry, delimiter);
@@ -292,6 +348,7 @@ Acl::Set(std::string sysacl, std::string useracl, std::string tokenacl,
           // add an empty entry field
           entry.resize(3);
           entry[2] = entry[1];
+          saw_o = true;
         }
 
         if (EOS_LOGS_DEBUG) {
@@ -328,8 +385,8 @@ Acl::Set(std::string sysacl, std::string useracl, std::string tokenacl,
             mCanRead = !deny;
             break;
 
-          case 'x': // 'x' defines browsing permission
-            mCanBrowse = !deny;
+          case 'x': // 'x' defines stat permission
+            mCanStat = !deny;
             break;
 
           case 'p': // 'p' defines workflow permission
@@ -392,8 +449,7 @@ Acl::Set(std::string sysacl, std::string useracl, std::string tokenacl,
             break;
 
           case 'q':
-            if (sysacl_rules_remaining >=
-                0) { // this is only valid if specified as a sysacl
+            if (sysacl_rules_remaining >= 0) {  // only valid if specified as a sysacl
               mCanSetQuota = !deny;
             }
 
@@ -403,8 +459,6 @@ Acl::Set(std::string sysacl, std::string useracl, std::string tokenacl,
             mIsMutable = deny;
             break;
           }
-
-          mHasAcl = true;
 
           if (reallow) {
             reallows[c] = 1;    /* remember reallows */
@@ -416,13 +470,42 @@ Acl::Set(std::string sysacl, std::string useracl, std::string tokenacl,
         }
       }
     }
+   }
   }
 
+  /* for entities not in any ACL entry, fall back to mode bits */
+  mode_t modebits_eff = S_ISVTX | S_ISGID;      /* initial mask: keep special bits */;
+
+  if (!saw_u && file_uid == vid.uid) modebits_eff |= S_IRWXU;   /* add u (owner) rights */
+  if (!saw_g) {
+      for (const auto& chk_gid : vid.allowed_gids) {
+          if (file_gid == chk_gid) {
+              modebits_eff |= S_IRWXG;
+              break;
+          }
+      }
+  }
+  if (!saw_o) modebits_eff |= S_IRWXO;
+  
+  modebits_eff &= fmodebits;                     /* resulting mode bits */
+  if (modebits_eff & (S_IWUSR|S_IWGRP|S_IWOTH)) {
+    mCanWrite = true;
+    /* the following is:
+    if (modebits_eff & S_ISVTX) mCanDelete = modebits_eff & S_IWUSR;
+    else mcanDelete = true; */
+    mCanDelete = ( (modebits_eff & (S_IWUSR|S_ISVTX)) == (S_IWUSR|S_ISVTX) );
+    
+  }
+  if (modebits_eff & (S_IRUSR|S_IRGRP|S_IROTH)) mCanRead = true;
+  if (modebits_eff & (S_IXUSR|S_IXGRP|S_IXOTH)) mCanStat = true;
+
   /* Now that all ACLs have been parsed, handle re-allows and denials */
-  char rights[] = "arxpmcWwdui";
+  static char rights[] = "arxpmcWwdui";
   unsigned char r;
 
-  for (int i = 0; (r = rights[i]); i++) {
+  if (acl.length() > 0) {
+   for (int i = 0; (r = rights[i]); i++) {
+
     bool is_allowed;
 
     if (reallows[r]) {
@@ -450,8 +533,8 @@ Acl::Set(std::string sysacl, std::string useracl, std::string tokenacl,
       break;
 
     case 'x':
-      mCanBrowse = is_allowed;
-      mCanNotBrowse = !is_allowed;
+      mCanStat = is_allowed;
+      mCanNotStat = !is_allowed;
       break;
 
     case 'p':
@@ -495,19 +578,23 @@ Acl::Set(std::string sysacl, std::string useracl, std::string tokenacl,
       mIsMutable = !is_allowed;
       break;
     }
+   }
   }
+
+  mHasAcl = true;
 
   if (EOS_LOGS_DEBUG) {
     eos_static_debug(
       "mCanRead %d mCanNotRead %d mCanWrite %d mCanNotWrite %d mCanWriteOnce %d mCanUpdate %d mCanNotUpdate %d "
-      "mCanBrowse %d mCanNotBrowse %d mCanChmod %d mCanChown %d mCanNotDelete %d mCanNotChmod %d "
+      "mCanStat %d mCanNotStat %d mCanChmod %d mCanChown %d mCanNotDelete %d mCanNotChmod %d "
       "mCanDelete %d mCanSetQuota %d mHasAcl %d mHasEgroup %d mIsMutable %d mCanArchive %d mCanPrepare %d",
       mCanRead, mCanNotRead, mCanWrite, mCanNotWrite, mCanWriteOnce, mCanUpdate,
       mCanNotUpdate,
-      mCanBrowse, mCanNotBrowse, mCanChmod, mCanChown, mCanNotDelete, mCanNotChmod,
+      mCanStat, mCanNotStat, mCanChmod, mCanChown, mCanNotDelete, mCanNotChmod,
       mCanDelete, mCanSetQuota, mHasAcl, mHasEgroup, mIsMutable, mCanArchive,
       mCanPrepare);
   }
+
 }
 
 //------------------------------------------------------------------------------

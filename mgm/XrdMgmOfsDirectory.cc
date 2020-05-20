@@ -173,6 +173,8 @@ XrdMgmOfsDirectory::_open(const char* dir_path,
 
     lock.Release();
 
+
+#if false
     permok = dh->access(vid.uid, vid.gid, R_OK | X_OK);
 
     if (!permok) {
@@ -181,15 +183,20 @@ XrdMgmOfsDirectory::_open(const char* dir_path,
       Acl acl(cPath.GetPath(), error, vid, attrmap, false);
       eos_info("acl=%d r=%d w=%d wo=%d x=%d egroup=%d", acl.HasAcl(),
                acl.CanRead(), acl.CanWrite(), acl.CanWriteOnce(),
-               acl.CanBrowse(), acl.HasEgroup());
+               acl.CanStat(), acl.HasEgroup());
 
-      // Browse permission by ACL
+      // Stat permission by ACL
       if (acl.HasAcl()) {
-        if (acl.CanBrowse()) {
+        if (acl.CanStat()) {
           permok = true;
         }
       }
     }
+#else
+
+    Acl acl(cPath.GetPath(), error, vid, attrmap, false);
+    permok = acl.CanRead();
+#endif
 
     if (permok) {
       // Add all the files and subdirectories

@@ -146,7 +146,7 @@ XrdMgmOfs::_access(const char* path,
     Acl acl(attr_path.c_str(), error, vid, attrmap, false);
     eos_info("acl=%d r=%d w=%d wo=%d x=%d egroup=%d mutable=%d",
              acl.HasAcl(), acl.CanRead(), acl.CanWrite(), acl.CanWriteOnce(),
-             acl.CanBrowse(), acl.HasEgroup(), acl.IsMutable());
+             acl.CanStat(), acl.HasEgroup(), acl.IsMutable());
 
     if (!AccessChecker::checkContainer(dh.get(), acl, mode, vid)) {
       errno = EPERM;
@@ -280,7 +280,7 @@ XrdMgmOfs::acc_access(const char* path,
     Acl acl(attr_path.c_str(), error, vid, attrmap, false);
     eos_info("acl=%d r=%d w=%d wo=%d x=%d egroup=%d mutable=%d",
              acl.HasAcl(), acl.CanRead(), acl.CanWrite(), acl.CanWriteOnce(),
-             acl.CanBrowse(), acl.HasEgroup(), acl.IsMutable());
+             acl.CanStat(), acl.HasEgroup(), acl.IsMutable());
 
     // browse permission by ACL
     if (acl.HasAcl()) {
@@ -304,7 +304,7 @@ XrdMgmOfs::acc_access(const char* path,
         r_ok |= true;
       }
 
-      if (acl.CanBrowse()) {
+      if (acl.CanStat()) {
         x_ok |= true;
       }
 

@@ -41,7 +41,7 @@ bool AccessChecker::checkContainer(IContainerMD *cont,
   //----------------------------------------------------------------------------
   // Construct Acl object
   //----------------------------------------------------------------------------
-  Acl acl(linkedAttrs, vid);
+  Acl acl(linkedAttrs, vid, cont->getCUid(), cont->getCGid(), cont->getMode());
 
   //----------------------------------------------------------------------------
   // Delegate to method taking receiving acl object instead of linked xattrs
@@ -127,10 +127,10 @@ bool AccessChecker::checkContainer(IContainerMD *cont, const Acl &acl,
   	return false;
   }
 
-  // if ((mode & X_OK) && (!acl.CanBrowse() && !cont->access(vid.uid, vid.gid, X_OK) ))
+  // if ((mode & X_OK) && (!acl.CanStat() && !cont->access(vid.uid, vid.gid, X_OK) ))
   if ( (mode & X_OK) &&
-       ( acl.CanNotBrowse() ||
-         ( !acl.CanBrowse() && !cont->access(vid.uid, vid.gid, X_OK) )
+       ( acl.CanNotStat() ||
+         ( !acl.CanStat() && !cont->access(vid.uid, vid.gid, X_OK) )
         )
      ) {
     //--------------------------------------------------------------------------
