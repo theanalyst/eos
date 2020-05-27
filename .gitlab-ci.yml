@@ -628,19 +628,24 @@ cc7_asan_docker_image:
   stage: test
   <<: *dock8s_before_script_template
   script:
+    - cp_to_local_cmd eos-cli1:/usr/sbin/eos-test-utils ./eos-test-utils
+    # converter
+    - cp_to_local_cmd eos-cli1:/usr/sbin/eos-converter-test ./eos-converter-test && chmod +x eos-converter-test
     - if [[ $CI_JOB_NAME =~ "k8s" ]]; then
-        kubectl cp $K8S_NAMESPACE/$(get_podname eos-cli1):/usr/sbin/eos-test-utils ./eos-test-utils;
-        kubectl cp $K8S_NAMESPACE/$(get_podname eos-cli1):/usr/sbin/eos-converter-test ./eos-converter-test;
-        kubectl cp $K8S_NAMESPACE/$(get_podname eos-cli1):/usr/sbin/eos-fsck-test ./eos-fsck-test;
-        chmod +x eos-converter-test; date; ./eos-converter-test --type k8s $K8S_NAMESPACE; date; rm -rf eos-converter-test; rm -rf eos-test-utils;
-        chmod +x eos-fsck-test; date; ./eos-fsck-test --max-delay 900 --type k8s $K8S_NAMESPACE; date; rm -rf eos-fsck-test;
+        date && ./eos-converter-test --type k8s $K8S_NAMESPACE && date;
       elif [[ $CI_JOB_NAME =~ "dock" ]]; then
-        docker cp eos-cli1:/usr/sbin/eos-test-utils .;
-        docker cp eos-cli1:/usr/sbin/eos-converter-test .;
-        docker cp eos-cli1:/usr/sbin/eos-fsck-test .;
-        chmod +x eos-converter-test; date; ./eos-converter-test --type docker; date; rm -rf eos-converter-test;
-        chmod +x eos-fsck-test; date; ./eos-fsck-test --max-delay 900 --type docker; date; rm -rf eos-fsck-test;
+        date && ./eos-converter-test --type docker && date;
       fi
+    - rm -rf eos-converter-test
+    # fsck
+    - cp_to_local_cmd eos-cli1:/usr/sbin/eos-fsck-test ./eos-fsck-test && chmod +x eos-fsck-test
+    - if [[ $CI_JOB_NAME =~ "k8s" ]]; then
+        date  && ./eos-fsck-test --max-delay 900 --type k8s $K8S_NAMESPACE && date
+      elif [[ $CI_JOB_NAME =~ "dock" ]]; then
+        date && ./eos-fsck-test --max-delay 900 --type docker && date
+      fi
+    - rm -rf eos-fsck-test
+    - rm -rf eos-test-utils
   <<: *dock8s_after_script_template
   artifacts:
     when: on_failure
