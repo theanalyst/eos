@@ -36,9 +36,9 @@ function exec_cmd_k8s() {
 
 function cp_to_local_cmd() {
   if [[ $IS_DOCKER == true ]]; then
-    cp_cmd_docker "$@"
+    cp_to_local_cmd_docker "$@"
   else
-    cp_cmd_k8s "$@"
+    cp_to_local_cmd_k8s "$@"
   fi
 }
 
