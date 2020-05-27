@@ -640,9 +640,9 @@ cc7_asan_docker_image:
     # fsck
     - cp_to_local_cmd eos-cli1:/usr/sbin/eos-fsck-test ./eos-fsck-test && chmod +x eos-fsck-test
     - if [[ $CI_JOB_NAME =~ "k8s" ]]; then
-        date  && ./eos-fsck-test --max-delay 900 --type k8s $K8S_NAMESPACE && date
+        date  && ./eos-fsck-test --max-delay 900 --type k8s $K8S_NAMESPACE && date;
       elif [[ $CI_JOB_NAME =~ "dock" ]]; then
-        date && ./eos-fsck-test --max-delay 900 --type docker && date
+        date && ./eos-fsck-test --max-delay 900 --type docker && date;
       fi
     - rm -rf eos-fsck-test
     - rm -rf eos-test-utils
