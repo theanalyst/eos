@@ -34,10 +34,10 @@ fi
 EOS_MGM_HOSTNAME=$1
 
 # Check preconditions and make sure central draining is enabled
-eos fs ls | grep "online" | wc -l | grep "7" &> /dev/null
+FST_ONLINE=$(eos fs ls | grep "online" | wc -l)
 
-if [[ $? -ne 0 ]]; then
-      echo "error: not enough FSTs not configured"
+if [[ ${FST_ONLINE} -lt 7 ]]; then
+      echo "error: not enough FSTs configured"
       exit 1
 fi
 
@@ -80,7 +80,7 @@ fi
 # Set all file systems in RO mode except for fsid 1 and 2 - then start a long
 # running process which writes a file. The purpose is to test the draining of
 # files being written when the draining is started.
-for i in {3..7}; do
+for (( i=3; i<=${FST_ONLINE}; i++ )); do
     eos fs config $i configstatus=ro
 done
 
@@ -90,7 +90,7 @@ sleep 2
 
 # Put back the rest of the file systems in rw mode so that the draining can
 # select them as destination.
-for i in {3..7}; do
+for (( i=3; i<=${FST_ONLINE}; i++ )); do
     eos fs config $i configstatus=rw
 done
 
