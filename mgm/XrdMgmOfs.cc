@@ -342,7 +342,10 @@ XrdMgmOfs::~XrdMgmOfs()
 {
   OrderlyShutdown();
   eos_warning("%s", "msg=\"finished destructor\"");
-  if( HostName ) free( HostName );
+
+  if (HostName) {
+    free(HostName);
+  }
 }
 
 //------------------------------------------------------------------------------
@@ -737,7 +740,7 @@ XrdMgmOfs::_prepare(XrdSfsPrep& pargs, XrdOucErrInfo& error,
   XrdOucString reqid(pargs.reqid);
   // Validate the event type
   std::string event;
-#if (XrdMajorVNUM(XrdVNUMBER) == 4 && XrdMinorVNUM(XrdVNUMBER) >= 10) || XrdMajorVNUM(XrdVNUMBER) >= 5
+#if (XrdMajorVNUM(XrdVNUMBER) == 4 && XrdMinorVNUM(XrdVNUMBER) >= 10) || XrdMajorVNUM(XrdVNUMBER) >= 20200625
   // Strip "quality of service" bits from pargs.opts so that only the action to
   // be taken is left
   const int pargsOptsQoS = Prep_PMASK | Prep_SENDAOK | Prep_SENDERR | Prep_SENDACK
@@ -949,7 +952,7 @@ XrdMgmOfs::_prepare(XrdSfsPrep& pargs, XrdOucErrInfo& error,
   }
 
   int retc = SFS_OK;
-#if (XrdMajorVNUM(XrdVNUMBER) == 4 && XrdMinorVNUM(XrdVNUMBER) >= 10) || XrdMajorVNUM(XrdVNUMBER) >= 5
+#if (XrdMajorVNUM(XrdVNUMBER) == 4 && XrdMinorVNUM(XrdVNUMBER) >= 10) || XrdMajorVNUM(XrdVNUMBER) >= 20200625
 
   // If we generated our own request ID, return it to the client
   if (gOFS->IsFileSystem2 && (pargs.opts & Prep_STAGE)) {
@@ -1596,7 +1599,7 @@ XrdMgmOfs::prepareOptsToString(const int opts)
     result << ",FRESH";
   }
 
-#if (XrdMajorVNUM(XrdVNUMBER) == 4 && XrdMinorVNUM(XrdVNUMBER) >= 10) || XrdMajorVNUM(XrdVNUMBER) >= 5
+#if (XrdMajorVNUM(XrdVNUMBER) == 4 && XrdMinorVNUM(XrdVNUMBER) >= 10) || XrdMajorVNUM(XrdVNUMBER) >= 20200625
 
   if (opts & Prep_CANCEL) {
     result << ",CANCEL";

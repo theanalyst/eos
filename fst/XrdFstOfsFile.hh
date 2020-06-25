@@ -62,7 +62,7 @@ EOSFSTNAMESPACE_BEGIN;
 class Layout;
 class CheckSum;
 
-#if XrdMajorVNUM( XrdVNUMBER ) > 4
+#if XrdMajorVNUM( XrdVNUMBER ) > 20200625
 #define XrdOfsFileBase XrdOfsFileFull
 #else
 #define XrdOfsFileBase XrdOfsFile
@@ -644,7 +644,7 @@ public:
   //----------------------------------------------------------------------------
   bool QueueForArchiving(const struct stat& statinfo,
                          std::string& queueing_errmsg,
-                         std::string &archive_req_id);
+                         std::string& archive_req_id);
 
   //----------------------------------------------------------------------------
   //! Notify the workflow protobuf endpoint that the user has closed a file that
@@ -681,7 +681,7 @@ public:
                                   const std::string& manager_name,
                                   const std::map<std::string, std::string>& xattrs,
                                   std::string& errmsg_wfe,
-                                  std::string &archive_req_id);
+                                  std::string& archive_req_id);
 
   //----------------------------------------------------------------------------
   //! Send archive failed event to the manager
