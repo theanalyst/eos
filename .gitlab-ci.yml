@@ -464,7 +464,7 @@ cc7_no_see_docker_image_commit:
     - ""
   variables:
     TO: gitlab-registry.cern.ch/dss/eos:${CI_COMMIT_SHORT_SHA}
-    DOCKER_FILE: eos-docker/Dockerfile_no_see
+    DOCKER_FILE: eos-docker/Dockerfile_no_sse
   dependencies:
     - build_cc7_no_sse
     - clone_docker
