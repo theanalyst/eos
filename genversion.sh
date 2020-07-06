@@ -99,7 +99,7 @@ else
 
     if [[ ${?} -eq 0 ]]; then
       TAG="$(git describe --tags --abbrev=0 --exact-match ${LASTCOMMITONBRANCH})"
-      EXP="[0-9]+\.[0-9]+\.[0-9]+(-[0-9])?$"
+      EXP="[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9]+)?$"
 
       # Check if tag respects the regular expression
       VERSION="$(echo "${TAG}" | grep -E "${EXP}")"

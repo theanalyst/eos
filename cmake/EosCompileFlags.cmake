@@ -28,8 +28,22 @@ include(CheckCXXCompilerFlag)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
 set(EOS_CXX_DEFINE "-DEOSCITRINE -DVERSION=\\\"${VERSION}\\\" -DRELEASE=\\\"${RELEASE}\\\"")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${EOS_CXX_DEFINE} ${CPP_VERSION} -msse4.2 -Wall -Wno-error=parentheses")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${EOS_CXX_DEFINE} ${CPP_VERSION} -Wall -Wno-error=parentheses")
 
+#-------------------------------------------------------------------------------
+# CPU architecture flags
+#-------------------------------------------------------------------------------
+set(CPU_ARCH_FLAGS "-msse4.2")
+if (NO_SSE)
+  message(NOTICE "SSE extensions not enabled")
+  set(CPU_ARCH_FLAGS "-mcrc32")
+endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CPU_ARCH_FLAGS}")
+
+#-------------------------------------------------------------------------------
+# Debug flags
+#-------------------------------------------------------------------------------
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g1")
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -g1")
 

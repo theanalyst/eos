@@ -283,6 +283,9 @@ The EOS software package.
 %setup -n %{name}-%{version}-@CPACK_PACKAGE_RELEASE@
 %global build_type RelWithDebInfo
 %global build_flags -DBUILD_MANPAGES=1 -DFUSEXCLIENT=1
+%if %{?_with_no_sse:1}%{!?_with_no_sse:0}
+%global build_flags %{build_flags} -DNO_SSE=1
+%endif
 %if %{?_with_server:0}%{!?_with_server:1}
 %global build_flags %{build_flags} -DCLIENT=1
 %endif

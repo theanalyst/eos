@@ -81,6 +81,7 @@ target_link_libraries(xrdstress.exe PRIVATE
   ${CMAKE_THREAD_LIBS_INIT})
 target_link_libraries(eoschecksumbench PRIVATE EosFstIo XROOTD::POSIX)
 
+
 target_compile_definitions(xrdstress.exe PUBLIC -D_FILE_OFFSET_BITS=64)
 target_compile_definitions(xrdcpabort PUBLIC -D_FILE_OFFSET_BITS=64)
 target_compile_definitions(xrdcprandom PUBLIC -D_FILE_OFFSET_BITS=64)
@@ -96,7 +97,7 @@ target_compile_definitions(xrdcpupdate PUBLIC -D_FILE_OFFSET_BITS=64)
 target_compile_definitions(xrdcpposixcache PUBLIC -D_FILE_OFFSET_BITS=64)
 target_compile_definitions(eoshashbench PUBLIC -D_FILE_OFFSET_BITS=64)
 target_compile_definitions(eoschecksumbench PUBLIC -D_FILE_OFFSET_BITS=64)
-target_compile_options(eoschecksumbench PRIVATE -msse4.2)
+target_compile_options(eoschecksumbench PRIVATE ${CPU_ARCH_FLAGS})
 target_compile_definitions(eos-open-trunc-update PUBLIC -D_FILE_OFFSET_BITS=64)
 
 add_executable(threadpooltest ThreadPoolTest.cc)

@@ -348,6 +348,19 @@ build_fedora_rawhide:
   dependencies: []
   allow_failure: true
 
+build_cc7_no_sse:
+  <<: *build_cc7_exotic-template_definition
+  variables:
+    BUILD_NAME: cc7_no_sse
+    CMAKE_OPTIONS: "-DNO_SSE=1"
+    RPMBUILD_OPTIONS: "--with no_sse"
+# @todo always for the moment, then make a decision
+#  only:
+#    - schedules
+  tags:
+    - docker_node
+    - cc7
+
 build_cc7_asan:
   <<: *build_cc7_exotic-template_definition
   variables:
@@ -427,7 +440,7 @@ build_cc7_coverage:
 # Build docker images
 #-------------------------------------------------------------------------------
 
-cc7_docker_image_tag:
+cc7_no_sse_docker_image_tag:
   stage: build:dockerimage
   tags:
     - docker-image-build
@@ -435,15 +448,15 @@ cc7_docker_image_tag:
     - ""
   variables:
     TO: gitlab-registry.cern.ch/dss/eos:${CI_COMMIT_TAG}
-    DOCKER_FILE: eos-docker/Dockerfile
+    DOCKER_FILE: eos-docker/Dockerfile_no_sse
     NO_CACHE: 1
   dependencies:
-    - build_cc7
+    - build_cc7_no_sse
     - clone_docker
   only:
     - tags
 
-cc7_docker_image_commit:
+cc7_no_see_docker_image_commit:
   stage: build:dockerimage
   tags:
     - docker-image-build
@@ -451,12 +464,12 @@ cc7_docker_image_commit:
     - ""
   variables:
     TO: gitlab-registry.cern.ch/dss/eos:${CI_COMMIT_SHORT_SHA}
-    DOCKER_FILE: eos-docker/Dockerfile
+    DOCKER_FILE: eos-docker/Dockerfile_no_see
   dependencies:
-    - build_cc7
+    - build_cc7_no_sse
     - clone_docker
-  except:
-    - tags
+  allow_failure: true
+
 
 # schedules ------------------------------
 
@@ -938,6 +951,8 @@ unit_test_asan:
     - koji build ${TARGET} ${BUILD_NAME}_artifacts/SRPMS/*.src.rpm
   only:
     - tags
+  except:
+    - /.*no_sse.*/
   tags:
     - docker_node
     - publish
@@ -995,6 +1010,7 @@ rpm_testing_artifacts:
     - master
     - tags
   retry: 2
+  when: manual
 
 rpm_stable_artifacts:
   stage: publish
@@ -1012,6 +1028,37 @@ rpm_stable_artifacts:
     - tags
   dependencies: []
   when: manual
+
+
+rpm_no_sse_commit_artifacts:
+  stage: publish
+  image: gitlab-registry.cern.ch/linuxsupport/cc7-base
+  script:
+    - yum install --nogpg -y sudo sssd-client createrepo
+    - if [[ $CI_COMMIT_TAG ]]; then echo "This only works for commits"; exit 0; else BUILD_TYPE="commit"; fi
+    - sudo -u stci -H ./gitlab-ci/store_artifacts.sh "citrine-no_sse" "commit" /eos/project/s/storage-ci/www/eos
+  tags:
+    - docker_node
+    - publish
+  except:
+    - tags
+  allow_failure: true
+  when: manual
+
+rpm_no_sse_release_artifacts:
+  stage: publish
+  image: gitlab-registry.cern.ch/linuxsupport/cc7-base
+  script:
+    - yum install --nogpg -y sudo sssd-client createrepo
+    - sudo -u stci -H ./gitlab-ci/store_artifacts.sh "citrine-no_sse" "release" /eos/project/s/storage-ci/www/eos
+  tags:
+    - docker_node
+    - publish
+  only:
+    - tags
+  retry: 2
+  when: manual
+
 
 debian_artifacts:
   stage: publish
@@ -1049,6 +1096,8 @@ debian_artifacts_volume:
     - build_ubuntu_bionic
   only:
     - tags
+  except:
+    - /.*no_sse.*/
   tags:
     - docker_node
     - publish
