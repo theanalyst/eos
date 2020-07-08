@@ -20,5 +20,6 @@ for artifacts_dir in *_artifacts; do
 
   cp ${dist}_artifacts/*.deb $path
   $script_loc/generate_debian_metadata.sh $prefix $dist $component amd64
-  if [[ -n "$CI_COMMIT_TAG" ]]; then $script_loc/sign_debian_repository.sh $prefix $dist; fi
+  echo "CI_COMMIT_TAG: $CI_COMMIT_TAG - CI_COMMIT_SHORT_SHA : $CI_COMMIT_SHORT_SHA"
+  if [[ -n "$CI_COMMIT_TAG" ]]; then echo "true"; $script_loc/sign_debian_repository.sh $prefix $dist; fi
 done
