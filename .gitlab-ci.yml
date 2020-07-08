@@ -1,7 +1,5 @@
 stages:
-  - build:manual
   - build:rpm
-  - build:dockerimage
   - publish
   - clean
 
@@ -16,21 +14,6 @@ default:
 # Build RPMs
 #-------------------------------------------------------------------------------
 
-clone_docker:
-  stage: build:rpm
-  image: gitlab-registry.cern.ch/linuxsupport/cc7-base
-  script:
-    - yum install --nogpg -y git
-    - git clone https://gitlab.cern.ch/eos/eos-docker.git
-  artifacts:
-    expire_in: 1 day
-    paths:
-      - eos-docker/
-  tags:
-    - docker_node
-    - clone_eosdocker
-
-# schedules ------------------------------
 
 .build_ubuntu-template: &build_ubuntu-template_definition
   stage: build:rpm
@@ -98,7 +81,7 @@ debian_artifacts:
 #    - if [[ -n "$CI_COMMIT_TAG" ]]; then sudo -u stci -H gpg --homedir /home/stci/ --import $STCI_REPO_KEY; fi
     - sudo -u stci -H gpg --homedir /home/stci/ --import $STCI_REPO_KEY
     - if [[ -n "$CI_COMMIT_TAG" ]]; then BUILD_TYPE=tag; else BUILD_TYPE=commit; fi
-    - sudo -u stci -H ./gitlab-ci/store_artifacts_debian.sh /eos/project/s/storage-ci/www/debian/eos/${BRANCH} ${BUILD_TYPE}
+    - sudo -u stci -H -E ./gitlab-ci/store_artifacts_debian.sh /eos/project/s/storage-ci/www/debian/eos/${BRANCH} ${BUILD_TYPE}
   dependencies:
     - build_ubuntu_bionic
 #  only:
