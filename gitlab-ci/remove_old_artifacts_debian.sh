@@ -21,7 +21,8 @@ for version in ${versions}; do
         $script_loc/generate_debian_metadata.sh $eos_base/$version $dist commit $arch
       done
         echo "CI_COMMIT_TAG: $CI_COMMIT_TAG - CI_COMMIT_SHORT_SHA : $CI_COMMIT_SHORT_SHA"
-      if [[ -n "$CI_COMMIT_TAG" ]]; then echo "true"; $script_loc/sign_debian_repository.sh $eos_base/$version $dist; fi
+#      if [[ -n "$CI_COMMIT_TAG" ]]; then $script_loc/sign_debian_repository.sh $eos_base/$version $dist; fi
+      $script_loc/sign_debian_repository.sh $eos_base/$version $dist
     fi
   done
 done 
