@@ -126,17 +126,19 @@ BuildRequires: eos-xrootd == %{eos_xrootd_version_min}
 %global __requires_exclude ^libXrd*
 %else
 # Install default xrootd
-BuildRequires: xrootd >= %{xrootd_version_min}
-BuildRequires: xrootd-client-devel >= %{xrootd_version_min}
-BuildRequires: xrootd-server-devel >= %{xrootd_version_min}
-BuildRequires: xrootd-private-devel >= %{xrootd_version_min}
+BuildRequires: xrootd == %{xrootd_version_min}
+BuildRequires: xrootd-client-devel == %{xrootd_version_min}
+BuildRequires: xrootd-server-devel == %{xrootd_version_min}
+BuildRequires: xrootd-private-devel == %{xrootd_version_min}
+BuildRequires: xrootd-libs == %{xrootd_version_min}
 %endif
 %else
 # Install default xrootd
-BuildRequires: xrootd >= %{xrootd_version_min}
-BuildRequires: xrootd-client-devel >= %{xrootd_version_min}
-BuildRequires: xrootd-server-devel >= %{xrootd_version_min}
-BuildRequires: xrootd-private-devel >= %{xrootd_version_min}
+BuildRequires: xrootd == %{xrootd_version_min}
+BuildRequires: xrootd-client-devel == %{xrootd_version_min}
+BuildRequires: xrootd-server-devel == %{xrootd_version_min}
+BuildRequires: xrootd-private-devel == %{xrootd_version_min}
+BuildRequires: xrootd-libs == %{xrootd_version_min}
 %endif
 
 # -----------------------
@@ -374,14 +376,14 @@ Group: Applications/File
 %if 0%{?distribution} == 7 || 0%{?distribution} == 8
 Requires: eos-xrootd == %{eos_xrootd_version_min}
 %else
-Requires: xrootd >= %{xrootd_version_min}
-Requires: xrootd-client >= %{xrootd_version_min}
-Requires: xrootd-private-devel >= %{xrootd_version_min}
+Requires: xrootd == %{xrootd_version_min}
+Requires: xrootd-client == %{xrootd_version_min}
+Requires: xrootd-private-devel == %{xrootd_version_min}
 %endif
 %else
-Requires: xrootd >= %{xrootd_version_min}
-Requires: xrootd-client >= %{xrootd_version_min}
-Requires: xrootd-private-devel >= %{xrootd_version_min}
+Requires: xrootd == %{xrootd_version_min}
+Requires: xrootd-client == %{xrootd_version_min}
+Requires: xrootd-private-devel == %{xrootd_version_min}
 %endif
 
 
@@ -573,10 +575,10 @@ Group: Applications/File
 %if 0%{?distribution} == 7 || 0%{?distribution} == 8
 Requires: eos-xrootd == %{eos_xrootd_version_min}
 %else
-Requires: xrootd-client >= %{xrootd_version_min}
+Requires: xrootd-client == %{xrootd_version_min}
 %endif
 %else
-Requires: xrootd-client >= %{xrootd_version_min}
+Requires: xrootd-client == %{xrootd_version_min}
 %endif
 
 # Select protobuf package
@@ -631,10 +633,10 @@ Requires: zeromq
 %if 0%{?distribution} == 7 || 0%{?distribution} == 8
 Requires: eos-xrootd == %{eos_xrootd_version_min}
 %else
-Requires: xrootd-client >= %{xrootd_version_min}
+Requires: xrootd-client == %{xrootd_version_min}
 %endif
 %else
-Requires: xrootd-client >= %{xrootd_version_min}
+Requires: xrootd-client == %{xrootd_version_min}
 %endif
 
 # Select protobuf package
@@ -730,10 +732,10 @@ Group: Applications/File
 %if 0%{?distribution} == 7 || 0%{?distribution} == 8
 Requires: eos-xrootd == %{eos_xrootd_version_min}
 %else
-Requires: xrootd-client >= %{xrootd_version_min}
+Requires: xrootd-client == %{xrootd_version_min}
 %endif
 %else
-Requires: xrootd-client >= %{xrootd_version_min}
+Requires: xrootd-client == %{xrootd_version_min}
 %endif
 
 Requires: eos-client = @CPACK_PACKAGE_VERSION@
@@ -889,10 +891,10 @@ Group: Applications/File
 %if 0%{?distribution} == 7 || 0%{?distribution} == 8
 Requires: eos-xrootd == %{eos_xrootd_version_min}
 %else
-Requires: xrootd-client >= %{xrootd_version_min}
+Requires: xrootd-client == %{xrootd_version_min}
 %endif
 %else
-Requires: xrootd-client >= %{xrootd_version_min}
+Requires: xrootd-client == %{xrootd_version_min}
 %endif
 
 Requires: eos-client = @CPACK_PACKAGE_VERSION@
@@ -1054,10 +1056,10 @@ Requires: python-daemon python-zmq python3-fusepy
 %if 0%{?distribution} == 7 || 0%{?distribution} == 8
 Requires: eos-xrootd == %{eos_xrootd_version_min}
 %else
-Requires: xrootd-python >= %{xrootd_version_min}
+Requires: xrootd-python == %{xrootd_version_min}
 %endif
 %else
-Requires: xrootd-python >= %{xrootd_version_min}
+Requires: xrootd-python == %{xrootd_version_min}
 %endif
 
 %description -n eos-archive
