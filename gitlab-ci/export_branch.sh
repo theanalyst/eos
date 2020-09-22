@@ -6,7 +6,7 @@ if [[ "${CI_BUILD_REF_NAME}" == "beryl_aquamarine" ]] || [[ ${CI_BUILD_REF_NAME}
   REFNAME="aquamarine"
 else
   if [[ "${CI_JOB_STAGE}" == "publish" ]]; then
-    REFNAME="citrine-no_see"
+    REFNAME="citrine-no_sse"
   else
     REFNAME="citrine"
   fi

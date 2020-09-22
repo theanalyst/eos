@@ -15,34 +15,20 @@ set -ex
 # Define a mapping between builds and repos
 declare -A BUILDMAP
 
-BUILDMAP[c8]=el-8
-BUILDMAP[cc7]=el-7
-BUILDMAP[slc6]=el-6
-BUILDMAP[fc-30]=fc-30
-BUILDMAP[fc-31]=fc-31
-BUILDMAP[fc-rawhide]=fc-rawhide
-BUILDMAP[osx]=osx
+BUILDMAP[cc7_no_sse]=el-7
 
-BRANCH=$1
+BRANCH=$1 #BRANCH="citrine-no_sse"
 BUILD_TYPE=$2
 PATH_PREFIX=$3
 
 for artifacts_dir in *_artifacts; do
-  build=${artifacts_dir%_*}
-  repo=${BUILDMAP[${build}]}
+  build=${artifacts_dir%_*} # build=cc7_no_sse
+  repo=${BUILDMAP[${build}]} # repo=el-7
 
   # Handle only builds registered in the build map
   [ -z ${repo} ] && continue
 
   path=${PATH_PREFIX}/${BRANCH}/${BUILD_TYPE}/${repo}
-
-  # Treat OSX artifacts separately
-  if [ ${build} == "osx" ]; then
-    mkdir -p ${path}/x86_64/
-    cp ${build}_artifacts/* ${path}/x86_64/
-
-    continue
-  fi
 
   # Upload RPMS
   mkdir -p ${path}/x86_64/
