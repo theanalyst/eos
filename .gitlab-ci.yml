@@ -434,7 +434,7 @@ build_cc7_coverage:
 # Build docker images
 #-------------------------------------------------------------------------------
 
-.build_dockerimage-template: &build_dockerimage-template_definition
+.build_dockerimage-template:
   stage: build:dockerimage
   image:
     name: gcr.io/kaniko-project/executor:debug
@@ -453,7 +453,7 @@ build_cc7_coverage:
   retry: 1
 
 cc7_docker_image:
-  <<: *build_dockerimage-template_definition
+  extends: .build_dockerimage-template
   variables:
     DOCKERFILE: eos-docker/Dockerfile
     BASETAG: ""
@@ -461,7 +461,7 @@ cc7_docker_image:
     - job: build_cc7
 
 ubuntu_bionic_docker_image:
-  <<: *build_dockerimage-template_definition
+  extends: .build_dockerimage-template
   variables:
     DOCKERFILE: eos-docker/Dockerfile_ubuntu_bionic
     BASETAG: "ubuntu_bionic_client_"
@@ -475,7 +475,7 @@ ubuntu_bionic_docker_image:
 # schedules ------------------------------
 
 c8_docker_image:
-  <<: *build_dockerimage-template_definition
+  extends: .build_dockerimage-template
   variables:
     DOCKERFILE: eos-docker/Dockerfile_c8
     BASETAG: "c8_"
@@ -487,7 +487,7 @@ c8_docker_image:
   allow_failure: true
 
 cc7_asan_docker_image:
-  <<: *build_dockerimage-template_definition
+  extends: .build_dockerimage-template
   variables:
     DOCKERFILE: eos-docker/Dockerfile_asan
     BASETAG: "asan_"
@@ -501,7 +501,7 @@ cc7_asan_docker_image:
 # @todo Re-enable xrd_testing jobs once project ugprades to XRootD 5
 # xt stands for xrd_testing. Must shorten to not hit HOST_NAME_MAX
 .cc7_xrd_testing_docker_image:
-  <<: *build_dockerimage-template_definition
+  extends: .build_dockerimage-template
   variables:
     DOCKERFILE: eos-docker/Dockerfile_xrd_testing
     BASETAG: "xrd_testing_"
@@ -512,7 +512,7 @@ cc7_asan_docker_image:
   allow_failure: true
 
 .cc7_coverage_docker_image:
-  <<: *build_dockerimage-template_definition
+  extends: .build_dockerimage-template
   variables:
     DOCKERFILE: eos-docker/Dockerfile_coverage
     BASETAG: "coverage_"
