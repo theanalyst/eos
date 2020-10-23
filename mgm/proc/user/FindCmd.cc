@@ -522,7 +522,7 @@ eos::mgm::FindCmd::printPath(std::ofstream& ss, const std::string& path,
     ss << "root://" << gOFS->MgmOfsAlias << "/";
   }
 
-  ss << "path=" << path;
+  ss << path;
 }
 
 //------------------------------------------------------------------------------
