@@ -38,7 +38,7 @@
 #include "namespace/utils/BalanceCalculator.hh"
 #include "namespace/utils/Checksum.hh"
 #include "namespace/utils/Stat.hh"
-
+#include <mgm/Access.hh>
 
 EOSMGMNAMESPACE_BEGIN
 
@@ -653,9 +653,9 @@ public:
   //----------------------------------------------------------------------------
   // QDB: Initialize NamespaceExplorer
   //----------------------------------------------------------------------------
-  FindResultProvider(qclient::QClient* qc, const std::string& target, const uint32_t maxdepth,
+  FindResultProvider(qclient::QClient* qc, const std::string& target, const uint32_t maxdepth, const bool ignore_files,
                      const eos::common::VirtualIdentity& v)
-    : qcl(qc), path(target), maxdepth(maxdepth), vid(v)
+    : qcl(qc), path(target), maxdepth(maxdepth), ignore_files(ignore_files), vid(v)
   {
     restart();
   }
@@ -670,6 +670,7 @@ public:
       options.expansionDecider.reset(new PermissionFilter(vid));
       options.view = gOFS->eosView;
       options.depthLimit = maxdepth;
+      options.ignoreFiles = ignore_files;
       explorer.reset(new NamespaceExplorer(path, options, *qcl,
                                            static_cast<QuarkNamespaceGroup*>(gOFS->namespaceGroup.get())->getExecutor()));
     }
@@ -818,6 +819,7 @@ private:
   qclient::QClient* qcl = nullptr;
   std::string path;
   uint32_t maxdepth; // @todo not working as expected, investigate
+  bool ignore_files; // @todo not working as expected, investigate
   std::unique_ptr<NamespaceExplorer> explorer;
   eos::common::VirtualIdentity vid;
 };
@@ -903,13 +905,29 @@ NewfindCmd::ProcessRequest() noexcept
                                findRequest.path(), findRequest.maxdepth(), mVid));
   }
 
-  unsigned long long filecounter = 0;
-  unsigned long long dircounter = 0;
+  uint64_t dircounter = 0;
+  uint64_t filecounter = 0;
+  // Users cannot return more than 50k dirs and 100k files with one find,
+  // unless there is an access rule allowing deeper queries
+  static uint64_t dir_limit = 50000;
+  static uint64_t file_limit = 100000;
+  Access::GetFindLimits(mVid, dir_limit, file_limit);
 
 
   // @note assume that findResultProvider will serve results DFS-ordered
   FindResult findResult;
+  std::shared_ptr<eos::IContainerMD> cMD;
+  std::shared_ptr<eos::IFileMD> fMD;
   while (findResultProvider->next(findResult)) {
+
+    if (dircounter>=dir_limit || filecounter>=file_limit) {
+      ofstderrStream << "warning(" << E2BIG << "): find results are limited for you to "
+          << dir_limit << " directories and " << file_limit << " files.\n"
+          << "Result is truncated! (found "
+          << dircounter << " directories and " << filecounter << " files so far)\n";
+      reply.set_retc(E2BIG);
+      break;
+    }
 
     if (findResult.isdir) {
       if (!findRequest.directories() && findRequest.files()) { continue;}
@@ -920,7 +938,7 @@ NewfindCmd::ProcessRequest() noexcept
         continue;
       }
 
-      std::shared_ptr<eos::IContainerMD> cMD = findResult.toContainerMD();
+      cMD = findResult.toContainerMD();
       // Process next item if we don't have a cMD
       if (!cMD) { continue; }
 
@@ -963,7 +981,7 @@ NewfindCmd::ProcessRequest() noexcept
     } else if (!findResult.isdir) { // redundant, no problem
       if (!findRequest.files() && findRequest.directories()) { continue;}
 
-      std::shared_ptr<eos::IFileMD> fMD = findResult.toFileMD();
+      fMD = findResult.toFileMD();
       // Process next item if we don't have a fMD
       if (!fMD) { continue; }
 
