@@ -300,14 +300,26 @@ template<typename T>
 static void printAttributes(std::ofstream& ss,
                 const eos::console::FindProto& req, const T& md) {
 
-  ss << "\t";
-
   if (!req.printkey().empty()) {
     std::string attr;
     if (!gOFS->_attr_get(*md.get(), req.printkey(), attr)) {
       attr = "undef";
     }
-    ss << req.printkey() << "=" << attr;
+    ss << "\t" << req.printkey() << "=" << attr;
+  }
+
+}
+
+//------------------------------------------------------------------------------
+// Print directories and files count of a ContainerMD, if requested by req.
+//------------------------------------------------------------------------------
+static void printChildCount(std::ofstream& ss, const eos::console::FindProto& req,
+                            const std::shared_ptr<eos::IContainerMD>& cmd)
+{
+  if (req.childcount()) {
+    ss << "\t"
+       <<" ndirs=" << cmd->getNumContainers()
+       << " nfiles=" << cmd->getNumFiles();
   }
 
 }
@@ -581,9 +593,6 @@ struct FindResult {
   bool expansionFilteredOut;
   std::pair<bool, uint32_t> publicAccessAllowed; // second
 
-  std::shared_ptr<eos::IContainerMD> containerMD;
-  std::shared_ptr<eos::IFileMD> fileMD;
-
   uint64_t numFiles = 0;
   uint64_t numContainers = 0;
 
@@ -591,34 +600,28 @@ struct FindResult {
   {
     eos::common::RWMutexReadLock eosViewMutexGuard(gOFS->eosViewRWMutex, __FUNCTION__, __LINE__, __FILE__);
 
-    if (!containerMD) {
-      try {
-        containerMD = gOFS->eosView->getContainer(path);
-      } catch (eos::MDException& e) {
-        eos_static_err("caught exception %d %s\n", e.getErrno(),
-                       e.getMessage().str().c_str());
-        return {};
-      }
+    try {
+      return gOFS->eosView->getContainer(path);
+    } catch (eos::MDException& e) {
+      eos_static_err("caught exception %d %s\n", e.getErrno(),
+                     e.getMessage().str().c_str());
+      return {};
     }
 
-    return containerMD;
   }
 
   std::shared_ptr<eos::IFileMD> toFileMD()
   {
     eos::common::RWMutexReadLock eosViewMutexGuard(gOFS->eosViewRWMutex, __FUNCTION__, __LINE__, __FILE__);
 
-    if (!fileMD) {
-      try {
-        fileMD = gOFS->eosView->getFile(path);
-      } catch (eos::MDException& e) {
-        eos_static_err("caught exception %d %s\n", e.getErrno(),
-                       e.getMessage().str().c_str());
-        return {};
-      }
+    try {
+      return gOFS->eosView->getFile(path);
+    } catch (eos::MDException& e) {
+      eos_static_err("caught exception %d %s\n", e.getErrno(),
+                     e.getMessage().str().c_str());
+      return {};
     }
 
-    return fileMD;
   }
 };
 
@@ -725,8 +728,6 @@ public:
       inMemStarted = true;
       res.path = dirIterator->first;
       res.isdir = true;
-      res.containerMD = {};
-      res.fileMD = {};
       return true;
     }
 
@@ -743,16 +744,12 @@ public:
       fileIterator = targetFileSet->begin();
       res.path = dirIterator->first;
       res.isdir = true;
-      res.containerMD = {};
-      res.fileMD = {};
       return true;
     }
 
     // Nope, just give out another file.
     res.path = dirIterator->first + *fileIterator;
     res.isdir = false;
-    res.containerMD = {};
-    res.fileMD = {};
     fileIterator++;
     return true;
   }
@@ -773,15 +770,9 @@ public:
                                                                const_cast<common::VirtualIdentity&>(vid));
 
     if (item.isFile) {
-      eos::QuarkFileMD* fmd = new eos::QuarkFileMD();
-      fmd->initialize(std::move(item.fileMd));
-      res.fileMD.reset(fmd);
       res.numFiles = 0;
       res.numContainers = 0;
     } else {
-      eos::QuarkContainerMD* cmd = new eos::QuarkContainerMD();
-      cmd->initializeWithoutChildren(std::move(item.containerMd));
-      res.containerMD.reset(cmd);
       res.numFiles = item.numFiles;
       res.numContainers = item.numContainers;
     }
@@ -902,8 +893,10 @@ NewfindCmd::ProcessRequest() noexcept
   } else {
     findResultProvider.reset(new FindResultProvider(
                                eos::BackendClient::getInstance(gOFS->mQdbContactDetails, "find"),
-                               findRequest.path(), findRequest.maxdepth(), mVid));
+                               findRequest.path(), findRequest.maxdepth(), false, mVid)); //@todo @note
   }
+
+  uint64_t totcounter = 0; //@todo @note justcount
 
   uint64_t dircounter = 0;
   uint64_t filecounter = 0;
@@ -919,6 +912,22 @@ NewfindCmd::ProcessRequest() noexcept
   std::shared_ptr<eos::IContainerMD> cMD;
   std::shared_ptr<eos::IFileMD> fMD;
   while (findResultProvider->next(findResult)) {
+
+//    if (findResult.isdir) {
+//
+//      if (true) {
+//        totcounter +=
+//            gOFS->eosView->getContainer(findResult.path)->getNumContainers() +
+//            gOFS->eosView->getContainer(findResult.path)->getNumFiles();
+////        totcounter += findResult.numContainers + findResult.numFiles;
+//        ofstdoutStream << " path=" << findResult.path
+//                       << " numContainers=" << findResult.numContainers
+//                       << " numFiles=" << findResult.numFiles << "\n";
+//        ofstdoutStream << "totcounter=" << totcounter << "\n";
+//        continue;
+//      }
+//      continue;
+//    }
 
     if (dircounter>=dir_limit || filecounter>=file_limit) {
       ofstderrStream << "warning(" << E2BIG << "): find results are limited for you to "
@@ -950,14 +959,6 @@ NewfindCmd::ProcessRequest() noexcept
 
       if (findRequest.count()) { continue; }
 
-      // Are we printing --childcount? Then, that's it
-      if (findRequest.childcount()) {
-        ofstdoutStream << findResult.path <<
-            " ndir=" << findResult.numContainers <<
-            " nfiles=" << findResult.numFiles << std::endl;
-        continue;
-      }
-
       // Purge version directory?
       if (purge) {
         this->PurgeVersions(ofstdoutStream, max_version, findResult.path);
@@ -974,6 +975,7 @@ NewfindCmd::ProcessRequest() noexcept
 
       printPath(ofstdoutStream, findResult.path, findRequest.xurl());
       printUidGid(ofstdoutStream, findRequest, cMD);
+      printChildCount(ofstdoutStream,findRequest,cMD);
       printAttributes(ofstdoutStream, findRequest, cMD);
       ofstdoutStream << std::endl;
 
