@@ -809,8 +809,8 @@ private:
   //----------------------------------------------------------------------------
   qclient::QClient* qcl = nullptr;
   std::string path;
-  uint32_t maxdepth; // @todo not working as expected, investigate
-  bool ignore_files; // @todo not working as expected, investigate
+  uint32_t maxdepth;
+  bool ignore_files;
   std::unique_ptr<NamespaceExplorer> explorer;
   eos::common::VirtualIdentity vid;
 };
@@ -891,12 +891,12 @@ NewfindCmd::ProcessRequest() noexcept
       }
     }
   } else {
+    // @note when findRequest.childcount() is true, the namespace explorer will skip the files during the namespace traversal.
+    // This way we can have a fast aggregate sum of the file/container count for each directory
     findResultProvider.reset(new FindResultProvider(
                                eos::BackendClient::getInstance(gOFS->mQdbContactDetails, "find"),
-                               findRequest.path(), findRequest.maxdepth(), false, mVid)); //@todo @note
+                               findRequest.path(), findRequest.maxdepth(), findRequest.childcount(), mVid));
   }
-
-  uint64_t totcounter = 0; //@todo @note justcount
 
   uint64_t dircounter = 0;
   uint64_t filecounter = 0;
@@ -912,22 +912,6 @@ NewfindCmd::ProcessRequest() noexcept
   std::shared_ptr<eos::IContainerMD> cMD;
   std::shared_ptr<eos::IFileMD> fMD;
   while (findResultProvider->next(findResult)) {
-
-//    if (findResult.isdir) {
-//
-//      if (true) {
-//        totcounter +=
-//            gOFS->eosView->getContainer(findResult.path)->getNumContainers() +
-//            gOFS->eosView->getContainer(findResult.path)->getNumFiles();
-////        totcounter += findResult.numContainers + findResult.numFiles;
-//        ofstdoutStream << " path=" << findResult.path
-//                       << " numContainers=" << findResult.numContainers
-//                       << " numFiles=" << findResult.numFiles << "\n";
-//        ofstdoutStream << "totcounter=" << totcounter << "\n";
-//        continue;
-//      }
-//      continue;
-//    }
 
     if (dircounter>=dir_limit || filecounter>=file_limit) {
       ofstderrStream << "warning(" << E2BIG << "): find results are limited for you to "
