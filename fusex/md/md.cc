@@ -1750,7 +1750,7 @@ metad::apply(fuse_req_t req, eos::fusex::container& cont, bool listing)
     eos_static_debug(dump_container(cont).c_str());
   }
 
-  if (cont.type() == cont.MD) {
+  if (cont.type() == eos::fusex::container::MD) {
     uint64_t md_ino = cont.md_().md_ino();
     uint64_t md_pino = cont.md_().md_pino();
     uint64_t ino = inomap.forward(md_ino);

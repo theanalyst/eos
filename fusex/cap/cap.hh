@@ -26,7 +26,7 @@
 #define FUSE_CAP_HH_
 
 //#include "fusex/fusex.pb.h"
-#include "proto_message_inheritor.hh"
+//#include "proto_message_inheritor.hh"
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -48,7 +48,8 @@
 #define U_OK 128   // can update
 #define SU_OK 256  // set utimes
 
-template<class Proto> struct CAPProtoMessageInheritor {
+template<class Proto> class CAPProtoMessageInheritor {
+public:
   Proto data;
   typedef Proto BaseProtoClass;
   typedef CAPProtoMessageInheritor<Proto> BaseProtoWrapper;

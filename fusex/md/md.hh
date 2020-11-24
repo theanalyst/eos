@@ -56,7 +56,8 @@
 #include "utils/zmq.hpp"
 #endif
 
-template<class Proto> struct MDProtoMessageInheritor {
+template<class Proto> class MDProtoMessageInheritor {
+public:
   Proto data;
   typedef Proto BaseProtoClass;
   typedef MDProtoMessageInheritor<Proto> BaseProtoWrapper;
