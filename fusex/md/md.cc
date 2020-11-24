@@ -51,7 +51,7 @@ metad::metad() : mdflush(0), mdqueue_max_backlog(1000),
   {
     inomap.insert(1, 1);
   }
-  shared_md md = std::make_shared<mdx>(1);
+  shared_md md = std::make_unique<mdx>(1);
   md->data.set_nlink(1);
   md->data.set_mode(S_IRWXU | S_IRWXG | S_IRWXO | S_IFDIR);
   md->data.set_name(":root:");
@@ -201,7 +201,7 @@ metad::lookup(fuse_req_t req, fuse_ino_t parent, const char* name)
 					 eos::common::StringConversion::EncodeInvalidUTF8(name));
       } else {
 	if (pmd->local_enoent().count(name)) {
-          md = std::make_shared<mdx>();
+          md = std::make_unique<mdx>();
           md->data.set_err(ENOENT);
           return md;
 	}
@@ -209,7 +209,7 @@ metad::lookup(fuse_req_t req, fuse_ino_t parent, const char* name)
         if (pmd->data.creator() ||
             (pmd->data.type() == pmd->data.MDLS)) {
           // no entry - TODO return a NULLMD object instead of creating it all the time
-          md = std::make_shared<mdx>();
+          md = std::make_unique<mdx>();
           md->data.set_err(pmd->data.err());
           return md;
         }
@@ -217,7 +217,7 @@ metad::lookup(fuse_req_t req, fuse_ino_t parent, const char* name)
         if (pmd->get_todelete().count(eos::common::StringConversion::EncodeInvalidUTF8(
                                         name))) {
           // if this has been deleted, we just say this
-          md = std::make_shared<mdx>();
+          md = std::make_unique<mdx>();
           md->data.set_err(pmd->data.err());
 
           if (EOS_LOGS_DEBUG) {
@@ -252,14 +252,14 @@ metad::lookup(fuse_req_t req, fuse_ino_t parent, const char* name)
       md->Locker().UnLock();
       pmd->Locker().Lock();
     } else {
-      md = std::make_shared<mdx>();
+      md = std::make_unique<mdx>();
       md->data.set_err(ENOENT);
     }
   } else {
     // --------------------------------------------------
     // no md available
     // --------------------------------------------------
-    md = std::make_shared<mdx>();
+    md = std::make_unique<mdx>();
     md->data.set_err(pmd->data.err());
   }
 
@@ -531,7 +531,7 @@ metad::map_children_to_local(shared_md pmd)
       inomap.insert(remote_ino, local_ino);
       stat.inodes_inc();
       stat.inodes_ever_inc();
-      md = std::make_shared<mdx>();
+      md = std::make_unique<mdx>();
       mdmap.insertTS(local_ino, md);
     }
 
@@ -594,7 +594,7 @@ metad::getlocal(fuse_req_t req,
   shared_md md;
 
   if (!mdmap.retrieveTS(ino, md)) {
-    md = std::make_shared<mdx>();
+    md = std::make_unique<mdx>();
     md->data.set_err(ENOENT);
   }
 
@@ -618,7 +618,7 @@ metad::get(fuse_req_t req,
 
   if (ino) {
     if (!mdmap.retrieveTS(ino, md)) {
-      md = std::make_shared<mdx>();
+      md = std::make_unique<mdx>();
       md->data.set_md_ino(inomap.backward(ino));
     } else {
       if (ino != 1) {
@@ -634,7 +634,7 @@ metad::get(fuse_req_t req,
     // -------------------------------------------------------------------------
     // this happens if we get asked for a child, which was never listed before
     // -------------------------------------------------------------------------
-    md = std::make_shared<mdx>();
+    md = std::make_unique<mdx>();
   }
 
   if (!md || !md->data.id()) {
@@ -871,7 +871,7 @@ metad::get(fuse_req_t req,
   }
 
   if (rc) {
-    shared_md md = std::make_shared<mdx>();
+    shared_md md = std::make_unique<mdx>();
     md->data.set_err(rc);
 
     if (EOS_LOGS_DEBUG) {
@@ -1146,7 +1146,7 @@ metad::add_sync(fuse_req_t req, shared_md pmd, shared_md md, std::string authid)
 int
 metad::begin_flush(fuse_req_t req, shared_md emd, std::string authid)
 {
-  shared_md md = std::make_shared<mdx>();
+  shared_md md = std::make_unique<mdx>();
   md->data.set_operation(md->data.BEGINFLUSH);
   int rc = 0;
 
@@ -1169,7 +1169,7 @@ metad::begin_flush(fuse_req_t req, shared_md emd, std::string authid)
 int
 metad::end_flush(fuse_req_t req, shared_md emd, std::string authid)
 {
-  shared_md md = std::make_shared<mdx>();
+  shared_md md = std::make_unique<mdx>();
   md->data.set_operation(md->data.ENDFLUSH);
   int rc = 0;
 
@@ -1739,7 +1739,7 @@ metad::cleanup(fuse_ino_t ino)
 
 /* -------------------------------------------------------------------------- */
 uint64_t
-metad::apply(fuse_req_t req, eos::fusex::container& cont, bool listing)
+metad::apply(fuse_req_t req, eos::fusex::container& cont, bool listing) // @todo check if cont needs to be mutable
 {
   // apply receives either a single MD record or a parent MD + all children MD
   // we have to make sure that the modification of children is atomic in the parent object
@@ -1759,7 +1759,7 @@ metad::apply(fuse_req_t req, eos::fusex::container& cont, bool listing)
       // Create a new md object, if none is found in the cache
       if (!mdmap.retrieveTS(ino, md)) {
         is_new = true;
-        md = std::make_shared<mdx>();
+        md = std::make_unique<mdx>();
       }
 
       md->Locker().Lock();
@@ -2017,7 +2017,7 @@ metad::apply(fuse_req_t req, eos::fusex::container& cont, bool listing)
         }
       } else {
         // this is a new inode we don't know yet
-        md = std::make_shared<mdx>();
+        md = std::make_unique<mdx>();
 
         if (map->second.has_capability()) {
           // extract any new capability
@@ -3005,7 +3005,7 @@ metad::mdcommunicate(ThreadAssistant& assistant)
                 eos_static_info("md-update: (new) remote-ino=%#lx ino=%#lx authid=%s",
                                 md_ino, ino, authid.c_str());
                 // new file
-                md = std::make_shared<mdx>();
+                md = std::make_unique<mdx>();
                 *md = rsp.md_();
                 md->data.set_id(md_ino);
                 insert(req, md, authid);
@@ -3255,7 +3255,7 @@ metad::pmap::retrieveOrCreateTS(fuse_ino_t ino, shared_md& ret)
     return false;
   }
 
-  ret = std::make_shared<mdx>();
+  ret = std::make_unique<mdx>();
 
   if (ino) {
     (*this)[ino] = ret;
@@ -3280,7 +3280,7 @@ metad::pmap::retrieve(fuse_ino_t ino, shared_md& ret)
 
   if (it == this->end()) {
     if (!ret) {
-      ret = std::make_shared<mdx>();
+      ret = std::make_unique<mdx>();
       ret->data.set_err(ENOENT);
     }
 
@@ -3291,7 +3291,7 @@ metad::pmap::retrieve(fuse_ino_t ino, shared_md& ret)
   eos_static_debug("retc=%x", (bool)(ret));
 
   if (!ret) {
-    ret = std::make_shared<mdx>();
+    ret = std::make_unique<mdx>();
 
     // swap-in this inode
     if (swap_in(ino, ret)) {

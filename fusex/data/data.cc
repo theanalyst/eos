@@ -115,7 +115,7 @@ data::get(fuse_req_t req,
       io->attach(); // client ref counting
       return io;
     } else {
-      shared_data io = std::make_shared<datax>(md);
+      shared_data io = std::make_unique<datax>(md);
       io->set_id(ino, req);
       datamap[(fuse_ino_t) io->id()] = io;
       io->attach();
@@ -248,7 +248,7 @@ data::unlink(fuse_req_t req, fuse_ino_t ino)
       }
     }
   } else {
-    shared_data io = std::make_shared<datax>();
+    shared_data io = std::make_unique<datax>();
     io->set_id(ino, req);
     io->unlink(req);
   }

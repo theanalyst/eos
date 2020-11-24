@@ -194,7 +194,7 @@ cap::get(fuse_req_t req,
     shared_cap cap = capmap[cid];
     return cap;
   } else {
-    shared_cap cap = std::make_shared<capx>();
+    shared_cap cap = std::make_unique<capx>();
     cap->set_clientid(clientid);
     cap->set_authid("");
     cap->set_clientuuid(mds->get_clientuuid());
@@ -222,7 +222,7 @@ cap::get(fuse_ino_t ino, std::string clientid)
     shared_cap cap = capmap[cid];
     return cap;
   } else {
-    shared_cap cap = std::make_shared<capx>();
+    shared_cap cap = std::make_unique<capx>();
     cap->set_id(0);
     return cap;
   }
@@ -245,7 +245,7 @@ cap::store(fuse_req_t req,
     *cap = icap;
     cap->set_id(id);
   } else {
-    shared_cap cap = std::make_shared<capx>();
+    shared_cap cap = std::make_unique<capx>();
     cap->set_clientid(clientid);
     *cap = icap;
     cap->set_id(id);
@@ -298,7 +298,7 @@ cap::imply(shared_cap cap,
            fuse_ino_t ino)
 /* -------------------------------------------------------------------------- */
 {
-  shared_cap implied_cap = std::make_shared<capx>();
+  shared_cap implied_cap = std::make_unique<capx>();
   *implied_cap = *cap;
   implied_cap->set_authid(imply_authid);
   implied_cap->set_id(ino);
@@ -396,7 +396,7 @@ cap::refresh(fuse_req_t req, shared_cap cap)
             eos_static_debug("correct cap received for inode=%#lx", cap->id());
             // great
             *cap = it->cap_();
-            cap->set_id(id);
+            cap->set_id(id); // @todo check if mutable was required
           } else {
             eos_static_debug("wrong cap received for inode=%#lx", cap->id());
             // that is a fatal logical error
@@ -598,7 +598,7 @@ cap::qmap::get(shared_cap cap)
     (*this)[qid] = quota;
     return quota;
   } else {
-    shared_quota quota = std::make_shared<quotax>();
+    shared_quota quota = std::make_unique<quotax>();
     *quota = cap->_quota();
     (*this)[qid] = quota;
     return quota;

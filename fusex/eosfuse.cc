@@ -4651,7 +4651,7 @@ EosFuse::flush(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi)
         }
 
         XrdSysMutexHelper mLock(io->md->Locker());
-	auto map = io->md->data.attr();
+//	auto map = io->md->data.attr(); // @todo apparently not used, check
 
         // actually do the flush
         if ((rc = io->ioctx()->flush(req))) {
