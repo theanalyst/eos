@@ -127,14 +127,20 @@ Logging::log_buffer *
 Logging::log_alloc_buffer() {
     Logging::log_buffer *buff = NULL;
     int balance, balance1;
+    static int total_log_buffers = 0;
 
     while (true) {
         if ((buff=free_buffers) == NULL) break;
         if (free_buffers.compare_exchange_weak(buff, buff->h.next)) break;
     }
 
-    if (!buff) {
+    if (buff == NULL) {
         buff = (struct log_buffer *) malloc(sizeof(struct log_buffer));
+
+        /* This is info-only, no need to be thread-safe */
+        if ( (++total_log_buffers & 0x0f) == 0 )
+            eos_static_info("total log buffers: %d, balance %d",
+                    total_log_buffers, log_buffer_balance);
     }
 
     buff->h.next = NULL;
@@ -145,6 +151,7 @@ Logging::log_alloc_buffer() {
         balance = log_buffer_balance;
         balance1 = balance+1;
     } while(!Logging::log_buffer_balance.compare_exchange_weak(balance, balance1));
+
 
     return buff;
 }
