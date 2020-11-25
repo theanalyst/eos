@@ -174,17 +174,14 @@ message container {
   Type type = 1;
 
   // One of the following will be filled in.
-  oneof data {
-    heartbeat heartbeat_ = 2;
-    statistics statistics_ = 3;
-    md md_ = 4;
-    dir dir_ = 5;
-    md_map md_map_ = 6;
-    fixed64 ref_inode_ = 7;
-    cap cap_ = 8;
-    cap_map cap_map_ = 9;
-
-  }
+  heartbeat heartbeat_ = 2;
+  statistics statistics_ = 3;
+  md md_ = 4;
+  dir dir_ = 5;
+  md_map md_map_ = 6;
+  fixed64 ref_inode_ = 7;
+  cap cap_ = 8;
+  cap_map cap_map_ = 9;
 }
 
 message evict {
