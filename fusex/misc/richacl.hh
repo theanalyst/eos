@@ -438,7 +438,7 @@ richacl_find_matching_ace(struct richace *e, metad::shared_md pmd,
   struct richace *ace;
 
   int idType1;
-  id_t id1 = richacl_normalize_id(e, pmd, &idType1);
+  id_t id1 = richacl_normalize_id(e, std::move(pmd), &idType1);
 
   richacl_for_each_entry(ace, acl) {
       if (ace->e_type==RICHACE_ACCESS_ALLOWED_ACE_TYPE) {
@@ -446,7 +446,7 @@ richacl_find_matching_ace(struct richace *e, metad::shared_md pmd,
         if (richace_is_same_identifier(e, ace)) return ace;
 
         int idType2;
-        id_t id2 = richacl_normalize_id(ace, md, &idType2);
+        id_t id2 = richacl_normalize_id(ace, std::move(md), &idType2);
 
         if ((idType1 != idType2) || (id1 != id2)) continue;
         return ace;
@@ -480,7 +480,7 @@ richacl_merge_parent(struct richacl *acl, metad::shared_md md,  /* subject */
     /* Loop over all entries in parent ACL and merge into child */
     richacl_for_each_entry(pace, pacl) {
       if ( (pace->e_mask & RICHACE_DELETE_CHILD) == 0) continue;     /* only inherits RICHACL_DELETE from RICHACL_DELETE_CHILD */
-      ace = richacl_find_matching_ace(pace, pmd, acl, md);
+      ace = richacl_find_matching_ace(pace, std::move(pmd), acl, std::move(md));
       if (ace == NULL) {                    /* need a new entry */
         size_t newsz = sizeof(struct richacl) + (acl->a_count + 1) * sizeof(struct richace);
         struct richacl *newacl = (struct richacl *) realloc(acl, newsz);

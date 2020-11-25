@@ -31,14 +31,14 @@
 #include "misc/fusexrdlogin.hh"
 #include "misc/filename.hh"
 #include <string>
-#include <map>
+//#include <map>
 #include <set>
 #include <iostream>
-#include <sstream>
+//#include <sstream>
 #include <memory>
 #include <algorithm>
 #include <thread>
-#include <iterator>
+//#include <iterator>
 #ifndef __APPLE__
 #include <malloc.h>
 #endif
@@ -2265,7 +2265,7 @@ EosFuse::setattr(fuse_req_t req, fuse_ino_t ino, struct stat* attr, int op,
 
           if (Instance().mds.has_flush(ino)) {
             // we have also to wait for the upstream flush
-            Instance().mds.wait_flush(req, md);
+            Instance().mds.wait_flush(req, std::move(md));
           }
         }
 
@@ -2325,7 +2325,7 @@ EosFuse::setattr(fuse_req_t req, fuse_ino_t ino, struct stat* attr, int op,
 
           if (Instance().mds.has_flush(ino)) {
             // we have also to wait for the upstream flush
-            Instance().mds.wait_flush(req, md);
+            Instance().mds.wait_flush(req, std::move(md));
           }
         }
 
@@ -2487,7 +2487,7 @@ EosFuse::setattr(fuse_req_t req, fuse_ino_t ino, struct stat* attr, int op,
               // truncate
               eos_static_debug("truncate size=%lu", (size_t) attr->st_size);
               std::string cookie = md->Cookie();
-              data::shared_data io = Instance().datas.get(req, md->data.id(), md);
+              data::shared_data io = Instance().datas.get(req, md->data.id(), std::move(md));
 
               if (!md->data.creator() || (md->data.creator() &&
                                      ((off_t) md->data.size() != attr->st_size))) {
@@ -2531,14 +2531,14 @@ EosFuse::setattr(fuse_req_t req, fuse_ino_t ino, struct stat* attr, int op,
 
   if (md_update_sync && rc == 0) {
     if (Instance().mds.has_flush(md->data.id())) {
-      Instance().mds.wait_flush(req, md);
+      Instance().mds.wait_flush(req, std::move(md));
     }
 
     md->setop_update();
-    Instance().mds.update(req, md, pcap->authid());
+    Instance().mds.update(req, std::move(md), pcap->authid());
 
     if (Instance().mds.has_flush(md->data.id())) {
-      Instance().mds.wait_flush(req, md);
+      Instance().mds.wait_flush(req, std::move(md));
     }
 
     if (EOS_LOGS_DEBUG) {
@@ -2559,7 +2559,7 @@ EosFuse::setattr(fuse_req_t req, fuse_ino_t ino, struct stat* attr, int op,
     eos_static_info("%s", md->dump(e).c_str());
 
     if (!md_update_sync) {
-      Instance().mds.update(req, md, pcap->authid());
+      Instance().mds.update(req, std::move(md), pcap->authid());
     }
 
     md->Locker().UnLock();
@@ -2736,7 +2736,7 @@ EosFuse::opendir(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi)
             rc = md->deleted() ? ENOENT : md->data.err();
           } else {
             if (!md->get_rmrf()) {
-              rc = Instance().mds.rmrf(req, md);
+              rc = Instance().mds.rmrf(req, std::move(md));
             }
           }
 
@@ -2793,13 +2793,13 @@ EosFuse::opendir(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi)
 
         if (Instance().Config().options.rm_rf_protect_levels &&
             isRecursiveRm(req) &&
-            Instance().mds.calculateDepth(md) <=
+            Instance().mds.calculateDepth(std::move(md)) <=
             Instance().Config().options.rm_rf_protect_levels) {
           eos_static_warning("Blocking recursive rm (pid = %d)", fuse_req_ctx(req)->pid);
           rc = EPERM; // you shall not pass, muahahahahah
         } else {
           auto md_fh = new opendir_t;
-          md_fh->md = md;
+          md_fh->md = std::move(md);
           md->opendir_inc();
           // fh contains a dummy 0 pointer
           eos_static_debug("adding ino=%08lx p-ino=%08lx", md->data.id(), md->data.pid());
@@ -2834,7 +2834,7 @@ EosFuse::readdir_filler(fuse_req_t req, EosFuse::opendir_t* md,
 /* -------------------------------------------------------------------------- */
 {
   int rc = 0;
-  metad::shared_md pmd = md->md;
+  metad::shared_md pmd = std::move(md->md);
   // avoid to have more than one md object locked at a time
   XrdSysMutexHelper mLock(pmd->Locker());
   pmd_id = pmd->data.id();
@@ -2904,7 +2904,7 @@ EosFuse::readdir_filler(fuse_req_t req, EosFuse::opendir_t* md,
 
   if (!md->pmd_children.size()) {
     if (EOS_LOGS_DEBUG) {
-      eos_static_debug("%s", Instance().mds.dump_md(pmd, false).c_str());
+      eos_static_debug("%s", Instance().mds.dump_md(std::move(pmd), false).c_str());
     }
   }
 
@@ -2934,7 +2934,7 @@ EBADF  Invalid directory stream descriptor fi->fh
   } else {
     // get the shared pointer from the open file descriptor
     opendir_t* md = (opendir_t*) fi->fh;
-    metad::shared_md pmd = md->md;
+    metad::shared_md pmd = std::move(md->md);
     mode_t pmd_mode;
     uint64_t pmd_id;
     // refresh the current directory state
@@ -3291,11 +3291,11 @@ EROFS  pathname refers to a file on a read-only filesystem.
 					      (fuse_ino_t) md->data.id());
 	  md->cap_inc();
 	  md->data.set_implied_authid(imply_authid);
-	  rc = Instance().mds.add_sync(req, pmd, md, pcap2->authid());
+	  rc = Instance().mds.add_sync(req, std::move(pmd), std::move(md), pcap2->authid());
 	  md->data.set_type(md->data.MD);
 
 	  if (!rc) {
-	    Instance().mds.insert(req, md, pcap2->authid());
+	    Instance().mds.insert(req, std::move(md), pcap2->authid());
 	    memset(&e, 0, sizeof(e));
 	    md->convert(e, pcap2->lifetime());
 	    md->lookup_inc();
@@ -3407,7 +3407,7 @@ EROFS  pathname refers to a file on a read-only filesystem.
 
       if (!Instance().Config().options.rename_is_sync) {
         if (Instance().mds.has_flush(md->data.id())) {
-          Instance().mds.wait_flush(req, md);
+          Instance().mds.wait_flush(req, std::move(md));
         }
       }
 
@@ -3422,7 +3422,7 @@ EROFS  pathname refers to a file on a read-only filesystem.
       if (!rc) {
         if (Instance().Config().options.rm_rf_protect_levels &&
             isRecursiveRm(req) &&
-            (Instance().mds.calculateDepth(md) <=
+            (Instance().mds.calculateDepth(std::move(md)) <=
              Instance().Config().options.rm_rf_protect_levels)) {
           eos_static_warning("Blocking recursive rm (pid = %d )", fuse_req_ctx(req)->pid);
           rc = EPERM; // you shall not pass, muahahahahah
@@ -3459,7 +3459,7 @@ EROFS  pathname refers to a file on a read-only filesystem.
 
           if (EOS_LOGS_DEBUG) {
             eos_static_debug("hlnk unlink %s new nlink %d %s", name, nlink,
-                             Instance().mds.dump_md(md, false).c_str());
+                             Instance().mds.dump_md(std::move(md), false).c_str());
           }
 
           // we have to signal the unlink always to 'the' target inode of a hardlink
@@ -3469,7 +3469,7 @@ EROFS  pathname refers to a file on a read-only filesystem.
             Instance().datas.unlink(req, md->data.id());
           }
 
-          Instance().mds.remove(req, pmd, md, pcap->authid());
+          Instance().mds.remove(req, std::move(pmd), std::move(md), pcap->authid());
 
           if (attrMap.count(k_nlink)) {
             // this is a target for hardlinks and we want to invalidate in the kernel cache
@@ -3618,7 +3618,7 @@ EROFS  pathname refers to a directory on a read-only filesystem.
 
       if (!rc) {
         pmd = Instance().mds.get(req, parent, pcap->authid());
-        Instance().mds.remove(req, pmd, md, pcap->authid());
+        Instance().mds.remove(req, std::move(pmd), std::move(md), pcap->authid());
         del_ino = md->data.id();
       }
     }
@@ -3723,7 +3723,7 @@ EosFuse::rename(fuse_req_t req, fuse_ino_t parent, const char* name,
 
       if (md->deleted()) {
         // we need to wait that this entry is really gone
-        Instance().mds.wait_flush(req, md);
+        Instance().mds.wait_flush(req, std::move(md));
       }
 
       if (!md->data.id() || md->deleted()) {
@@ -3751,12 +3751,12 @@ EosFuse::rename(fuse_req_t req, fuse_ino_t parent, const char* name,
     if (!rc) {
       Track::Monitor mone("rename", Instance().Tracker(), md_ino, true);
       std::string new_name = newname;
-      Instance().mds.mv(req, p1md, p2md, md, newname, p1cap->authid(),
+      Instance().mds.mv(req, std::move(p1md), std::move(p2md), std::move(md), newname, p1cap->authid(),
                         p2cap->authid());
 
       if (Instance().Config().options.rename_is_sync) {
         XrdSysMutexHelper mLock(md->Locker());
-        Instance().mds.wait_flush(req, md);
+        Instance().mds.wait_flush(req, std::move(md));
       }
     }
   }
@@ -3784,7 +3784,7 @@ EosFuse::access(fuse_req_t req, fuse_ino_t ino, int mask)
   int rc = 0;
   fuse_id id(req);
   metad::shared_md md = Instance().mds.getlocal(req, ino);
-  metad::shared_md pmd = md;
+  metad::shared_md pmd = std::move(md);
   mode_t mode = 0;
   mode_t pmode = mask;
   bool is_deleted = false;
@@ -3942,7 +3942,7 @@ EosFuse::open(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi)
           md->convert(e, pcap->lifetime());
           mLock.UnLock();
           data::data_fh* io = data::data_fh::Instance(Instance().datas.get(req, md->data.id(),
-                              md), md, (mode == U_OK));
+                                                                           std::move(md)), std::move(md), (mode == U_OK));
           capLock.Lock(&pcap->Locker());
           io->set_authid(pcap->authid());
 
@@ -4158,7 +4158,7 @@ The O_NONBLOCK flag was specified, and an incompatible lease was held on the fil
         } else {
           if (md->deleted()) {
             // we need to wait that this entry is really gone
-            Instance().mds.wait_flush(req, md);
+            Instance().mds.wait_flush(req, std::move(md));
           }
 
           md->data.set_err(0);
@@ -4202,12 +4202,12 @@ The O_NONBLOCK flag was specified, and an incompatible lease was held on the fil
 
           md->data.set_type(md->data.EXCL);
 
-          rc = Instance().mds.add_sync(req, pmd, md, pcap->authid());
+          rc = Instance().mds.add_sync(req, std::move(pmd), std::move(md), pcap->authid());
 
           md->data.set_type(md->data.MD);
 
           if (!rc) {
-            Instance().mds.insert(req, md, pcap->authid());
+            Instance().mds.insert(req, std::move(md), pcap->authid());
             md->data.set_nlink(1);
             md->data.set_creator(true);
             // avoid lock-order violation
@@ -4251,7 +4251,7 @@ The O_NONBLOCK flag was specified, and an incompatible lease was held on the fil
               std::string cookie = md->Cookie();
               mLock.UnLock();
               data::data_fh* io = data::data_fh::Instance(Instance().datas.get(req, md->data.id(),
-                                  md), md, true);
+                                                                               std::move(md)), std::move(md), true);
               io->set_authid(pcap->authid());
               io->set_maxfilesize(pcap->max_file_size());
               io->cap_ = pcap;
@@ -4412,7 +4412,7 @@ EosFuse::write(fuse_req_t req, fuse_ino_t ino, const char* buf, size_t size,
                   // only start updating the MGM size if the file could be opened on FSTs
                   if (io->next_size_flush.load() && (io->next_size_flush.load() < now)) {
                     // if (io->cap_->valid()) // we want updates also after cap expiration
-                    Instance().mds.update(req, io->md, io->authid());
+                    Instance().mds.update(req, std::move(io->md), io->authid());
                     io->next_size_flush.store(now +
                                               Instance().Config().options.write_size_flush_interval,
                                               std::memory_order_seq_cst);
@@ -4521,7 +4521,7 @@ EosFuse::fsync(fuse_req_t req, fuse_ino_t ino, int datasync,
         }
       } else {
         if (Instance().Config().options.global_flush) {
-          Instance().mds.begin_flush(req, io->md,
+          Instance().mds.begin_flush(req, std::move(io->md),
                                      io->authid()); // flag an ongoing flush centrally
         }
 
@@ -4542,7 +4542,7 @@ EosFuse::fsync(fuse_req_t req, fuse_ino_t ino, int datasync,
         }
 
         if (Instance().Config().options.global_flush) {
-          Instance().mds.end_flush(req, io->md,
+          Instance().mds.end_flush(req, std::move(io->md),
                                    io->authid()); // unflag an ongoing flush centrally
         }
       }
@@ -4659,7 +4659,7 @@ EosFuse::flush(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi)
           invalidate_inode = true;
           io->md->data.set_size(io->opensize());
         } else {
-          Instance().mds.update(req, io->md, io->authid());
+          Instance().mds.update(req, std::move(io->md), io->authid());
         }
 
         std::string cookie = io->md->Cookie();
@@ -4700,7 +4700,7 @@ EosFuse::flush(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info* fi)
 
   // report slow flush
   if (Instance().Trace() || (timing.RealTime() > 2000)) {
-    std::string path = Instance().mds.calculateLocalPath(io->md);
+    std::string path = Instance().mds.calculateLocalPath(std::move(io->md));
     std::string s;
     eos_static_warning("flush of '%s' took %.03fms\n%s",
                        Instance().Prefix(path).c_str(),
@@ -4758,7 +4758,7 @@ EosFuse::getxattr(fuse_req_t req, fuse_ino_t ino, const char* xattr_name,
       pcap = Instance().caps.get(req, ino);
       md = Instance().mds.get(req, ino, pcap->authid());
       {
-        value = Instance().mds.dump_md(md);
+        value = Instance().mds.dump_md(std::move(md));
       }
     }
 
@@ -5014,7 +5014,7 @@ EosFuse::getxattr(fuse_req_t req, fuse_ino_t ino, const char* xattr_name,
                   eos_static_debug("eosacl '%s'", eosacl);
 
                   if (!S_ISDIR(md->data.mode()) || map.count("sys.eval.useracl") > 0) {
-                    a = eos2racl(eosacl, md);
+                    a = eos2racl(eosacl, std::move(md));
                   }
                 }
 
@@ -5027,14 +5027,14 @@ EosFuse::getxattr(fuse_req_t req, fuse_ino_t ino, const char* xattr_name,
 
                   if (pmap.count("sys.eval.useracl") > 0 && pmap.count("user.acl") > 0) {
                     const char* peosacl = pmap["user.acl"].c_str();
-                    pa = eos2racl(peosacl, pmd);
+                    pa = eos2racl(peosacl, std::move(pmd));
                   }
 
                   if (pa == NULL) {
                     pa = richacl_from_mode(md->data.mode()); /* Always returns an ACL */
                   }
 
-                  a = richacl_merge_parent(a, md, pa, pmd);
+                  a = richacl_merge_parent(a, std::move(md), pa, std::move(pmd));
                   richacl_free(pa);
 
                   if (a == NULL) {
@@ -5316,7 +5316,7 @@ EosFuse::setxattr(fuse_req_t req, fuse_ino_t ino, const char* xattr_name,
 
                 int new_mode = richacl_masks_to_mode(a);
                 char eosAcl[512];
-                racl2eos(a, eosAcl, sizeof(eosAcl), md);
+                racl2eos(a, eosAcl, sizeof(eosAcl), std::move(md));
                 eos_static_debug("acl eosacl '%s'", eosAcl);
                 auto map = md->data.mutable_attr();
                 rc = 0; /* assume green light */
@@ -5340,11 +5340,11 @@ EosFuse::setxattr(fuse_req_t req, fuse_ino_t ino, const char* xattr_name,
                   eos_static_debug("set new mode %#o", new_mode);
                   md->data.set_mode(new_mode);
                   (*map)["user.acl"] = std::string(eosAcl);
-                  Instance().mds.update(req, md, pcap->authid());
+                  Instance().mds.update(req, std::move(md), pcap->authid());
                   pcap->invalidate();
 
                   if (Instance().mds.has_flush(ino)) {
-                    Instance().mds.wait_flush(req, md); // wait for upstream flush
+                    Instance().mds.wait_flush(req, std::move(md)); // wait for upstream flush
                   }
                 }
 
@@ -5365,7 +5365,7 @@ EosFuse::setxattr(fuse_req_t req, fuse_ino_t ino, const char* xattr_name,
                   rc = ENOATTR;
                 } else {
                   (*map)[key] = value;
-                  Instance().mds.update(req, md, pcap->authid());
+                  Instance().mds.update(req, std::move(md), pcap->authid());
                 }
               }
       }
@@ -5567,7 +5567,7 @@ EosFuse::removexattr(fuse_req_t req, fuse_ino_t ino, const char* xattr_name)
               rc = ENOATTR;
             } else {
               (*map).erase(key);
-              Instance().mds.update(req, md, pcap->authid());
+              Instance().mds.update(req, std::move(md), pcap->authid());
             }
           }
     }
@@ -5654,7 +5654,7 @@ EosFuse::readlink(fuse_req_t req, fuse_ino_t ino)
         }
 
         std::string localpath = Instance().Prefix(Instance().mds.calculateLocalPath(
-                                  md));
+            std::move(md)));
         rc = Instance().Mounter().mount(target, localpath, env);
       }
 
@@ -5662,7 +5662,7 @@ EosFuse::readlink(fuse_req_t req, fuse_ino_t ino)
         std::string env;
         //    env = fusexrdlogin::environment(req);
         std::string localpath = Instance().Prefix(Instance().mds.calculateLocalPath(
-                                  md));
+            std::move(md)));
         rc = Instance().Mounter().squashfuse(target, localpath, env);
       }
     }
@@ -5776,11 +5776,11 @@ EosFuse::symlink(fuse_req_t req, const char* link, fuse_ino_t parent,
       md->data.set_gid(pcap->gid());
       md->lookup_inc();
       md->data.set_type(md->data.EXCL);
-      rc = Instance().mds.add_sync(req, pmd, md, pcap->authid());
+      rc = Instance().mds.add_sync(req, std::move(pmd), std::move(md), pcap->authid());
       md->data.set_type(md->data.MD);
 
       if (!rc) {
-        Instance().mds.insert(req, md, pcap->authid());
+        Instance().mds.insert(req, std::move(md), pcap->authid());
         pmd->local_enoent().erase(name);
       }
 
@@ -5902,10 +5902,10 @@ EosFuse::link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t parent,
         (*sAttrMap)[k_mdino] = std::to_string(tmd->data.md_ino());
         tmd->data.set_nlink(nlink + 1);
         tmLock.UnLock();
-        rc = Instance().mds.add_sync(req, pmd, md, pcap->authid());
+        rc = Instance().mds.add_sync(req, std::move(pmd), std::move(md), pcap->authid());
 
         if (!rc) {
-          Instance().mds.insert(req, md, pcap->authid());
+          Instance().mds.insert(req, std::move(md), pcap->authid());
         }
 
         md->data.set_target("");
@@ -6085,7 +6085,7 @@ EosFuse::flock(fuse_req_t req, fuse_ino_t ino,
         do {
           // we currently implement the polling lock on client side due to the
           // thread-per-link model of XRootD
-          rc = Instance().mds.setlk(req, md, &lock, sleep);
+          rc = Instance().mds.setlk(req, std::move(md), &lock, sleep);
 
           if (rc && sleep) {
             std::this_thread::sleep_for(std::chrono::milliseconds(w_ms));

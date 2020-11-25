@@ -93,7 +93,7 @@ data::get(fuse_req_t req,
   XrdSysMutexHelper mLock(datamap);
 
   if (datamap.count(ino)) {
-    shared_data io = datamap[ino];
+    shared_data io = std::move(datamap[ino]);
     io->attach(); // client ref counting
     return io;
   } else {
@@ -111,13 +111,13 @@ data::get(fuse_req_t req,
 
     if (datamap.count(ino)) {
       // might have been created in the meanwhile
-      shared_data io = datamap[ino];
+      shared_data io = std::move(datamap[ino]);
       io->attach(); // client ref counting
       return io;
     } else {
-      shared_data io = std::make_unique<datax>(md);
+      shared_data io = std::make_unique<datax>(std::move(md));
       io->set_id(ino, req);
-      datamap[(fuse_ino_t) io->id()] = io;
+      datamap[(fuse_ino_t) io->id()] = std::move(io);
       io->attach();
       return io;
     }
@@ -172,14 +172,14 @@ data::release(fuse_req_t req,
   XrdSysMutexHelper mLock(datamap);
 
   if (datamap.count(ino)) {
-    shared_data io = datamap[ino];
+    shared_data io = std::move(datamap[ino]);
     io->detach();
     // the object is cleaned by the flush thread
   }
 
   if (datamap.count(ino + 0xffffffff)) {
     // in case this is an unlinked object
-    shared_data io = datamap[ino + 0xffffffff];
+    shared_data io = std::move(datamap[ino + 0xffffffff]);
     io->detach();
   }
 }
@@ -192,7 +192,7 @@ data::update_cookie(uint64_t ino, std::string& cookie)
   XrdSysMutexHelper mLock(datamap);
 
   if (datamap.count(ino)) {
-    shared_data io = datamap[ino];
+    shared_data io = std::move(datamap[ino]);
     io->attach(); // client ref counting
     io->store_cookie(cookie);
     io->detach();
@@ -208,7 +208,7 @@ data::invalidate_cache(fuse_ino_t ino)
   XrdSysMutexHelper mLock(datamap);
 
   if (datamap.count(ino)) {
-    shared_data io = datamap[ino];
+    shared_data io = std::move(datamap[ino]);
     io->attach(); // client ref counting
     io->cache_invalidate();
     io->detach();
@@ -227,7 +227,7 @@ data::unlink(fuse_req_t req, fuse_ino_t ino)
     XrdSysMutexHelper mLock(datamap);
     has_data = datamap.count(ino);
     if (has_data) {
-      datap = datamap[ino];
+      datap = std::move(datamap[ino]);
     }
   }
 
@@ -242,7 +242,7 @@ data::unlink(fuse_req_t req, fuse_ino_t ino)
     {
       XrdSysMutexHelper mLock(datamap);
       if (datamap.count(ino)) {
-	datamap[ino + 0xffffffff] = datamap[ino];
+	datamap[ino + 0xffffffff] = std::move(datamap[ino]);
 	datamap.erase(ino);
 	eos_static_info("datacache::unlink size=%lu", datamap.size());
       }
@@ -1827,7 +1827,7 @@ int
 data::datax::begin_flush(fuse_req_t req)
 /* -------------------------------------------------------------------------- */
 {
-  return EosFuse::Instance().mds.begin_flush(req, mMd,
+  return EosFuse::Instance().mds.begin_flush(req, std::move(mMd),
          std::string("repair")); // flag an ongoing flush centrally
 }
 
@@ -1836,7 +1836,7 @@ int
 data::datax::end_flush(fuse_req_t req)
 /* -------------------------------------------------------------------------- */
 {
-  return EosFuse::Instance().mds.end_flush(req, mMd,
+  return EosFuse::Instance().mds.end_flush(req, std::move(mMd),
          std::string("repair")); // unflag an ongoing flush centrally
 }
 
@@ -2857,7 +2857,7 @@ data::dmap::ioflush(ThreadAssistant& assistant)
 
         for (auto it = this->begin(); it != this->end(); ++it) {
 	  if (it->second) {
-	    data.push_back(it->second);
+	    data.push_back(std::move(it->second));
 	  }
         }
       }

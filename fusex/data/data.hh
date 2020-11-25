@@ -60,7 +60,7 @@ public:
   {
   public:
 
-    datax() : mIno(0), mReq(0), mFile(0), mSize(0), mAttached(0), mMd(0),
+    datax() : mIno(0), mReq(0), mFile(0), mSize(0), mAttached(0), mMd(nullptr),
 	      mPrefetchHandler(0),
 	      mSimulateWriteErrorInFlush(false),
 	      mSimulateWriteErrorInFlusher(false),
@@ -73,7 +73,7 @@ public:
     }
 
     datax(metad::shared_md md) : mIno(0), mReq(0), mFile(0), mSize(0),
-				 mAttached(0), mMd(md), mPrefetchHandler(0),
+				 mAttached(0), mMd(std::move(md)), mPrefetchHandler(0),
 				 mSimulateWriteErrorInFlush(false),
 				 mSimulateWriteErrorInFlusher(false),
 				 mFlags(0), mXoff(false),
@@ -235,7 +235,7 @@ public:
 
 
     metad::shared_md md() {
-      return mMd;
+      return std::move(mMd);
     }
 
     std::string fullpath()
@@ -286,7 +286,8 @@ public:
     bool mCanRecoverRead;
   };
 
-  typedef std::shared_ptr<datax> shared_data;
+//  typedef std::shared_ptr<datax> shared_data;
+  typedef std::unique_ptr<datax> shared_data;
 
   typedef struct _data_fh {
     shared_data data;
@@ -302,8 +303,8 @@ public:
 
     _data_fh(shared_data _data, metad::shared_md _md, bool _rw)
     {
-      data = _data;
-      md = _md;
+      data = std::move(_data);
+      md = std::move(_md);
       rw = _rw;
       update_mtime_on_flush.store(false, std::memory_order_seq_cst);
       next_size_flush.store(0, std::memory_order_seq_cst);
@@ -315,17 +316,17 @@ public:
 
     static struct _data_fh* Instance(shared_data io, metad::shared_md md, bool rw)
     {
-      return new struct _data_fh(io, md, rw);
+      return new struct _data_fh(std::move(io), std::move(md), rw);
     }
 
     shared_data ioctx()
     {
-      return data;
+      return std::move(data);
     }
 
     metad::shared_md mdctx()
     {
-      return md;
+      return std::move(md);
     }
 
     std::string authid() const

@@ -84,7 +84,7 @@ metad::init(backend* _mdbackend)
   // load the root node
   fuse_req_t req = 0;
   XrdSysMutexHelper mLock(mdmap);
-  update(req, mdmap[1], "", true);
+  update(req, std::move(mdmap[1]), "", true);
   mdmap.init(EosFuse::Instance().getKV());
   dentrymessaging = false;
   writesizeflush = false;
@@ -237,7 +237,7 @@ metad::lookup(fuse_req_t req, fuse_ino_t parent, const char* name)
     // try to get the meta data record
     // --------------------------------------------------
     pmd->Locker().UnLock();
-    md = get(req, inode, "", false, pmd, name);
+    md = get(req, inode, "", false, std::move(pmd), name);
 
     if (md) {
       md->Locker().Lock();
@@ -628,7 +628,7 @@ metad::get(fuse_req_t req,
     }
 
     if (EOS_LOGS_DEBUG) {
-      eos_static_debug("MD:\n%s", (!md) ? "<empty>" : dump_md(md).c_str());
+      eos_static_debug("MD:\n%s", (!md) ? "<empty>" : dump_md(std::move(md)).c_str());
     }
   } else {
     // -------------------------------------------------------------------------
@@ -668,7 +668,7 @@ metad::get(fuse_req_t req,
                           md->cap_count());
 
           if (EOS_LOGS_DEBUG) {
-            eos_static_debug("MD:\n%s", dump_md(md, false).c_str());
+            eos_static_debug("MD:\n%s", dump_md(std::move(md), false).c_str());
           }
 
           return md;
@@ -696,7 +696,7 @@ metad::get(fuse_req_t req,
       eos_static_info("returning generated entry");
 
       if (EOS_LOGS_DEBUG) {
-        eos_static_debug("MD:\n%s", dump_md(md, false).c_str());
+        eos_static_debug("MD:\n%s", dump_md(std::move(md), false).c_str());
       }
 
       return md;
@@ -792,7 +792,7 @@ metad::get(fuse_req_t req,
         rc = 0;
 
         if (EOS_LOGS_DEBUG) {
-          eos_static_debug("MD:\n%s", dump_md(md).c_str());
+          eos_static_debug("MD:\n%s", dump_md(std::move(md)).c_str());
         }
 
         return md;
@@ -858,7 +858,7 @@ metad::get(fuse_req_t req,
           // persist this hierarchical dependency
           pmd->local_children()[eos::common::StringConversion::EncodeInvalidUTF8(
                                   md->data.name())] = md->data.id();
-          update(req, pmd, "", true);
+          update(req, std::move(pmd), "", true);
         }
       }
 
@@ -875,14 +875,14 @@ metad::get(fuse_req_t req,
     md->data.set_err(rc);
 
     if (EOS_LOGS_DEBUG) {
-      eos_static_debug("MD:\n%s", dump_md(md).c_str());
+      eos_static_debug("MD:\n%s", dump_md(std::move(md)).c_str());
     }
 
     return md;
   }
 
   if (EOS_LOGS_DEBUG) {
-    eos_static_debug("MD:\n%s", dump_md(md).c_str());
+    eos_static_debug("MD:\n%s", dump_md(std::move(md)).c_str());
   }
 
   return md;
@@ -894,7 +894,7 @@ metad::insert(fuse_req_t req, metad::shared_md md, std::string authid)
 {
   {
     if (EOS_LOGS_DEBUG) {
-      eos_static_debug("%s", dump_md(md, false).c_str());
+      eos_static_debug("%s", dump_md(std::move(md), false).c_str());
     }
 
     mdmap.insertTS(md->data.id(), md);
@@ -1276,7 +1276,7 @@ metad::mv(fuse_req_t req, shared_md p1md, shared_md p2md, shared_md md,
     // move between directories. We need to run an expensive algorithm to
     // determine the correct lock order, but a rename should be rather uncommon,
     // anyway.
-    MdLocker locker(p1md, p2md, determineLockOrder(p1md, p2md));
+    MdLocker locker(p1md, p2md, determineLockOrder(std::move(p1md), std::move(p2md)));
     std::string oldname = md->data.name();
 
     if (!p2md->local_children().count(
@@ -1733,7 +1733,7 @@ metad::cleanup(fuse_ino_t ino)
 
   if (mdmap.retrieveTS(ino, md)) {
     md->Locker().Lock();
-    return cleanup(md);
+    return cleanup(std::move(md));
   }
 }
 
@@ -1745,6 +1745,8 @@ metad::apply(fuse_req_t req, eos::fusex::container& cont, bool listing) // @todo
   // we have to make sure that the modification of children is atomic in the parent object
   shared_md md;
   shared_md pmd;
+//  unique_ptr<mdx> md;
+//  unique_ptr<mdx> pmd;
 
   if (EOS_LOGS_DEBUG) {
     eos_static_debug(dump_container(cont).c_str());
@@ -1787,7 +1789,7 @@ metad::apply(fuse_req_t req, eos::fusex::container& cont, bool listing) // @todo
     if (is_new) {
       // in this case we need to create a new one
       md->data.set_id(md_ino);
-      uint64_t new_ino = insert(req, md, md->data.authid());
+      uint64_t new_ino = insert(req, std::move(md), md->data.authid());
       ino = new_ino;
     }
 
@@ -1800,6 +1802,7 @@ metad::apply(fuse_req_t req, eos::fusex::container& cont, bool listing) // @todo
 
     {
       if (!has_flush(ino)) {
+//        md->data.CopyFrom(cont.md_());
         md->data.CopyFrom(cont.md_());
 
 	shared_md d_md = EosFuse::Instance().datas.retrieve_wr_md(ino);
@@ -1833,7 +1836,7 @@ metad::apply(fuse_req_t req, eos::fusex::container& cont, bool listing) // @todo
 
     if (is_new) {
       XrdSysMutexHelper mLock(mdmap);
-      mdmap[ino] = md;
+      mdmap[ino] = std::move(md);
       stat.inodes_inc();
       stat.inodes_ever_inc();
     }
@@ -1882,7 +1885,7 @@ metad::apply(fuse_req_t req, eos::fusex::container& cont, bool listing) // @todo
             md->Locker().Lock();
           } else {
             md->Locker().Lock();
-            pmd = md;
+            pmd = std::move(md);
 
             if (EOS_LOGS_DEBUG) {
               eos_static_debug("lock pmd ino=%#lx", pmd->data.id());
@@ -2029,14 +2032,14 @@ metad::apply(fuse_req_t req, eos::fusex::container& cont, bool listing) // @todo
         md->clear_refresh();
 
         if ((!pmd) && (map->first == cont.ref_inode_())) {
-          pmd = md;
+          pmd = std::move(md);
           md->data.set_type(pmd->data.MD);
         }
 
         uint64_t new_ino = 0;
         new_ino = inomap.forward(md->data.md_ino());
         md->data.set_id(new_ino);
-        insert(req, md, md->data.authid());
+        insert(req, std::move(md), md->data.authid());
 
         if (!listing) {
           p_ino = inomap.forward(md->data.md_pino());
@@ -2091,7 +2094,7 @@ metad::apply(fuse_req_t req, eos::fusex::container& cont, bool listing) // @todo
     if (pmd && listing) {
       bool ret = false;
 
-      if (!(ret = map_children_to_local(pmd))) {
+      if (!(ret = map_children_to_local(std::move(pmd)))) {
         eos_static_err("local mapping has failed %d", ret);
         assert(0);
       }
@@ -2410,16 +2413,19 @@ metad::mdstackfree(ThreadAssistant& assistant)
           }
 
           if (mdmap.count(inode_to_swap)) {
-            shared_md md = mdmap[inode_to_swap];
+            shared_md md = std::move(mdmap[inode_to_swap]);
+//            std::shared_ptr<mdx> md;
 
-            if ((md.use_count() > 2) ||
-                (md && md->LockTable().size())) {
-              eos_static_info("swap-out skipping referenced ino=%#llx ref-count=%lu\n",
-                              inode_to_swap,
-                              md.use_count());
+
+//            if ((md.use_count() > 2) || (md && md->LockTable().size())) {
+//              eos_static_info("swap-out skipping referenced ino=%#llx ref-count=%lu\n",
+//                              inode_to_swap, md.use_count());
+            if (md && md->LockTable().size()) {
+              eos_static_info("MIMIK swap-out skipping referenced ino=%#llx ref-count=%lu\n",
+                              inode_to_swap, 1);
 
               if (md) {
-                mdmap.lru_update(inode_to_swap, md);
+                mdmap.lru_update(inode_to_swap, std::move(md));
               }
 
               mdmap.UnLock();
@@ -2434,7 +2440,7 @@ metad::mdstackfree(ThreadAssistant& assistant)
 	      mdmap.lru_remove(inode_to_swap);
               mdmap[inode_to_swap] = 0;
 
-              if (mdmap.swap_out(md)) {
+              if (mdmap.swap_out(std::move(md))) {
                 eos_static_err("swap-out failed for ino=%#llx", inode_to_swap);
               }
             }
@@ -2474,11 +2480,11 @@ metad::determineLockOrder(shared_md md1, shared_md md2)
   fuse_ino_t inode2 = md2->data.id();
   md2->Locker().UnLock();
 
-  if (isChild(md1, inode2)) {
+  if (isChild(std::move(md1), inode2)) {
     return true;
   }
 
-  if (isChild(md2, inode1)) {
+  if (isChild(std::move(md2), inode1)) {
     return false;
   }
 
@@ -2509,7 +2515,7 @@ metad::isChild(shared_md potentialChild, fuse_ino_t parentId)
   }
 
   helper.UnLock();
-  return isChild(pmd, parentId);
+  return isChild(std::move(pmd), parentId);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -2535,7 +2541,7 @@ metad::calculateDepth(shared_md md)
   }
 
   XrdSysMutexHelper mmLock(pmd->Locker());
-  return calculateDepth(pmd) + 1;
+  return calculateDepth(std::move(pmd)) + 1;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -2565,7 +2571,7 @@ metad::calculateLocalPath(shared_md md)
   }
 
   XrdSysMutexHelper mmLock(pmd->Locker());
-  return calculateLocalPath(pmd) + lpath;
+  return calculateLocalPath(std::move(pmd)) + lpath;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -2820,7 +2826,7 @@ metad::mdcommunicate(ThreadAssistant& assistant)
               }
 
               if (EOS_LOGS_DEBUG) {
-                eos_static_debug("%s", dump_md(md).c_str());
+                eos_static_debug("%s", dump_md(std::move(md)).c_str());
               }
 
               if (EosFuse::Instance().Config().options.md_kernelcache) {
@@ -2872,10 +2878,10 @@ metad::mdcommunicate(ThreadAssistant& assistant)
                   if (md->data.id()) {
                     // force an update of the metadata with next access
                     eos_static_info("md=%16x", md->data.id());
-                    cleanup(md);
+                    cleanup(std::move(md));
 
                     if (EOS_LOGS_DEBUG) {
-                      eos_static_debug("%s", dump_md(md).c_str());
+                      eos_static_debug("%s", dump_md(std::move(md)).c_str());
                     }
                   } else {
                     md->Locker().UnLock();
@@ -2963,7 +2969,7 @@ metad::mdcommunicate(ThreadAssistant& assistant)
                 }
 
                 // update the local store
-                update(req, md, authid, true);
+                update(req, std::move(md), authid, true);
                 std::string name = md->data.name();
                 md->Locker().UnLock();
                 // adjust local quota
@@ -3008,7 +3014,7 @@ metad::mdcommunicate(ThreadAssistant& assistant)
                 md = std::make_unique<mdx>();
                 *md = rsp.md_();
                 md->data.set_id(md_ino);
-                insert(req, md, authid);
+                insert(req, std::move(md), authid);
                 uint64_t md_pino = md->data.md_pino();
                 std::string md_clientid = md->data.clientid();
                 uint64_t md_size = md->data.size();
@@ -3025,8 +3031,8 @@ metad::mdcommunicate(ThreadAssistant& assistant)
                   md->data.clear_pt_mtime();
                   md->data.clear_pt_mtime_ns();
                   inomap.insert(md->data.md_ino(), md->data.id());
-                  add(0, pmd, md, authid, true);
-                  update(req, pmd, authid, true);
+                  add(0, std::move(pmd), std::move(md), authid, true);
+                  update(req, std::move(pmd), authid, true);
                   // adjust local quota
                   cap::shared_cap cap = EosFuse::Instance().caps.get(pino, md_clientid);
 
@@ -3258,7 +3264,7 @@ metad::pmap::retrieveOrCreateTS(fuse_ino_t ino, shared_md& ret)
   ret = std::make_unique<mdx>();
 
   if (ino) {
-    (*this)[ino] = ret;
+    (*this)[ino] = std::move(ret);
   }
 
   return true;
@@ -3287,26 +3293,27 @@ metad::pmap::retrieve(fuse_ino_t ino, shared_md& ret)
     return false;
   }
 
-  ret = it->second;
+  ret = std::move(it->second);
   eos_static_debug("retc=%x", (bool)(ret));
+  eos_static_crit("retc=%x", (bool)(ret));
 
   if (!ret) {
     ret = std::make_unique<mdx>();
 
     // swap-in this inode
-    if (swap_in(ino, ret)) {
+    if (swap_in(ino, std::move(ret))) {
       eos_static_crit("failed to swap-in ino=%#llx", ino);
       return false;
     }
 
     // attach the new object
-    (*this)[ino] = ret;
+    (*this)[ino] = std::move(ret);
     // add to the lru list
-    lru_add(ino, ret);
+    lru_add(ino, std::move(ret));
   }
 
   // update lru entry whenever we retrieve something
-  lru_update(ino, ret);
+  lru_update(ino, std::move(ret));
   return true;
 }
 
@@ -3366,7 +3373,7 @@ metad::pmap::lru_remove(fuse_ino_t ino)
 
   // lru list handling with outside lock handling
   if (this->count(ino)) {
-    shared_md smd = (*this)[ino];
+    shared_md smd = std::move((*this)[ino]);
 
     if (smd) {
       prev = (*this)[ino]->lru_prev();
@@ -3456,7 +3463,7 @@ metad::pmap::lru_dump()
 
   do {
     if (this->count(start)) {
-      shared_md md = (*this)[start];
+      shared_md md = std::move((*this)[start]);
       ss << start << "[" << md->lru_next() << ".." << md->lru_prev() << "]" <<
          std::endl;
 
@@ -3647,11 +3654,11 @@ metad::pmap::insertTS(fuse_ino_t ino, shared_md& md)
 {
   XrdSysMutexHelper mLock(this);
   bool exists = this->count(ino);
-  (*this)[ino] = md;
+  (*this)[ino] = std::move(md);
   // lru list handling
 
   if (!exists) {
-    lru_add(ino, md);
+    lru_add(ino, std::move(md));
   }
 
   lru_dump();

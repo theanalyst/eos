@@ -378,7 +378,8 @@ public:
     std::atomic<uint64_t> _lru_next;
   };
 
-  typedef std::shared_ptr<mdx> shared_md;
+//  typedef std::shared_ptr<mdx> shared_md;
+  typedef std::unique_ptr<mdx> shared_md;
 
   //----------------------------------------------------------------------------
 
@@ -686,11 +687,11 @@ public:
 
   void mdreset() {
     XrdSysMutexHelper lock(mdmap);
-    shared_md md1 = mdmap[1];
+    shared_md md1 = std::move(mdmap[1]);
     md1->data.set_type(md1->data.MD);
     md1->force_refresh();
     mdmap.clear();
-    mdmap[1] = md1;
+    mdmap[1] = std::move(md1);
     uint64_t i_root = inomap.backward(1);
     inomap.clear();
     inomap.insert(i_root,1);
@@ -875,7 +876,7 @@ private:
   public:
 
     MdLocker(shared_md& m1, shared_md& m2, bool ordr)
-      : md1(m1), md2(m2), order(ordr)
+      : md1(std::move(m1)), md2(std::move(m2)), order(ordr)
     {
       if (order) {
         md1->Locker().Lock();
