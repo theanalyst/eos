@@ -685,7 +685,7 @@ public:
         int priority;
     };
 
-#define logmsgbuffersize (16*1024-sizeof(struct log_buffer_hdr))
+#define logmsgbuffersize (4*1024-sizeof(struct log_buffer_hdr))
     struct log_buffer {
         struct log_buffer_hdr h;
         char buffer[logmsgbuffersize];
@@ -694,11 +694,15 @@ public:
     std::atomic<struct log_buffer *> free_buffers = NULL;
     struct log_buffer *active_head = NULL;
     struct log_buffer *active_tail = NULL;
+    int max_log_buffers = 4;       /* reasonable 2048 */;
+    int log_buffer_waiters = 0;
     std::atomic<int> log_buffer_balance = 0;
+    std::atomic<int> log_buffer_total = 0;
 
     std::thread *log_thread_p = NULL;
     std::mutex log_mutex;
     std::condition_variable_any log_cond;
+    std::condition_variable_any log_buffer_shortage;
 
     struct log_buffer *log_alloc_buffer();
     void log_return_buffers(struct log_buffer *buff);
