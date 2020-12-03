@@ -126,7 +126,9 @@ Logging::shouldlog(const char* func, int priority)
 Logging::log_buffer *
 Logging::log_alloc_buffer() {
     Logging::log_buffer *buff = NULL;
-    int balance, tempInt, num_log_buffers;
+
+    /* log_buffer_balance is incorrect until we really allocated a buffer! */
+    Logging::log_buffer_balance.fetch_add(1);
 
     while (true) {
         while (true) {
@@ -134,44 +136,59 @@ Logging::log_alloc_buffer() {
             if (free_buffers.compare_exchange_weak(buff, buff->h.next)) break;
         }
 
-        if (buff != NULL) break;
+        if (buff != NULL) {
+            log_buffer_free.fetch_add(-1);
+            break;
+        }
 
         /* no free buffer, alloc new one if below budget, or wait */
-        if ( Logging::log_buffer_total.load() < max_log_buffers ) {
+        if ( Logging::log_buffer_total < Logging::max_log_buffers ) {
             buff = (struct log_buffer *) malloc(sizeof(struct log_buffer));
 
-                int num_in_queue;
-                {
-                    std::lock_guard<std::mutex> guard(log_mutex);
-                    Logging::log_buffer *bx = active_head;
-                    for (num_in_queue=0; bx != NULL; num_in_queue++) bx = bx->h.next;
-                }
-
-
-            do {
-                num_log_buffers = Logging::log_buffer_total;
-                tempInt = num_log_buffers+1;
-            } while(!Logging::log_buffer_total.compare_exchange_weak(num_log_buffers, tempInt));
+            std::lock_guard<std::mutex> guard(log_mutex);
+            log_buffer_total++;
             
-            fprintf(stderr, "\ntotal_log_buffers: %d, balance %d in_queue %d waiters %d\n",
-                    Logging::log_buffer_total.load(), Logging::log_buffer_balance.load(), num_in_queue, Logging::log_buffer_waiters);
+            {
+                /* consistency checks, to be removed*/
+                int num_in_queue;
+                Logging::log_buffer *bx = active_head, *bbx;
+                for (num_in_queue=0; bx != NULL; num_in_queue++) {
+                    bbx = bx->h.next;
+                    if (bx == bbx) {
+                        fprintf(stderr, "%s:%d active log_buffer_loop!\n", __FILE__, __LINE__);
+                        bx->h.next = NULL;
+                        break;
+                    }
+                    bx = bbx;
+                }
+                if (num_in_queue != log_buffer_in_q)
+                    fprintf(stderr, "%s:%d wrong log_buffer_in_q: %d != %d\n", __FILE__, __LINE__,
+                            num_in_queue, log_buffer_in_q);
+            
+            
+                fprintf(stderr, "\ntotal_log_buffers: %d balance %d in_q %d free %d waiters %d\n",
+                        log_buffer_total, log_buffer_balance.load(),
+                        log_buffer_in_q,
+                        log_buffer_free.load(),
+                        log_buffer_waiters);
+            }
             break;
         }
 
         /* wait for a free buffer */
-        {
-            int waiters = Logging::log_buffer_waiters;
-            std::lock_guard<std::mutex> guard(log_mutex);
-            Logging::log_buffer *bx = active_head;
-            int num_in_queue;
-            for (num_in_queue=0; bx != NULL; num_in_queue++) bx = bx->h.next;
-            fprintf(stderr, "log_buffer_waiters waiting with %d waiters, total_log_buffers: %d balance %d in queue %d\n", waiters, 
-                    Logging::log_buffer_total.load(), Logging::log_buffer_balance.load(), num_in_queue);
+        if (free_buffers == NULL and (log_buffer_num_waits++ & 0x1f) == 0)
+                fprintf(stderr,
+                    "log_buffer_waiters shortage #%d with %d waiters, total_log_buffers %d balance %d in_q %d free %d\n",
+                    log_buffer_num_waits, log_buffer_waiters,
+                    Logging::log_buffer_total, Logging::log_buffer_balance.load(),
+                    log_buffer_in_q, log_buffer_free.load());
 
-            Logging::log_buffer_waiters++;
-            log_buffer_shortage.wait(log_mutex);
+        {
+            std::lock_guard<std::mutex> guard(log_buffer_shortage_mutex);
+
+            Logging::log_buffer_waiters++;  /* this asks for a wake-up call when a buffer is freed */
+            log_buffer_shortage.wait(log_buffer_shortage_mutex);
             Logging::log_buffer_waiters--;
-            fprintf(stderr, "log_buffer_waiters again %d\n", Logging::log_buffer_waiters);
 
             /* retry... */
             continue;
@@ -180,13 +197,7 @@ Logging::log_alloc_buffer() {
     }
 
     buff->h.next = NULL;
-    buff->h.fanOutBuff = NULL;
-
-    /* In this small window the log_buffer_balance is incorrect! */
-    do {
-        balance = Logging::log_buffer_balance;
-        tempInt = balance+1;
-    } while(!Logging::log_buffer_balance.compare_exchange_weak(balance, tempInt));
+    buff->h.fanOutBuffer = NULL;
 
 
     return buff;
@@ -196,24 +207,72 @@ Logging::log_alloc_buffer() {
 void
 Logging::log_return_buffers(Logging::log_buffer *buff) {
     Logging::log_buffer *buff2 = buff, *buff3;
-    int balance, balance1;
 
+    /* count number of buffers returned */
     int n = 1;
-    for (buff2 = buff; (buff3 = buff2->h.next) != NULL; buff2 = buff3) n++;
+    for (buff2 = buff; (buff3 = buff2->h.next) != NULL; buff2 = buff3) {
+        if (buff3 == buff2) {
+            fprintf(stderr, "%s:%d log_buffer_loop returning circular buffer list, cut\n", __FILE__, __LINE__);
+            buff2->h.next = NULL;
+            break;
+        }
+        n++;
+    }
+
+    if (log_buffer_free + n > log_buffer_total) {   /* Something's wrong, check all chains thoroughly */
+        fprintf(stderr, "%s:%d log_buffer_loop log_buffer_free %d > log_buffer_total %d, %d buffers returned\n",
+                __FILE__, __LINE__, log_buffer_free.load(), log_buffer_total, n);
+        buff3->h.next = NULL;
+        {
+            Logging::log_buffer *buff4, *buff5;
+            std::lock_guard<std::mutex> guard(log_mutex);
+
+            for (buff2=buff; (buff3=buff2->h.next) != NULL; buff2 = buff3) { /* buff2 -> buff3 */
+
+                /* the "2bfreed" chain should be short, the following scales n**2 */
+                for (buff4 = buff; (buff5 = buff4->h.next) != buff3; buff4 = buff5) {   /* buff4 -> buff5 */
+                    /* buff5 == buff3, see if parents match */
+                    if (buff2 != buff4) {
+                        fprintf(stderr, "%s:%d log_buffer_loop free buffer %p twice on chain, cut\n",  __FILE__, __LINE__, buff3);
+                        buff3->h.next = NULL;
+                        break;
+                    }
+                }
+
+                for (buff4 = active_head; (buff5=buff4->h.next) != NULL; buff4 = buff5) {
+                    if (buff4 == buff2) {
+                        fprintf(stderr, "%s:%d log_buffer_loop free buffer %p on active chain, cut\n",  __FILE__, __LINE__, buff2);
+                        buff4->h.next = NULL;
+                        break;
+                    }
+                }
+                if (active_tail->h.next != NULL) {
+                    fprintf(stderr, "%s:%d log_buffer_loop active_tail->h.next should be NULL, cutting\n",  __FILE__, __LINE__);
+                    active_tail->h.next = NULL;
+                }
+                if (buff4 != NULL && buff4 != active_tail) {
+                    fprintf(stderr, "%s:%d log_buffer_loop last buffer does not match active_tail, corrected\n",  __FILE__, __LINE__);
+                    active_tail = buff4;
+                }
+
+            }
+        }
+    }
+
 
     while (true) {
         buff2->h.next = free_buffers;
         if (free_buffers.compare_exchange_weak(buff2->h.next, buff)) break;
     }
 
-    /* In this small window the log_buffer_balance is incorrect! */
-    do {
-        balance = log_buffer_balance;
-        balance1 = balance-n;
-    } while(!Logging::log_buffer_balance.compare_exchange_weak(balance, balance1));
+    log_buffer_free.fetch_add(n);
 
-    if (log_buffer_waiters > 0)         /* this is not checked under a lock - it doesn't really matter */
-        log_buffer_shortage.notify_one();
+    {
+        std::lock_guard<std::mutex> guard(log_buffer_shortage_mutex);
+
+        if (log_buffer_waiters > 0)     /* This is the condition the CV protects */
+            log_buffer_shortage.notify_all();
+    }
 
 }
 
@@ -239,6 +298,11 @@ Logging::log_queue_buffer(Logging::log_buffer *buff) {
     active_tail = buff;
     if (!active_head) active_head = buff;
 
+    log_buffer_in_q++;
+
+    /* log_buffer_balance designates buffers between intended allocation and print queueing */
+    log_buffer_balance.fetch_add(-1);
+
     log_cond.notify_one();
 }
 
@@ -248,9 +312,9 @@ Logging::log_thread() {
     Logging::log_buffer *buff = NULL, *buff_2b_returned=NULL;
 
     log_mutex.lock();
-int notify_counter = 0;
+    int notify_counter = 0;
     while(1) {
-        if (active_head == NULL || Logging::log_buffer_balance > 100 || Logging::log_buffer_waiters > 0) {
+        if ( active_head == NULL or log_buffer_balance > 50 or log_buffer_waiters > 0 ) {
             if (buff_2b_returned != NULL) {
                 log_mutex.unlock();
                 log_return_buffers(buff_2b_returned);
@@ -261,30 +325,22 @@ int notify_counter = 0;
             }
 
             if (active_head == NULL) {
+                    if (++notify_counter > 100) {
+                        notify_counter = 0;
+
+                        fprintf(stderr, "\nlog_buffer queue empty, log_buffer_total: %d balance %d free %d waits %d waiters %d\n",
+                            log_buffer_total, log_buffer_balance.load(), log_buffer_free.load(),
+                            log_buffer_num_waits, log_buffer_waiters);
+                    }
                 log_cond.wait(log_mutex);
-if (++notify_counter > 100) {
-    notify_counter = 0;
-
-    Logging::log_buffer *fb, *free_start;
-    int num_free, retries;
-    for (retries=0; retries < 4096; retries++) {
-        fb = free_buffers;
-        num_free = 0;
-        for (free_start = fb; (fb != NULL) and (free_start == free_buffers); num_free++)
-            fb = fb->h.next;
-        if (free_start == free_buffers) break;
-    }
-        
-    fprintf(stderr, "\nlog_buffer queue empty, log_buffer_total: %d, balance %d num_free = %d retries %d waiters %d\n",
-                Logging::log_buffer_total.load(), Logging::log_buffer_balance.load(), num_free, retries, log_buffer_waiters);
-}
-
             }
         }
 
         if (active_head) {
             buff = active_head;
             active_head = active_head->h.next;
+            log_buffer_in_q--;
+
             if (active_head == NULL) active_tail = NULL;
 
             log_mutex.unlock();
@@ -296,22 +352,25 @@ if (++notify_counter > 100) {
               syslog(buff->h.priority, "%s", buff->h.ptr);
             }
 
-            if (buff->h.fanOutBuff != NULL) {
+            if (buff->h.fanOutBuffer != NULL) {
                 if (buff->h.fanOutS != NULL) {
-                    fputs(buff->h.fanOutBuff->buffer, buff->h.fanOutS);
+                    fputs(buff->h.fanOutBuffer, buff->h.fanOutS);
                     fflush(buff->h.fanOutS);
                 }
                 if (buff->h.fanOut != NULL) {
-                    fputs(buff->h.fanOutBuff->buffer, buff->h.fanOut);
+                    fputs(buff->h.fanOutBuffer, buff->h.fanOut);
                     fflush(buff->h.fanOut);
                 }
-
-                (buff->h.fanOutBuff)->h.next = buff_2b_returned;
-                buff_2b_returned = buff->h.fanOutBuff;
             }
+
+            if (buff_2b_returned != buff) {
                         
             buff->h.next = buff_2b_returned;
             buff_2b_returned = buff;
+
+            } else 
+                fprintf(stderr, "%s.%d log_buffer_loop returning returned log_buffer\n", __FILE__, __LINE__);
+            
 
             log_mutex.lock();
         }
@@ -351,10 +410,6 @@ Logging::log(const char* func, const char* file, int line, const char* logid,
   }
 
   struct log_buffer *logBuffer = log_alloc_buffer();
-  assert(logBuffer->h.fanOutBuff == NULL);
-  if ( (!silent) && gLogFanOut.size() > 0) {
-      logBuffer->h.fanOutBuff = log_alloc_buffer();
-  }
   char* buffer = logBuffer->buffer;
 
   XrdOucString File = file;
@@ -366,10 +421,8 @@ Logging::log(const char* func, const char* file, int line, const char* logid,
   static struct timeval tv;
   static struct timezone tz;
   struct tm tm;
-  XrdSysMutexHelper scope_lock(gMutex);
   va_list args;
   va_start(args, msg);
-  gettimeofday(&tv, &tz);
   current_time = tv.tv_sec;
   static char linen[16];
   sprintf(linen, "%d", line);
@@ -383,6 +436,8 @@ Logging::log(const char* func, const char* file, int line, const char* logid,
   }
 
   char sourceline[64];
+
+  gettimeofday(&tv, &tz);
 
   if (gShortFormat) {
     localtime_r(&current_time, &tm);
@@ -433,20 +488,23 @@ Logging::log(const char* func, const char* file, int line, const char* logid,
     if (gLogFanOut.size()) {
       logBuffer->h.fanOutS = NULL;
       logBuffer->h.fanOut = NULL;
+
+      logBuffer->h.fanOutBuffer = ptr + strlen(ptr) + 1;
+      logBuffer->h.fanOutBufLen = logmsgbuffersize - (logBuffer->h.fanOutBuffer-logBuffer->buffer);
       
       // we do log-message fanout
       if (gLogFanOut.count("*")) {
         logBuffer->h.fanOutS = gLogFanOut["*"];
-        if (snprintf(logBuffer->h.fanOutBuff->buffer, logmsgbuffersize, "%s\n", logBuffer->buffer) < 0) {
+        if (snprintf(logBuffer->h.fanOutBuffer, logBuffer->h.fanOutBufLen, "%s\n", logBuffer->buffer) < 0) {
             rc = 42;    /*truncated - results in a warning if not handled */
         }
-        //fflush(gLogFanOut["*"]);
       }
 
       if (gLogFanOut.count(File.c_str())) {
         logBuffer->buffer[15] = 0;
         logBuffer->h.fanOut = gLogFanOut[File.c_str()];
-        if (snprintf(logBuffer->h.fanOutBuff->buffer, logmsgbuffersize, "%s %s%s%s %-30s %s \n",
+        if (snprintf(logBuffer->h.fanOutBuffer, logBuffer->h.fanOutBufLen,
+                "%s %s%s%s %-30s %s \n",
                 logBuffer->buffer,
                 GetLogColour(GetPriorityString(priority)),
                 GetPriorityString(priority),
@@ -461,7 +519,8 @@ Logging::log(const char* func, const char* file, int line, const char* logid,
         if (gLogFanOut.count("#")) {
           logBuffer->buffer[15] = 0;
           logBuffer->h.fanOut = gLogFanOut["#"];
-          if (snprintf(logBuffer->h.fanOutBuff->buffer, logmsgbuffersize, "%s %s%s%s [%05d/%05d] %16s ::%-16s %s \n",
+          if (snprintf(logBuffer->h.fanOutBuffer, logBuffer->h.fanOutBufLen,
+                  "%s %s%s%s [%05d/%05d] %16s ::%-16s %s \n",
                   logBuffer->buffer,
                   GetLogColour(GetPriorityString(priority)),
                   GetPriorityString(priority),
@@ -490,14 +549,20 @@ Logging::log(const char* func, const char* file, int line, const char* logid,
   }
 
   // store into global log memory
-  gLogMemory[priority][(gLogCircularIndex[priority]) % gCircularIndexSize] =
-    buffer;
-  rptr = gLogMemory[priority][(gLogCircularIndex[priority]) %
-                              gCircularIndexSize].c_str();
-  gLogCircularIndex[priority]++;
+  { 
+    XrdSysMutexHelper scope_lock(gMutex);         
 
-    logBuffer->h.priority = priority;
-    log_queue_buffer(logBuffer);
+    /* the following copies the buffer, hence it can be queued and vanish anytime after */
+    gLogMemory[priority][(gLogCircularIndex[priority]) % gCircularIndexSize] =
+      buffer;
+    rptr = gLogMemory[priority][(gLogCircularIndex[priority]) %
+                              gCircularIndexSize].c_str();
+    gLogCircularIndex[priority]++;
+  }
+
+  logBuffer->h.priority = priority;
+  log_queue_buffer(logBuffer);
+
   return rptr;
 }
 
