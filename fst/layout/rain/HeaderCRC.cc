@@ -21,9 +21,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "fst/layout/HeaderCRC.hh"
+#include "fst/layout/rain/HeaderCRC.hh"
 #include "fst/io/FileIo.hh"
-#include <stdint.h>
+#include <cstdint>
 
 EOSFSTNAMESPACE_BEGIN
 

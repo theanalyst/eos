@@ -23,9 +23,9 @@
 
 #include "gtest/gtest.h"
 #include "TestEnv.hh"
-#include "fst/layout/RainMetaLayout.hh"
+#include "fst/layout/rain/RainMetaLayout.hh"
+#include "fst/layout/rain/RaidDpLayout.hh"
 #include "fst/checksum/CRC32C.hh"
-#include "fst/layout/RaidDpLayout.hh"
 #include "fst/io/xrd/XrdIo.hh"
 #include "XrdOuc/XrdOucTokenizer.hh"
 #include <string>

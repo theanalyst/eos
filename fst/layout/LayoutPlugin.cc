@@ -25,8 +25,8 @@
 #include "fst/XrdFstOfsFile.hh"
 #include "fst/layout/PlainLayout.hh"
 #include "fst/layout/ReplicaParLayout.hh"
-#include "fst/layout/RaidDpLayout.hh"
-#include "fst/layout/ReedSLayout.hh"
+#include "fst/layout/rain/RaidDpLayout.hh"
+#include "fst/layout/rain/ReedSLayout.hh"
 #include "fst/Load.hh"
 
 EOSFSTNAMESPACE_BEGIN

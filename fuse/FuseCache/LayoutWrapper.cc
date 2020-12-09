@@ -28,8 +28,8 @@
 #include "common/LayoutId.hh"
 #include "common/InodeTranslator.hh"
 #include "fst/layout/PlainLayout.hh"
-#include "fst/layout/RaidDpLayout.hh"
-#include "fst/layout/ReedSLayout.hh"
+#include "fst/layout/rain/RaidDpLayout.hh"
+#include "fst/layout/rain/ReedSLayout.hh"
 #include "../xrdutils.hh"
 #include "../GlobalInodeTranslator.hh"
 #include <thread>

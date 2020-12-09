@@ -22,12 +22,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSFST_REEDSFILE_HH__
-#define __EOSFST_REEDSFILE_HH__
-
-/*----------------------------------------------------------------------------*/
-#include "fst/layout/RainMetaLayout.hh"
-/*----------------------------------------------------------------------------*/
+#pragma once
+#include "fst/layout/rain/RainMetaLayout.hh"
 
 EOSFSTNAMESPACE_BEGIN
 
@@ -235,5 +231,3 @@ private:
 };
 
 EOSFSTNAMESPACE_END
-
-#endif  // __EOSFST_REEDSLAYOUT_HH__

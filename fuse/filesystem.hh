@@ -51,8 +51,8 @@
 #include "FuseCacheEntry.hh"
 #include "fst/layout/LayoutPlugin.hh"
 #include "fst/layout/PlainLayout.hh"
-#include "fst/layout/RaidDpLayout.hh"
-#include "fst/layout/ReedSLayout.hh"
+#include "fst/layout/rain/RaidDpLayout.hh"
+#include "fst/layout/rain/ReedSLayout.hh"
 #include "FuseCache/FuseWriteCache.hh"
 #include "FuseCache/FileAbstraction.hh"
 #include "FuseCache/LayoutWrapper.hh"
@@ -529,7 +529,8 @@ public:
   //----------------------------------------------------------------------------
   //!
   //----------------------------------------------------------------------------
-  int close(int fildes, unsigned long long inode, uid_t uid, gid_t gid, pid_t pid);
+  int close(int fildes, unsigned long long inode, uid_t uid, gid_t gid,
+            pid_t pid);
 
   //----------------------------------------------------------------------------
   //!

@@ -29,9 +29,9 @@
 #include "XrdSfs/XrdSfsInterface.hh"
 #include "fst/io/FileIoPlugin.hh"
 #include "fst/io/AsyncMetaHandler.hh"
-#include "fst/layout/RainMetaLayout.hh"
-#include "fst/layout/RaidDpLayout.hh"
-#include "fst/layout/ReedSLayout.hh"
+#include "fst/layout/rain/RainMetaLayout.hh"
+#include "fst/layout/rain/RaidDpLayout.hh"
+#include "fst/layout/rain/ReedSLayout.hh"
 #include "common/Timing.hh"
 #include "common/LayoutId.hh"
 

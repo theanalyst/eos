@@ -23,10 +23,12 @@
  ************************************************************************/
 
 #pragma once
+#include "fst/layout/Layout.hh"
+#include "fst/layout/rain/RainGroup.hh"
 #include <vector>
 #include <string>
 #include <list>
-#include "fst/layout/Layout.hh"
+
 
 class XrdFstOfsFile;
 

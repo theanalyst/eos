@@ -99,7 +99,8 @@ set(FST_UT_SRCS
   fst/UtilsTest.cc
   fst/XrdFstOfsFileInternalTest.cc
   fst/ScanDirTests.cc
-  fst/MonitorVarPartitionTest.cc)
+  fst/MonitorVarPartitionTest.cc
+  fst/RainBlockTests.cc)
 
 #-------------------------------------------------------------------------------
 # unit tests source files

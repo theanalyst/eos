@@ -21,14 +21,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-/*----------------------------------------------------------------------------*/
+#include "fst/layout/rain/RaidDpLayout.hh"
+#include "fst/io/AsyncMetaHandler.hh"
 #include <cmath>
 #include <map>
 #include <sys/types.h>
-/*----------------------------------------------------------------------------*/
-#include "fst/layout/RaidDpLayout.hh"
-#include "fst/io/AsyncMetaHandler.hh"
-/*----------------------------------------------------------------------------*/
+
 
 EOSFSTNAMESPACE_BEGIN
 

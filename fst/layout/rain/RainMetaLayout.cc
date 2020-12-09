@@ -21,14 +21,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
+#include "fst/layout/rain/RainMetaLayout.hh"
+#include "fst/layout/rain/HeaderCRC.hh"
+#include "fst/io/AsyncMetaHandler.hh"
+#include "common/Timing.hh"
 #include <cmath>
-#include <string>
 #include <utility>
 #include <stdint.h>
-#include "common/Timing.hh"
-#include "fst/layout/RainMetaLayout.hh"
-#include "fst/io/AsyncMetaHandler.hh"
-#include "fst/layout/HeaderCRC.hh"
+
 
 // Linux compat for Apple
 #ifdef __APPLE__

@@ -130,11 +130,13 @@ add_library(EosFstIo-Objects OBJECT
   layout/LayoutPlugin.cc         layout/LayoutPlugin.hh
   layout/Layout.cc               layout/Layout.hh
   layout/PlainLayout.cc          layout/PlainLayout.hh
-  layout/HeaderCRC.cc            layout/HeaderCRC.hh
   layout/ReplicaParLayout.cc     layout/ReplicaParLayout.hh
-  layout/RainMetaLayout.cc       layout/RainMetaLayout.hh
-  layout/RaidDpLayout.cc         layout/RaidDpLayout.hh
-  layout/ReedSLayout.cc          layout/ReedSLayout.hh)
+  layout/rain/RainMetaLayout.cc
+  layout/rain/RaidDpLayout.cc
+  layout/rain/ReedSLayout.cc
+  layout/rain/RainGroup.cc
+  layout/rain/RainBlock.cc
+  layout/rain/HeaderCRC.cc)
 
 target_link_libraries(EosFstIo-Objects PUBLIC
   Jerasure-Objects
