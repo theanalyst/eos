@@ -652,6 +652,18 @@ XrdIo::fileWriteAsync(XrdSfsFileOffset offset, const char* buffer,
   return length;
 }
 
+//----------------------------------------------------------------------------
+// Write to file - async
+//--------------------------------------------------------------------------
+std::future<XrdCl::XRootDStatus>
+XrdIo::fileWriteAsync(const char* buffer, XrdSfsFileOffset offset,
+                      XrdSfsXferSize length)
+{
+  std::promise<XrdCl::XRootDStatus> wr_promise;
+  std::future<XrdCl::XRootDStatus> wr_future = wr_promise.get_future();
+  return std::move(wr_future);
+}
+
 //------------------------------------------------------------------------------
 // Wait for async IO
 //------------------------------------------------------------------------------

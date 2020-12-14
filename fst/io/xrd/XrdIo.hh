@@ -22,15 +22,14 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#ifndef __EOSFST_XRDFILEIO_HH__
-#define __EOSFST_XRDFILEIO_HH__
-
+#pragma once
 #include "fst/io/FileIo.hh"
 #include "fst/io/SimpleHandler.hh"
 #include "common/FileMap.hh"
 #include "common/XrdConnPool.hh"
 #include "XrdCl/XrdClFile.hh"
 #include <queue>
+#include <future>
 
 namespace eos
 {
@@ -128,6 +127,47 @@ private:
   XrdIo* mFileIO; ///< File IO object corresponding to this handler
   XrdCl::ResponseHandler* mLayoutOpenHandler; ///< Open handler for the layout
 };
+
+//------------------------------------------------------------------------------
+//! Class WriteHandler
+//------------------------------------------------------------------------------
+class WriteHandler: public XrdCl::ResponseHandler
+{
+public:
+  //----------------------------------------------------------------------------
+  //! Constructor
+  //!
+  //! @param wr_promise write promise used to notify when the answer arrives
+  //----------------------------------------------------------------------------
+  WriteHandler(std::promise<XrdCl::XRootDStatus>&& wr_promise):
+    mWrPromise(std::move(wr_promise))
+  {}
+
+  //----------------------------------------------------------------------------
+  //! Handle response
+  //!
+  //! @param pStatus status of the response
+  //! @param pResponse object containing extra info about the response
+  //----------------------------------------------------------------------------
+  virtual void HandleResponse(XrdCl::XRootDStatus* pStatus,
+                              XrdCl::AnyObject* pResponse)
+  {
+    if (pStatus) {
+      mWrPromise.set_value(*pStatus);
+      delete pStatus;
+    }
+
+    if (pResponse) {
+      delete pResponse;
+    }
+
+    delete this;
+  }
+
+private:
+  std::promise<XrdCl::XRootDStatus> mWrPromise;
+};
+
 
 //------------------------------------------------------------------------------
 //! Class used for doing remote IO operations using the Xrd client
@@ -300,6 +340,20 @@ public:
   //----------------------------------------------------------------------------
   int64_t fileWriteAsync(XrdSfsFileOffset offset, const char* buffer,
                          XrdSfsXferSize length, uint16_t timeout = 0);
+
+  //----------------------------------------------------------------------------
+  //! Write to file - async
+  //!
+  //! @param offset offset
+  //! @param buffer data to be written
+  //! @param length length
+  //!
+  //! @return future holding the status response
+  //--------------------------------------------------------------------------
+  std::future<XrdCl::XRootDStatus>
+  fileWriteAsync(const char* buffer, XrdSfsFileOffset offset,
+                 XrdSfsXferSize length);
+
 
   //--------------------------------------------------------------------------
   //! Wait for all async IO
@@ -656,5 +710,3 @@ private:
 };
 
 EOSFSTNAMESPACE_END
-
-#endif  // __EOSFST_XRDFILEIO_HH__

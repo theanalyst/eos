@@ -41,16 +41,16 @@ TEST(RainBlock, FillLimits)
     {4 * MB + 768 * KB, 256 * KB}
   };
   // Piece outside the block range at the beginning
-  ASSERT_FALSE(block.PutData(dummy_data.get(), 3 * MB, 1 * KB));
-  ASSERT_FALSE(block.PutData(dummy_data.get(), 3 * MB + 900 * KB, 500 * KB));
+  ASSERT_FALSE(block.StoreData(dummy_data.get(), 3 * MB, 1 * KB));
+  ASSERT_FALSE(block.StoreData(dummy_data.get(), 3 * MB + 900 * KB, 500 * KB));
   // Piece outside the block range at the end
-  ASSERT_FALSE(block.PutData(dummy_data.get(), 4 * MB + 900 * KB, 500 * KB));
-  ASSERT_FALSE(block.PutData(dummy_data.get(), 5 * MB, 2 * KB));
+  ASSERT_FALSE(block.StoreData(dummy_data.get(), 4 * MB + 900 * KB, 500 * KB));
+  ASSERT_FALSE(block.StoreData(dummy_data.get(), 5 * MB, 2 * KB));
   ASSERT_FALSE(block.IsComplete());
 
   // Add all the pieces that fill the entire block
   for (const auto& elem : pieces) {
-    ASSERT_TRUE(block.PutData(dummy_data.get(), elem.first, elem.second));
+    ASSERT_TRUE(block.StoreData(dummy_data.get(), elem.first, elem.second));
   }
 
   ASSERT_TRUE(block.IsComplete());
@@ -73,7 +73,7 @@ TEST(RainBlock, HandleHoles)
   };
 
   for (const auto& elem : pieces) {
-    ASSERT_TRUE(block.PutData(dummy_data.get(), elem.first, elem.second));
+    ASSERT_TRUE(block.StoreData(dummy_data.get(), elem.first, elem.second));
   }
 
   ASSERT_FALSE(block.IsComplete());
@@ -96,8 +96,8 @@ TEST(RainBlock, HandleHoles)
 
   // Fill the holes and we should get a complete block at the end
   for (const auto& elem : expected_holes) {
-    ASSERT_TRUE(block.PutData(dummy_data.get(), elem.first,
-                              elem.second - elem.first));
+    ASSERT_TRUE(block.StoreData(dummy_data.get(), elem.first,
+                                elem.second - elem.first));
   }
 
   ASSERT_TRUE(block.IsComplete());
@@ -113,13 +113,13 @@ TEST(RainBlock, CompleteWithZeros)
   };
 
   for (const auto& elem : pieces) {
-    ASSERT_TRUE(block.PutData(dummy_data.get(), elem.first, elem.second));
+    ASSERT_TRUE(block.StoreData(dummy_data.get(), elem.first, elem.second));
   }
 
   ASSERT_FALSE(block.IsComplete());
   ASSERT_FALSE(block.CompleteWithZeros());
   // Fill the hole and try again
-  ASSERT_TRUE(block.PutData(dummy_data.get(), 4 * MB + 100 * KB, 100 * KB));
+  ASSERT_TRUE(block.StoreData(dummy_data.get(), 4 * MB + 100 * KB, 100 * KB));
   ASSERT_TRUE(block.CompleteWithZeros());
   ASSERT_TRUE(block.IsComplete());
 }
@@ -134,7 +134,7 @@ TEST(RainBlock, Reset)
   };
 
   for (const auto& elem : pieces) {
-    ASSERT_TRUE(block.PutData(dummy_data.get(), elem.first, elem.second));
+    ASSERT_TRUE(block.StoreData(dummy_data.get(), elem.first, elem.second));
   }
 
   ASSERT_EQ(4 * MB, block.GetOffset());

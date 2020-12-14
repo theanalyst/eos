@@ -38,11 +38,12 @@ RainGroup::RainGroup(const std::vector<FileIo*>& data_files,
   mFiles.insert(mFiles.end(), mParityFiles.begin(), mParityFiles.end());
   uint32_t total_files = mFiles.size();
   uint32_t num_data_blocks = mDataFiles.size() * mDataFiles.size();
-  uint64_t group_size = num_data_blocks * mStripeWidth;
-  mGroupOffset = (grp_offset / group_size) * group_size;
+  mGroupSize = num_data_blocks * mStripeWidth;
+  mGroupOffset = (grp_offset / mGroupSize) * mGroupSize;
+  mRowSize = mDataFiles.size() * mStripeWidth;
 
   for (auto file_id = 0ull; file_id < total_files; ++file_id) {
-    uint64_t block_off = (mGroupOffset / group_size) *
+    uint64_t block_off = (mGroupOffset / mGroupSize) *
                          (mDataFiles.size() * mStripeWidth);
     mDataBlocks.emplace_back();
 
@@ -59,6 +60,96 @@ RainGroup::RainGroup(const std::vector<FileIo*>& data_files,
 RainGroup::~RainGroup()
 {
   mDataBlocks.clear();
+}
+
+//------------------------------------------------------------------------------
+// Write data in the group
+//------------------------------------------------------------------------------
+bool
+RainGroup::Write(uint64_t l_offset, uint32_t l_length, const char* buffer)
+{
+  if ((l_offset < mGroupOffset) ||
+      (l_offset + l_length >= (mGroupOffset + mGroupSize))) {
+    eos_static_err("msg=\"write requests not in the current rain group\" "
+                   "grp_off=%llu grp_len=%llu req_off=%llu req_len=%lu",
+                   mGroupOffset, mGroupSize, l_offset, l_length);
+    return false;
+  }
+
+  const char* ptr = buffer;
+  auto requests = GetBlockPos(l_offset, l_length);
+
+  for (const auto& req : requests) {
+    auto& block = mDataBlocks[req.mColumnId][req.mRowId];
+    block.StoreData(ptr, req.mFileOff, req.mFileLen);
+    ptr += req.mFileLen;
+
+    if (block.IsComplete() && !block.IsFlushed()) {
+      block.Write();
+    }
+  }
+
+  return true;
+}
+
+//------------------------------------------------------------------------------
+// Check if group data is complete - all the data blocks are complete
+//------------------------------------------------------------------------------
+bool
+RainGroup::IsDataComplete() const
+{
+  bool is_complete = true;
+
+  for (size_t stripe_id = 0; stripe_id < mDataFiles.size(); ++stripe_id) {
+    for (size_t block_indx = 0; block_indx < mDataFiles.size(); ++block_indx) {
+      if (!mDataBlocks[stripe_id][block_indx].IsComplete()) {
+        is_complete = false;
+        break;
+      }
+    }
+  }
+
+  return is_complete;
+}
+
+//------------------------------------------------------------------------------
+// Convert a (logical) position in the initial file to a list of file stripe
+// positions inside the individual stripes.
+//------------------------------------------------------------------------------
+std::list<RainGroup::StripeRequest>
+RainGroup::GetBlockPos(uint64_t l_offset, uint32_t l_length)
+{
+  std::list<StripeRequest> requests;
+
+  if ((l_offset < mGroupOffset) ||
+      (l_offset + l_length > mGroupOffset + mGroupSize)) {
+    return requests;
+  }
+
+  // Stripe base offset
+  int column_id, row_id;
+  uint64_t s_off; // Offset in the current stripe
+  uint32_t s_len; // Length in the current stripe block
+  uint64_t b_end_off; // End offset of the current stripe block
+
+  while (l_length) {
+    column_id = (l_offset / mStripeWidth) % mDataFiles.size();
+    row_id = (l_offset / mRowSize) / mDataFiles.size();
+    s_off = (l_offset / mRowSize) * mStripeWidth + l_offset % mStripeWidth;
+    b_end_off = (l_offset / mStripeWidth) * mStripeWidth + mStripeWidth;
+
+    if (s_off + l_length > b_end_off) {
+      s_len = b_end_off - s_off;
+    } else {
+      s_len = l_length;
+    }
+
+    requests.emplace_back(column_id, row_id, s_off, s_len);
+    l_length -= s_len;
+    l_offset += s_len;
+  }
+
+  return requests;
 }
 
 EOSFSTNAMESPACE_END

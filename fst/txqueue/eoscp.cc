@@ -2174,7 +2174,7 @@ main(int argc, char* argv[])
         // Do writes in async mode
         eos::common::Timing::GetTimeSpec(start);
         nwrite = static_cast<eos::fst::FileIo*>(dst_handler[i].second)->fileWriteAsync(
-                   stopwritebyte, ptr_buffer, nread);
+                   stopwritebyte, ptr_buffer, nread, 0);
         eos::common::Timing::GetTimeSpec(end);
         wait_time = static_cast<double>((end.tv_sec * 1000 + end.tv_nsec / 1000000) -
                                         (start.tv_sec * 1000 + start.tv_nsec / 1000000));

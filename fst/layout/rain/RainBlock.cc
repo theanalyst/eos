@@ -36,7 +36,7 @@ EOSFSTNAMESPACE_BEGIN
 //------------------------------------------------------------------------------
 RainBlock::RainBlock(FileIo* file, uint64_t offset, uint32_t capacity):
   mFile(file), mOffset(offset), mLastOffset(offset),
-  mCapacity(capacity), mLength(0ull), mIsComplete(false)
+  mCapacity(capacity), mLength(0ull), mIsComplete(false), mIsFlushed(false)
 {
   mBuffer = gRainBuffMgr.GetBuffer(mCapacity);
 }
@@ -53,7 +53,7 @@ RainBlock::~RainBlock()
 // Save data in the current block
 //----------------------------------------------------------------------------
 bool
-RainBlock::PutData(const char* buffer, uint64_t offset, uint32_t length)
+RainBlock::StoreData(const char* buffer, uint64_t offset, uint32_t length)
 {
   if ((mOffset > offset) ||
       (mOffset > offset + length) ||
@@ -89,6 +89,16 @@ RainBlock::PutData(const char* buffer, uint64_t offset, uint32_t length)
   ptr += block_off;
   (void) memcpy(ptr, buffer, length);
   return true;
+}
+
+//------------------------------------------------------------------------------
+// Write the current block to the corresponding file
+//------------------------------------------------------------------------------
+void
+RainBlock::Write()
+{
+  mIsFlushed = true;
+  mWrFuture = mFile->fileWriteAsync(mBuffer->GetDataPtr(), mOffset, mLength);
 }
 
 //----------------------------------------------------------------------------
@@ -164,6 +174,7 @@ RainBlock::Reset(FileIo* file, uint64_t offset)
 {
   mHoles.clear();
   mIsComplete = false;
+  mIsFlushed = false;
   mOffset = offset;
   mLastOffset = mOffset;
   mFile = file;

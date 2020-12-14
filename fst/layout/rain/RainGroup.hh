@@ -57,12 +57,57 @@ public:
   //----------------------------------------------------------------------------
   ~RainGroup();
 
+  //----------------------------------------------------------------------------
+  //! Write data in the group
+  //!
+  //! @param l_offset offset in the logical file (global)
+  //! @param l_length length of the data
+  //! @param buffer client buffer holding the information
+  //!
+  //! @return
+  //----------------------------------------------------------------------------
+  bool Write(uint64_t l_offset, uint32_t l_length, const char* buffer);
+
 private:
+
+  struct StripeRequest {
+    int mColumnId; ///! Column index of the block in mDataBlock matrix
+    int mRowId; ///! Rown index of the block in the mDataBlock matric
+    uint64_t mFileOff; ///< Offset inside the stripe file
+    uint32_t mFileLen; ///< Length inside the stripe file
+
+    StripeRequest(int cid, int rid, uint64_t s_off, uint32_t s_len):
+      mColumnId(cid), mRowId(rid), mFileOff(s_off), mFileLen(s_len)
+    {}
+  };
+
+  //----------------------------------------------------------------------------
+  //! Convert a (logical) block from the initial file to list of file stripe
+  //! positions inside the individual stripes.
+  //!
+  //! @param l_offset offset in the logical file
+  //! @param l_length length of the request - not bigger than group size
+  //!
+  //! @return list of StripeRequest object that identify the corresponding
+  //!         blocks to be accessed in the mDataBlocks matrix
+  //----------------------------------------------------------------------------
+  std::list<StripeRequest>
+  GetBlockPos(uint64_t l_offset, uint32_t l_length);
+
+  //----------------------------------------------------------------------------
+  //! Check if group data is complete - all the data blocks are complete
+  //!
+  //! @return true if complete, otherwise false
+  //----------------------------------------------------------------------------
+  bool IsDataComplete() const;
+
   std::vector<FileIo*> mDataFiles;
   std::vector<FileIo*> mParityFiles;
   std::vector<FileIo*> mFiles;
   uint64_t mStripeWidth; ///< Stripe block size
-  uint64_t mGroupOffset; ///! Group offset
+  uint64_t mGroupOffset; ///< Group offset
+  uint64_t mGroupSize; ///< Group size
+  uint64_t mRowSize; ///< Total size of a row
   //! Matrix where each column represents a data/parity file
   std::vector<std::vector<eos::fst::RainBlock>> mDataBlocks;
 };

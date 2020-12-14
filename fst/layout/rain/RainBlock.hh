@@ -25,9 +25,11 @@
 #include "fst/Namespace.hh"
 #include "common/Logging.hh"
 #include "common/BufferManager.hh"
+#include "XrdCl/XrdClXRootDResponses.hh"
 #include <vector>
 #include <list>
 #include <cstdint>
+#include <future>
 
 EOSFSTNAMESPACE_BEGIN
 
@@ -52,7 +54,34 @@ public:
   //----------------------------------------------------------------------------
   //! Destructor
   //----------------------------------------------------------------------------
-  ~RainBlock() final;
+  ~RainBlock();
+
+  //----------------------------------------------------------------------------
+  //! Move assignment operator
+  //----------------------------------------------------------------------------
+  RainBlock& operator =(RainBlock&& other) noexcept
+  {
+    if (this != &other) {
+      mFile = other.mFile;
+      mOffset = other.mOffset;
+      mLength = other.mLength;
+      mLastOffset = other.mLastOffset;
+      mCapacity = other.mCapacity;
+      mBuffer = other.mBuffer;
+      other.mBuffer = nullptr;
+      mHoles = other.mHoles;
+      mWrFuture = std::move(other.mWrFuture);
+    }
+
+    return *this;
+  }
+  //----------------------------------------------------------------------------
+  //! Move constructor
+  //----------------------------------------------------------------------------
+  RainBlock(RainBlock&& other) noexcept
+  {
+    *this = std::move(other);
+  }
 
   //----------------------------------------------------------------------------
   //! Put data in the current block
@@ -63,7 +92,12 @@ public:
   //!
   //! @return true if successful, otherwise false
   //----------------------------------------------------------------------------
-  bool PutData(const char* buffer, uint64_t offset, uint32_t lenght);
+  bool StoreData(const char* buffer, uint64_t offset, uint32_t lenght);
+
+  //----------------------------------------------------------------------------
+  //! Write the current block to the corresponding file
+  //----------------------------------------------------------------------------
+  void Write();
 
   //----------------------------------------------------------------------------
   //! Fill any existing holes in the current block given the new request
@@ -122,6 +156,14 @@ public:
   }
 
   //----------------------------------------------------------------------------
+  //! Check if async write request was sent
+  //----------------------------------------------------------------------------
+  inline bool IsFlushed() const
+  {
+    return mIsFlushed;
+  }
+
+  //----------------------------------------------------------------------------
   //! Get list of "holes" in the current block
   //----------------------------------------------------------------------------
   inline std::list<std::pair<uint64_t, uint64_t>> GetListHoles() const
@@ -138,10 +180,12 @@ public:
   uint64_t mLastOffset; ///< Last written offset
   uint32_t mCapacity; ///< Max size of the current block
   uint32_t mLength; ///< Length of useful data, relevant if no holes
-  bool mIsComplete; ///< Flag to mark that block is full
+  std::atomic<bool> mIsComplete; ///< Flag to mark that block is full
+  std::atomic<bool> mIsFlushed; ///< Flag to mark async write request sent
   //! Map of holes in the block if writing was not in streaming mode
   std::list<std::pair<uint64_t, uint64_t>> mHoles;
   std::shared_ptr<eos::common::Buffer> mBuffer; ///< Actual data buffer
+  std::future<XrdCl::XRootDStatus> mWrFuture; ///< Write operation
 };
 
 EOSFSTNAMESPACE_END
