@@ -1231,20 +1231,20 @@ Server::OpGetLs(const std::string& id,
 
         n_attached++;
 
-        if (n_attached >= 128) {
+        if (n_attached >= 128) { // @note1(faluchet) Never executed. How will this ever be true? n_attached is incremented only once in L1232: maybe that goes inside the previous for cycle L1204?
           std::string rspstream;
           cont.SerializeToString(&rspstream);
 
           if (!response) {
             // send parent + first 128 children
-            gOFS->zMQ->mTask->reply(id, rspstream);
+            gOFS->zMQ->mTask->reply(id, rspstream);  // @note1.a(faluchet) Never executed because note1
           } else {
             *response += Header(rspstream);
             response->append(rspstream.c_str(), rspstream.size());
           }
 
-          n_attached = 0;
-          cont.Clear();
+          n_attached = 0; // @note1.b(faluchet) Never executed because note1, so n_attached never reset to 0, so L1263 always true.
+          cont.Clear(); // @note1.c(faluchet) Never executed because note1
         }
       }
 
@@ -1260,13 +1260,13 @@ Server::OpGetLs(const std::string& id,
 
     (*parent)[md.md_ino()].clear_operation();
 
-    if (n_attached) {
+    if (n_attached) { // @note2(faluchet) Always executed. Here's the juice, the cont object, then possibly sent in L1269, could have bananas inside (?)
       // send left-over children
       std::string rspstream;
       cont.SerializeToString(&rspstream);
 
       if (!response) {
-        gOFS->zMQ->mTask->reply(id, rspstream);
+        gOFS->zMQ->mTask->reply(id, rspstream); // @note2.a Always executed (
       } else {
         *response += Header(rspstream);
         response->append(rspstream.c_str(), rspstream.size());
