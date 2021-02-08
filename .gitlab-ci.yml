@@ -77,7 +77,7 @@ prebuild-c8:
 
 
 try_ci_kt:
-  stage: build
+  stage: build:rpm
   image: gitlab-registry.cern.ch/linuxsupport/rpmci/kojicli
   script:
     - kinit stci@CERN.CH -k -t $STCI_KEYTAB
