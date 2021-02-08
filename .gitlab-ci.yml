@@ -80,8 +80,9 @@ try_ci_kt:
   stage: build:rpm
   image: gitlab-registry.cern.ch/linuxsupport/rpmci/kojicli
   script:
+    - yum install --nogpg -y sssd-client
     - kinit stci@CERN.CH -k -t $STCI_KEYTAB
-    - ls /eos/project-s/storage-ci/; - ls /eos/project-s/storage-ci/; echo "just ok"
+    - ls /eos/project-s/storage-ci/; ls /eos/project-s/storage-ci/; echo "just trying"
   tags:
     - docker_node
     - publish
