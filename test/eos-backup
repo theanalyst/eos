@@ -56,8 +56,12 @@ signal.signal(signal.SIGINT, request_stop)
 
 
 # options
-subcmd = sys.argv[1]
-opts, args = getopt.getopt(sys.argv[2:], "B:F:P:U:bvS:")
+try: 
+    subcmd = sys.argv[1]
+    opts, args = getopt.getopt(sys.argv[2:], "B:F:P:U:bvS:")
+except:
+    print("Unable to parse arguments")
+    sys.exit(1)
 
 # default backupDirPrefix and parentId
 dflt = [('-B', "/tmp/backupDir"),('-P', 10),('-S',1024*1024*1024)]
@@ -181,7 +185,7 @@ class Blob:                 # the files where data are stored in
             self.bfile = open(self.blobname, "wb")  # 'wb' or 'w' hardly matters, we don't write ourselves
             os.lseek(self.bfile.fileno(), 0, 0)     # this may be implicit, but vital for the subprocess writes
 
-        print("blob", self.blob_num, "created", file=sys.stderr)
+        print("blob", self.blob_num, "created", self.blobname, file=sys.stderr)
 
 
     def getBlob(self, sz, noCopy=False):
@@ -235,7 +239,7 @@ class Blob:                 # the files where data are stored in
             if not self.isCopy:
                 self.bfile.close()
                 blob_slots += 1
-                print(f"blob {self.blob_num} closed size {self.size} slots {blob_slots}", file=sys.stderr)
+                print(f"blob {self.blobname} closed size {self.size} slots {blob_slots}", file=sys.stderr)
 
                 for n in range(self.blob_num, len(BLOBS)):
                     if BLOBS[n].state == -1:
@@ -747,10 +751,13 @@ def do_restore():
                 st, xx = blobFile.open(blobFn)
                 blobOff = bOffset
                 fileOff = 0
+                if not st.ok:
+                    print(f"Failed to open blob {blobFn}: {st.message}", file=sys.stderr)
+                    raise IOError
             else:
                 blobFile = open(blobFn, "rb")
                 blobFile.seek(bOffset, 0)
-
+ 
             trgFile = open("%s/%s" % (trg, p), "wb")
             bufsz = 1<<20           # 1 MB
             while bLen > 0:
@@ -768,8 +775,9 @@ def do_restore():
           except Exception as e:
             exc_type, exc_obj, exc_tb = sys.exc_info()
             print("Exception %s in line %d:" % (type(e), exc_tb.tb_lineno), file=sys.stderr)
-            print(p, file=sys.stderr)
-            if p in cat: print(cat[p], file=sys.stderr)
+            print(f"p {p} bl_Xroot {bl_Xroot} blobFn {blobFn}", file=sys.stderr)
+            if bl_Xroot: print(f"offset {blobOff} size {bufsz}", file=sys.stderr)
+            if p in cat: print(f"cat: {cat[p]}", file=sys.stderr)
 
 # main
 if subcmd == 'clone':
