@@ -533,6 +533,8 @@ code_quality:
   artifacts:
     paths: [gl-code-quality-report.json]
   allow_failure: true
+  tags:
+    - docker-privileged
 
 code_quality_html:
   extends: code_quality
