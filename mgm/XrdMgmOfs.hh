@@ -1517,6 +1517,8 @@ public:
   MgmProcTrackerPath; ///< Directory with file creations which are not consistent (yet)
   XrdOucString
   MgmProcTokenPath; ///< Directory storing the token generation as ext attribute and vouchers
+  XrdOucString
+  MgmProcPreparePath; ///< Directory storing the ids of file prepare requests (xrdfs prepare -s)
   //! Full path to the master indication proc file
   XrdOucString MgmProcMasterPath;
   XrdOucString MgmProcArchivePath; ///< EOS directory where archive dir inodes
