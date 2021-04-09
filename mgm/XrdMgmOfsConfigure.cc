@@ -1948,7 +1948,8 @@ XrdMgmOfs::Configure(XrdSysError& Eroute)
       try {
         eosmd = gOFS->eosView->createContainer(MgmProcPreparePath.c_str(), true);
         eosmd->setMode(S_IFDIR | S_IRWXU);
-        eosmd->setCUid(0); // token directory is owned by root
+        eosmd->setCUid(2); // prepare directory is owned by daemon
+        eosmd->setCGid(2);
         gOFS->eosView->updateContainerStore(eosmd.get());
       } catch (const eos::MDException& e) {
         Eroute.Emsg("Config", "cannot set the /eos/../proc/prepare directory mode "
