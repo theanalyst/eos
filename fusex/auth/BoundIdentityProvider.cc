@@ -48,14 +48,14 @@ BoundIdentityProvider::krb5EnvToBoundIdentity(const JailInformation& jail,
   LogbookScope &scope)
 {
   std::string path = env.get("KRB5CCNAME");
-
+  std::string key = env.get("EOS_FUSE_SECRET");
   //----------------------------------------------------------------------------
   // Kerberos keyring?
   //----------------------------------------------------------------------------
   if(startswith(path, "KEYRING")) {
     LOGBOOK_INSERT(scope, "Found kerberos keyring: " << path << ", need to validate");
     return userCredsToBoundIdentity(jail,
-      UserCredentials::MakeKrk5(path, uid, gid), reconnect, scope);
+				    UserCredentials::MakeKrk5(path, uid, gid, key), reconnect, scope);
   }
 
   //----------------------------------------------------------------------------
@@ -64,7 +64,7 @@ BoundIdentityProvider::krb5EnvToBoundIdentity(const JailInformation& jail,
   if(startswith(path, "KCM")) {
     LOGBOOK_INSERT(scope, "Found kerberos kcm: " << path << ", need to validate");
     return userCredsToBoundIdentity(jail,
-      UserCredentials::MakeKcm(path, uid, gid), reconnect, scope);
+				    UserCredentials::MakeKcm(path, uid, gid, key), reconnect, scope);
   }
 
   //----------------------------------------------------------------------------
@@ -86,8 +86,8 @@ BoundIdentityProvider::krb5EnvToBoundIdentity(const JailInformation& jail,
 
   LOGBOOK_INSERT(scope, "Found KRB5CCNAME: " << path << ", need to validate");
   return userCredsToBoundIdentity(jail,
-           UserCredentials::MakeKrb5(jail.id, path, uid, gid), reconnect,
-           scope);
+				  UserCredentials::MakeKrb5(jail.id, path, uid, gid, key), reconnect,
+				  scope);
 }
 
 //------------------------------------------------------------------------------
@@ -100,6 +100,7 @@ BoundIdentityProvider::oauth2EnvToBoundIdentity(const JailInformation& jail,
   LogbookScope &scope)
 {
   std::string path = env.get("OAUTH2_TOKEN");
+  std::string key = env.get("EOS_FUSE_SECRET");
 
   //----------------------------------------------------------------------------
   // Drop FILE:, if exists
@@ -120,8 +121,8 @@ BoundIdentityProvider::oauth2EnvToBoundIdentity(const JailInformation& jail,
 
   LOGBOOK_INSERT(scope, "Found OAUTH2_TOKEN: " << path << ", need to validate");
   return userCredsToBoundIdentity(jail,
-           UserCredentials::MakeOAUTH2(jail.id, path, uid, gid), reconnect,
-           scope);
+				  UserCredentials::MakeOAUTH2(jail.id, path, uid, gid, key), reconnect,
+				  scope);
 }
 
 //------------------------------------------------------------------------------
@@ -134,6 +135,7 @@ BoundIdentityProvider::x509EnvToBoundIdentity(const JailInformation& jail,
   LogbookScope &scope)
 {
   std::string path = env.get("X509_USER_PROXY");
+  std::string key = env.get("EOS_FUSE_SECRET");
 
   if (path.empty()) {
     //--------------------------------------------------------------------------
@@ -146,7 +148,7 @@ BoundIdentityProvider::x509EnvToBoundIdentity(const JailInformation& jail,
 
   LOGBOOK_INSERT(scope, "Found X509_USER_PROXY: " << path << ", need to validate");
   return userCredsToBoundIdentity(jail,
-           UserCredentials::MakeX509(jail.id, path, uid, gid), reconnect,
+				  UserCredentials::MakeX509(jail.id, path, uid, gid, key), reconnect,
            scope);
 }
 
@@ -160,9 +162,10 @@ BoundIdentityProvider::sssEnvToBoundIdentity(const JailInformation& jail,
   LogbookScope &scope)
 {
   std::string endorsement = env.get("XrdSecsssENDORSEMENT");
+  std::string key = env.get("EOS_FUSE_SECRET");
   LOGBOOK_INSERT(scope, "Found SSS endorsement of size " << endorsement.size());
   return userCredsToBoundIdentity(jail,
-           UserCredentials::MakeSSS(endorsement, uid, gid), reconnect,
+				  UserCredentials::MakeSSS(endorsement, uid, gid, key), reconnect,
            scope);
 }
 
