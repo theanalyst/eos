@@ -166,7 +166,7 @@ BoundIdentityProvider::sssEnvToBoundIdentity(const JailInformation& jail,
   LOGBOOK_INSERT(scope, "Found SSS endorsement of size " << endorsement.size());
   return userCredsToBoundIdentity(jail,
 				  UserCredentials::MakeSSS(endorsement, uid, gid, key), reconnect,
-           scope);
+				  scope);
 }
 
 //------------------------------------------------------------------------------
@@ -400,7 +400,22 @@ BoundIdentityProvider::unixAuth(pid_t pid, uid_t uid, gid_t gid,
 {
   LOGBOOK_INSERT(scope, "Producing UNIX identity out of pid=" << pid <<
     ", uid=" << uid << ", gid=" << gid);
-  return unixAuthenticator.createIdentity(pid, uid, gid, reconnect);
+
+  FutureEnvironment response = environmentReader.stageRequest(pid, uid);
+
+  if (!response.waitUntilDeadline(
+				  std::chrono::milliseconds(credConfig.environ_deadlock_timeout))) {
+    eos_static_warning("Timeout when retrieving environment for pid %d (uid %d) - we're doing an execve!",
+		       pid, uid);
+    LOGBOOK_INSERT(scope,
+		   "FAILED in retrieving environment variables for pid=" << pid << ": TIMEOUT after " << credConfig.environ_deadlock_timeout << " ms");
+    return {};
+  }
+
+  Environment env = response.get();
+  std::string secret = env.get("EOS_FUSE_SECRET");
+
+  return unixAuthenticator.createIdentity(pid, uid, gid, reconnect, secret);
 }
 
 //------------------------------------------------------------------------------
@@ -409,7 +424,7 @@ BoundIdentityProvider::unixAuth(pid_t pid, uid_t uid, gid_t gid,
 // If not possible, return nullptr.
 //------------------------------------------------------------------------------
 std::shared_ptr<const BoundIdentity>
-BoundIdentityProvider::defaultPathsToBoundIdentity(const JailInformation& jail,
+BoundIdentityProvider::defaultPathsToBoundIdentity(const JailInformation& jail, pid_t pid,
   uid_t uid, gid_t gid, bool reconnect, LogbookScope &scope)
 {
   // Pretend as if the environment of the process simply contained the default values,
@@ -423,6 +438,32 @@ BoundIdentityProvider::defaultPathsToBoundIdentity(const JailInformation& jail,
     SSTR("Attempting to produce BoundIdentity out of default paths for uid="
       << uid)));
 
+  FutureEnvironment response = environmentReader.stageRequest(pid, uid);
+
+  if (!response.waitUntilDeadline(
+        std::chrono::milliseconds(credConfig.environ_deadlock_timeout))) {
+    eos_static_warning("Timeout when retrieving environment for pid %d (uid %d) - we're doing an execve!",
+                    pid, uid);
+    LOGBOOK_INSERT(subscope,
+      "FAILED in retrieving environment variables for pid=" << pid << ": TIMEOUT after " << credConfig.environ_deadlock_timeout << " ms");
+    return {};
+  }
+
+  Environment env = response.get();
+  std::string endorsement = env.get("XrdSecsssENDORSEMENT");
+  std::string secret = env.get("EOS_FUSE_SECRET");
+
+  fprintf(stderr,"endorsenemnt=%s secret=%s\n", endorsement.c_str(), secret.c_str());
+
+  if (!endorsement.empty()) {
+    defaultEnv.push_back(SSTR("XrdSecsssENDORSEMENT=" << endorsement));
+  }
+
+  if (!secret.empty()) {
+    defaultEnv.push_back(SSTR("EOS_FUSE_SECRET=" << secret));
+  }
+
+
   return environmentToBoundIdentity(jail, defaultEnv, uid, gid, reconnect,
     subscope, false);
 }
@@ -432,7 +473,7 @@ BoundIdentityProvider::defaultPathsToBoundIdentity(const JailInformation& jail,
 // binding. If not possible, return nullptr.
 //------------------------------------------------------------------------------
 std::shared_ptr<const BoundIdentity>
-BoundIdentityProvider::globalBindingToBoundIdentity(const JailInformation& jail,
+BoundIdentityProvider::globalBindingToBoundIdentity(const JailInformation& jail, pid_t pid,
   uid_t uid, gid_t gid, bool reconnect, LogbookScope &scope)
 {
   // Pretend as if the environment of the process simply contained the eosfusebind
@@ -446,6 +487,29 @@ BoundIdentityProvider::globalBindingToBoundIdentity(const JailInformation& jail,
   LogbookScope subscope(scope.makeScope(
     SSTR("Attempting to produce BoundIdentity out of eosfusebind " <<
       "global binding for uid=" << uid)));
+
+  FutureEnvironment response = environmentReader.stageRequest(pid, uid);
+
+  if (!response.waitUntilDeadline(
+        std::chrono::milliseconds(credConfig.environ_deadlock_timeout))) {
+    eos_static_warning("Timeout when retrieving environment for pid %d (uid %d) - we're doing an execve!",
+                    pid, uid);
+    LOGBOOK_INSERT(subscope,
+      "FAILED in retrieving environment variables for pid=" << pid << ": TIMEOUT after " << credConfig.environ_deadlock_timeout << " ms");
+    return {};
+  }
+
+  Environment env = response.get();
+  std::string endorsement = env.get("XrdSecsssENDORSEMENT");
+  std::string secret = env.get("EOS_FUSE_SECRET");
+
+  if (!endorsement.empty()) {
+    defaultEnv.push_back(SSTR("XrdSecsssENDORSEMENT=" << endorsement));
+  }
+
+  if (!secret.empty()) {
+    defaultEnv.push_back(SSTR("EOS_FUSE_SECRET=" << secret));
+  }
 
   return environmentToBoundIdentity(jail, defaultEnv, uid, gid, reconnect,
     subscope, true);
@@ -478,6 +542,8 @@ BoundIdentityProvider::pidEnvironmentToBoundIdentity(
 
   LOGBOOK_INSERT(subscope, "Succeeded in retrieving environment "
     "variables for pid=" << pid);
+
+  fprintf(stderr,"pidEnv %s\n", response.get().get("EOS_FUSE_SECRET").c_str());
 
   return environmentToBoundIdentity(jail, response.get(), uid, gid,
     reconnect, subscope, true);

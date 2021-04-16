@@ -153,7 +153,7 @@ ProcessCache::discoverBoundIdentity(const JailInformation& jail,
   //----------------------------------------------------------------------------
   // Nothing yet.. try global binding from eosfusebind...
   //----------------------------------------------------------------------------
-  output = boundIdentityProvider.globalBindingToBoundIdentity(jail, uid, gid,
+  output = boundIdentityProvider.globalBindingToBoundIdentity(jail, processInfo.getPid(), uid, gid,
     reconnect, scope);
 
   if(output) {
@@ -163,7 +163,7 @@ ProcessCache::discoverBoundIdentity(const JailInformation& jail,
   //----------------------------------------------------------------------------
   // What about default paths, ie /tmp/krb5cc_<uid>?
   //----------------------------------------------------------------------------
-  output = boundIdentityProvider.defaultPathsToBoundIdentity(jail, uid, gid,
+  output = boundIdentityProvider.defaultPathsToBoundIdentity(jail, processInfo.getPid(), uid, gid,
     reconnect, scope);
 
   if(output) {

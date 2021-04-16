@@ -78,7 +78,7 @@ public:
   // If not possible, return nullptr.
   //----------------------------------------------------------------------------
   std::shared_ptr<const BoundIdentity>
-  defaultPathsToBoundIdentity(const JailInformation& jail, uid_t uid,
+  defaultPathsToBoundIdentity(const JailInformation& jail, pid_t pid, uid_t uid,
     gid_t gid, bool reconnect, LogbookScope &scope);
 
   //----------------------------------------------------------------------------
@@ -86,7 +86,7 @@ public:
   // binding. If not possible, return nullptr.
   //----------------------------------------------------------------------------
   std::shared_ptr<const BoundIdentity>
-  globalBindingToBoundIdentity(const JailInformation& jail, uid_t uid,
+  globalBindingToBoundIdentity(const JailInformation& jail, pid_t pid, uid_t uid,
     gid_t gid, bool reconnect, LogbookScope &scope);
 
   void setCredentialConfig(const CredentialConfig& conf)
