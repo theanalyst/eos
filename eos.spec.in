@@ -58,7 +58,7 @@
 
 # Explicit python macro for CentOS 8
 # Note: RHEL8 does not provide a default python anymore
-%if 0%{distribution} == 8
+%if 0%{?distribution} == 8
 %define __python /usr/bin/python3
 %endif
 
@@ -143,8 +143,8 @@ BuildRequires: xrootd-server-devel >= %{xrootd_version_min}
 BuildRequires: xrootd-private-devel >= %{xrootd_version_min}
 %endif
 
-%if 0%{distribution} == 7
-BuildRequires: protobuf3 >= 3.3, protobuf3-devel >= 3.3, protobuf3-compiler >= 3.3
+%if 0%{?distribution} == 7 || 0%{?distribution} == 8
+BuildRequires: eos-protobuf3 >= 3.3, eos-protobuf3-devel >= 3.3, eos-protobuf3-compiler >= 3.3
 %else
 BuildRequires: protobuf >= 3.3, protobuf-devel >= 3.3, protobuf-compiler >= 3.3
 %endif
@@ -168,7 +168,7 @@ BuildRequires: libzstd, libzstd-devel
 BuildRequires: lz4
 Requires: zstd, lz4
 
-%if 0%{distribution} != 8
+%if 0%{?distribution} != 8
 BuildRequires: openssl-static, ncurses-static
 %endif
 
@@ -209,10 +209,10 @@ BuildRequires: eos-librichacl-devel, eos-richacl >= 1.12
 
 # ISA-L[_crypto], XXHash and scitokens dependencies for CC7 and C8
 %if %{?_with_server:1}%{!?_with_server:0}
-%if 0%{distribution} == 7 || 0%{distribution} == 8
+%if 0%{?distribution} == 7 || 0%{?distribution} == 8
 BuildRequires: scitokens-cpp, scitokens-cpp-devel
 BuildRequires: xxhash-devel
-%if 0%{distribution} == 7
+%if 0%{?distribution} == 7
 BuildRequires: libisa-l-devel libisa-l_crypto-devel
 Requires: libisa-l libisa-l_crypto
 %endif
@@ -220,18 +220,18 @@ Requires: libisa-l libisa-l_crypto
 %endif
 
 # Install newer gcc on CC7
-%if 0%{distribution} == 7
+%if 0%{?distribution} == 7
 BuildRequires: centos-release-scl
 %endif
 
 %if "%{compiler}" == "gcc"
-%if 0%{distribution} == 7
+%if 0%{?distribution} == 7
 BuildRequires: %{devtoolset}
 BuildRequires: %{devtoolset}-binutils-devel
 %else
 BuildRequires: binutils-devel
 %endif
-%if 0%{distribution} == 7 || 0%{distribution} == 8
+%if 0%{?distribution} == 7 || 0%{?distribution} == 8
 # We want swap-support on eosxd - requires rocksdb KV
 BuildRequires: eos-rocksdb = 6.2.4-1%{rocksdb_dist}
 %endif
@@ -241,13 +241,13 @@ BuildRequires: eos-rocksdb = 6.2.4-1%{rocksdb_dist}
 BuildRequires: clang
 BuildRequires: libatomic
 Requires: libatomic
-%if 0%{distribution} == 7
+%if 0%{?distribution} == 7
 BuildRequires: llvm-toolset-7
 %endif
 %endif
 
 %if %{?_with_asan:1}%{!?_with_asan:0}
-%if 0%{distribution} == 7
+%if 0%{?distribution} == 7
 BuildRequires: %{devtoolset}-libasan-devel
 %else
 BuildRequires: libasan
@@ -288,12 +288,12 @@ cd build
 
 %if "%{?compiler}" == "gcc"
 
-  %if 0%{distribution} == 7
+  %if 0%{?distribution} == 7
     source /opt/rh/%{devtoolset}/enable
   %endif
 
-  %if 0%{distribution} == 7 || 0%{distribution} == 8
-    %if 0%{distribution} == 8
+  %if 0%{?distribution} == 7 || 0%{?distribution} == 8
+    %if 0%{?distribution} == 8
       echo "Install custom cmake 3.15.5 required by EOS"
       mkdir ./cmake_install/
       ../misc/cmake/cmake-3.15.5-Linux-x86_64.sh --prefix=./cmake_install/ --skip-license
@@ -304,7 +304,7 @@ cd build
     %{cmake} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=%{build_type} %{build_flags}
   %endif
 %else
-  %if 0%{distribution} == 7
+  %if 0%{?distribution} == 7
     source  /opt/rh/llvm-toolset-7/enable
     env QA_RPATHS=3 CC=clang CXX=clang++ %{cmake} ../ -DRELEASE=@CPACK_PACKAGE_RELEASE@ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_RPATH=/lib64/:/usr/lib64/ -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=true -DXROOTD_ROOT=/opt/eos/xrootd/ %{build_flags}
   %else
@@ -321,7 +321,7 @@ cd build
 # and may cause GDB to crash.
 
 %if "%{?compiler}" == "gcc"
-  %if 0%{distribution} == 7
+  %if 0%{?distribution} == 7
     source /opt/rh/%{devtoolset}/enable
   %endif
 %endif
@@ -369,8 +369,8 @@ Requires: psmisc
 Requires: libcurl
 Requires: logrotate
 
-%if 0%{distribution} == 7
-Requires: protobuf3 >= 3.3
+%if 0%{?distribution} == 7 || 0%{?distribution} == 8
+Requires: eos-protobuf3 >= 3.3
 %else
 Requires: protobuf >= 3.3
 %endif
@@ -433,7 +433,7 @@ The EOS server installation containing MGM, FST & MQ service.
 %{_libdir}/libEosMgmHttp-*.so
 %{_libdir}/libXrdMqOfs-*.so
 %{_libdir}/libEosNsQuarkdb.so
-%if 0%{distribution} == 7 || 0%{distribution} == 8
+%if 0%{?distribution} == 7 || 0%{?distribution} == 8
 %{_libdir}/libEosAccSciTokens.so
 %endif
 %config(noreplace) %{_sysconfdir}/xrd.cf.fst
@@ -541,8 +541,8 @@ Requires: xrootd-client >= %{xrootd_version_min}
 Requires: xrootd-client >= %{xrootd_version_min}
 %endif
 
-%if 0%{distribution} == 7
-Requires: protobuf3 >= 3.3
+%if 0%{?distribution} == 7 || 0%{?distribution} == 8
+Requires: eos-protobuf3 >= 3.3
 %else
 Requires: protobuf >= 3.3
 %endif
@@ -586,8 +586,8 @@ Requires: xrootd-client >= %{xrootd_version_min}
 Requires: xrootd-client >= %{xrootd_version_min}
 %endif
 
-%if 0%{distribution} == 7
-Requires: protobuf3 >= 3.3
+%if 0%{?distribution} == 7 || 0%{?distribution} == 8
+Requires: eos-protobuf3 >= 3.3
 %else
 Requires: protobuf >= 3.3
 %endif
