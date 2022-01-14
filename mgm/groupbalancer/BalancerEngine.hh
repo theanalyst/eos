@@ -97,13 +97,15 @@ inline double calculateAvg(const group_size_map& m)
 
 struct IBalancerEngine
 {
-  virtual void populate(IBalancerInfoFetcher* f) = 0;
+  virtual void populateGroupsInfo(IBalancerInfoFetcher* f) = 0;
   virtual void recalculate() = 0;
   virtual void clear() = 0;
-  virtual void updateGroupAvg(const std::string& group_name, double Threshold) = 0;
-  virtual void updateGroupsAvg(double Threshold) = 0;
+  virtual void updateGroupAvg(const std::string& group_name) = 0;
+  virtual void updateGroupsAvg() = 0;
   virtual groups_picked_t pickGroupsforTransfer() const = 0;
 
+  // TODO: make this configurable
+  virtual void set_threshold(double) = 0;
   virtual ~IBalancerEngine() {};
 };
 

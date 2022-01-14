@@ -26,10 +26,11 @@
 
 namespace eos::mgm::group_balancer {
 
-void RandomBalancerEngine::populate(IBalancerInfoFetcher* f)
+void RandomBalancerEngine::populateGroupsInfo(IBalancerInfoFetcher* f)
 {
   mGroupSizes = f->fetch();
   recalculate();
+  updateGroupsAvg();
 }
 
 void RandomBalancerEngine::recalculate()
@@ -44,7 +45,7 @@ void RandomBalancerEngine::clear()
   mGroupsUnderAvg.clear();
 }
 
-void RandomBalancerEngine::updateGroupAvg(const std::string& group_name, double Threshold)
+void RandomBalancerEngine::updateGroupAvg(const std::string& group_name)
 {
   auto kv = mGroupSizes.find(group_name);
   if (kv == mGroupSizes.end()) {
@@ -59,10 +60,10 @@ void RandomBalancerEngine::updateGroupAvg(const std::string& group_name, double 
   mGroupsOverAvg.erase(group_name);
   mGroupsUnderAvg.erase(group_name);
 
-  eos_static_debug("diff=%.02f threshold=%.02f", diffWithAvg, Threshold);
+  eos_static_debug("diff=%.02f threshold=%.02f", diffWithAvg, mThreshold);
 
   // Group is mThreshold over or under the average used size
-  if (abs(diffWithAvg) > Threshold) {
+  if (abs(diffWithAvg) > mThreshold) {
     if (diffWithAvg > 0) {
       mGroupsOverAvg.emplace(group_name);
     } else {
@@ -71,7 +72,7 @@ void RandomBalancerEngine::updateGroupAvg(const std::string& group_name, double 
   }
 }
 
-void RandomBalancerEngine::updateGroupsAvg(double Threshold)
+void RandomBalancerEngine::updateGroupsAvg()
 {
   mGroupsOverAvg.clear();
   mGroupsUnderAvg.clear();
@@ -80,7 +81,7 @@ void RandomBalancerEngine::updateGroupsAvg(double Threshold)
   }
 
   for(const auto& kv: mGroupSizes) {
-    updateGroupAvg(kv.first,Threshold);
+    updateGroupAvg(kv.first);
   }
 
 }
