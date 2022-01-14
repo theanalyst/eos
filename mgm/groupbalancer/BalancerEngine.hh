@@ -78,10 +78,12 @@ namespace eos::mgm::group_balancer {
     uint64_t mCapacity;
   };
 
-
-using group_size_map = std::map<std::string,GroupSize>;
+// Allow std::string_view -> std::string lookups on keys
+using group_size_map = std::map<std::string,GroupSize, std::less<>>;
 using groups_picked_t = std::pair<std::string, std::string>;
 
+// A simple interface to populate the group_size map per group. This is useful
+// for DI scenarios where we can alternatively fill in the group_size structures
 struct IBalancerInfoFetcher {
   virtual group_size_map fetch() = 0;
 };
