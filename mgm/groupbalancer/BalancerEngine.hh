@@ -99,15 +99,44 @@ inline double calculateAvg(const group_size_map& m)
 
 struct IBalancerEngine
 {
+  //----------------------------------------------------------------------------
+  // Fills mGroupSizes, calculates avg and classifies the data
+  //----------------------------------------------------------------------------
   virtual void populateGroupsInfo(IBalancerInfoFetcher* f) = 0;
+
+  //----------------------------------------------------------------------------
+  //! Recalculates the sizes average from the mGroupSizes
+  //----------------------------------------------------------------------------
   virtual void recalculate() = 0;
+
+  //----------------------------------------------------------------------------
+  //! clears all data structures, also used when re-filling all info
+  //----------------------------------------------------------------------------
   virtual void clear() = 0;
+
+  //----------------------------------------------------------------------------
+  //! Classifies a given group in one of the 2 categories
+  //----------------------------------------------------------------------------
   virtual void updateGroupAvg(const std::string& group_name) = 0;
+
+  //----------------------------------------------------------------------------
+  //! Classifies all groups in one of the 2 categories
+  //----------------------------------------------------------------------------
   virtual void updateGroupsAvg() = 0;
-  virtual groups_picked_t pickGroupsforTransfer() const = 0;
+
+  //----------------------------------------------------------------------------
+  //! Return a pair of groups over avg & under avg that will be used for
+  //transferring
+  //----------------------------------------------------------------------------
+  virtual groups_picked_t pickGroupsforTransfer() = 0;
 
   // TODO: make this configurable
   virtual void set_threshold(double) = 0;
+  virtual const group_size_map& get_group_sizes() const = 0;
+
+  virtual int record_transfer(std::string_view source_group,
+                              std::string_view target_group,
+                              uint64_t filesize) = 0;
   virtual ~IBalancerEngine() {};
 };
 

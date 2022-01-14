@@ -38,7 +38,7 @@ inline uint32_t getRandom(uint32_t max) {
 }
 
 
-class RandomBalancerEngine final: public IBalancerEngine
+class RandomBalancerEngine: public IBalancerEngine
 {
 public:
   void populateGroupsInfo(IBalancerInfoFetcher* f) override;
@@ -46,18 +46,28 @@ public:
   void clear() override;
   void updateGroupAvg(const std::string& group_name) override;
   void updateGroupsAvg() override;
-  groups_picked_t pickGroupsforTransfer() const override;
+  groups_picked_t pickGroupsforTransfer() override;
 
   void set_threshold(double Threshold) override {
     mThreshold = Threshold;
   }
+
+  const group_size_map& get_group_sizes() const override {
+    return mGroupSizes;
+  }
+
+  int record_transfer(std::string_view source_group,
+                      std::string_view target_group,
+                      uint64_t filesize) override;
+
+
 private:
   /// groups whose size is over the average size of the groups
   std::unordered_set<std::string> mGroupsOverAvg;
   /// groups whose size is under the average size of the groups
   std::unordered_set<std::string> mGroupsUnderAvg;
   /// groups' sizes cache
-  std::map<std::string, GroupSize> mGroupSizes;
+  group_size_map mGroupSizes;
   /// average filled percentage in groups
   double mAvgUsedSize;
   double mThreshold;

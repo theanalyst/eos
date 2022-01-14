@@ -87,8 +87,22 @@ void RandomBalancerEngine::updateGroupsAvg()
 }
 
 groups_picked_t
-RandomBalancerEngine::pickGroupsforTransfer() const
+RandomBalancerEngine::pickGroupsforTransfer()
 {
+  if (mGroupsUnderAvg.size() == 0 || mGroupsOverAvg.size() == 0) {
+    if (mGroupsOverAvg.size() == 0) {
+      eos_static_debug("No groups over the average!");
+    }
+
+    if (mGroupsUnderAvg.size() == 0) {
+      eos_static_debug("No groups under the average!");
+    }
+
+    recalculate();
+    return {};
+  }
+
+
   auto over_it = mGroupsOverAvg.begin();
   auto under_it = mGroupsUnderAvg.begin();
   int rndIndex = getRandom(mGroupsOverAvg.size() - 1);
@@ -96,6 +110,22 @@ RandomBalancerEngine::pickGroupsforTransfer() const
   rndIndex = getRandom(mGroupsUnderAvg.size() - 1);
   std::advance(under_it, rndIndex);
   return {*over_it, *under_it};
+}
+
+int RandomBalancerEngine::record_transfer(std::string_view source_group,
+                                          std::string_view target_group,
+                                          uint64_t filesize)
+{
+  auto source_grp = mGroupSizes.find(source_group);
+  auto target_grp = mGroupSizes.find(target_group);
+
+  if (source_grp == mGroupSizes.end() || target_grp == mGroupSizes.end()) {
+    eos_static_err("Invalid source/target groups given!");
+    return ENOENT;
+  }
+
+  source_grp->second.swapFile(&target_grp->second, filesize);
+  return 0;
 }
 
 }
