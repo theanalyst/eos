@@ -1,7 +1,7 @@
 #pragma once
 #include <unordered_set>
 //------------------------------------------------------------------------------
-// File: RandomBalancerEngine.hh
+// File: StdDevBalancerEngine.hh
 // Author: Abhishek Lekshmanan - CERN
 //------------------------------------------------------------------------------
 
@@ -38,36 +38,14 @@ inline uint32_t getRandom(uint32_t max) {
 }
 
 
-class RandomBalancerEngine: public IBalancerEngine
+class StdDevBalancerEngine: public BalancerEngine
 {
 public:
-  void populateGroupsInfo(IBalancerInfoFetcher* f) override;
   void recalculate() override;
-  void clear() override;
-  void updateGroupAvg(const std::string& group_name) override;
-  void updateGroupsAvg() override;
+  void updateGroup(const std::string& group_name) override;
   groups_picked_t pickGroupsforTransfer() override;
-
-  void set_threshold(double Threshold) override {
-    mThreshold = Threshold;
-  }
-
-  const group_size_map& get_group_sizes() const override {
-    return mGroupSizes;
-  }
-
-  int record_transfer(std::string_view source_group,
-                      std::string_view target_group,
-                      uint64_t filesize) override;
-
-
+  void configure(const engine_conf_t& conf) override;
 private:
-  /// groups whose size is over the average size of the groups
-  std::unordered_set<std::string> mGroupsOverAvg;
-  /// groups whose size is under the average size of the groups
-  std::unordered_set<std::string> mGroupsUnderAvg;
-  /// groups' sizes cache
-  group_size_map mGroupSizes;
   /// average filled percentage in groups
   double mAvgUsedSize;
   double mThreshold;

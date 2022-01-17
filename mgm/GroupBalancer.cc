@@ -36,7 +36,7 @@
 #include "Xrd/XrdScheduler.hh"
 #include <random>
 #include <cmath>
-#include "mgm/groupbalancer/RandomBalancerEngine.hh"
+#include "mgm/groupbalancer/StdDevBalancerEngine.hh"
 
 extern XrdSysError gMgmOfsEroute;
 extern XrdOucTrace gMgmOfsTrace;
@@ -52,7 +52,7 @@ GroupBalancer::GroupBalancer(const char* spacename)
   : mSpaceName(spacename), mLastCheck(0)
 {
   // TODO when we have more engines add a builder to do this
-  mEngine.reset(new group_balancer::RandomBalancerEngine());
+  mEngine.reset(new group_balancer::StdDevBalancerEngine());
   mThread.reset(&GroupBalancer::GroupBalance, this);
 }
 
@@ -257,8 +257,8 @@ GroupBalancer::scheduleTransfer(const FileInfo& file_info,
   mTransfers[file_info.fid] = file_info.filename;
   mEngine->record_transfer(sourceGroup->mName, targetGroup->mName,
                           file_info.filesize);
-  mEngine->updateGroupAvg(sourceGroup->mName);
-  mEngine->updateGroupAvg(targetGroup->mName);
+  mEngine->updateGroup(sourceGroup->mName);
+  mEngine->updateGroup(targetGroup->mName);
 }
 
 //------------------------------------------------------------------------------
@@ -440,6 +440,7 @@ GroupBalancer::Configure(FsSpace* const space, GroupBalancer::Config& cfg)
     100.0;
   cfg.mMinFileSize = common::StringConversion::GetSizeFromString(space->GetConfigMember("groupbalancer.min_file_size"));
   cfg.mMaxFileSize = common::StringConversion::GetSizeFromString(space->GetConfigMember("groupbalancer.max_file_size"));
+  mEngineConf.emplace("threshold",space->GetConfigMember("groupbalancer.threshold"));
 }
 
 
@@ -493,7 +494,7 @@ GroupBalancer::GroupBalance(ThreadAssistant& assistant) noexcept
 
     FsView::gFsView.ViewMutex.UnLockRead();
 
-    mEngine->set_threshold(cfg.mThreshold);
+    mEngine->configure(mEngineConf);
 
     eos_static_info("msg=\"group balancer enabled\" ntx=%d ", cfg.num_tx);
     UpdateTransferList();
@@ -503,7 +504,7 @@ GroupBalancer::GroupBalance(ThreadAssistant& assistant) noexcept
     }
 
     if (cacheExpired()) {
-      mEngine->populateGroupsInfo(&fetcher);
+      mEngine->populateGroupsInfo(fetcher.fetch());
       printSizes(mEngine->get_group_sizes());
     } else {
       mEngine->recalculate();

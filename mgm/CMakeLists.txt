@@ -223,7 +223,8 @@ add_library(
   txengine/TransferFsDB.cc
   convert/old/Converter.cc
   GroupBalancer.cc
-  groupbalancer/RandomBalancerEngine.cc
+  groupbalancer/BalancerEngine.cc
+  groupbalancer/StdDevBalancerEngine.cc
   GeoBalancer.cc
   Features.cc
   ZMQ.cc

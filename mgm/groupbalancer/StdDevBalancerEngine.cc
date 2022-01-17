@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// File: RandomBalancerEngine.cc
+// File: StdDevBalancerEngine.cc
 // Author: Abhishek Lekshmanan - CERN
 //------------------------------------------------------------------------------
 
@@ -21,31 +21,25 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-#include "mgm/groupbalancer/RandomBalancerEngine.hh"
+#include "mgm/groupbalancer/StdDevBalancerEngine.hh"
 #include "common/Logging.hh"
 
 namespace eos::mgm::group_balancer {
 
-void RandomBalancerEngine::populateGroupsInfo(IBalancerInfoFetcher* f)
+void StdDevBalancerEngine::configure(const engine_conf_t& conf)
 {
-  mGroupSizes = f->fetch();
-  recalculate();
-  updateGroupsAvg();
+  auto threshold_kv = conf.find("threshold");
+  if (threshold_kv != conf.end())
+    mThreshold=atof(threshold_kv->second.c_str())/100.0;
 }
 
-void RandomBalancerEngine::recalculate()
+void StdDevBalancerEngine::recalculate()
 {
   mAvgUsedSize = calculateAvg(mGroupSizes);
 }
 
-void RandomBalancerEngine::clear()
-{
-  mGroupSizes.clear();
-  mGroupsOverAvg.clear();
-  mGroupsUnderAvg.clear();
-}
 
-void RandomBalancerEngine::updateGroupAvg(const std::string& group_name)
+void StdDevBalancerEngine::updateGroup(const std::string& group_name)
 {
   auto kv = mGroupSizes.find(group_name);
   if (kv == mGroupSizes.end()) {
@@ -57,44 +51,30 @@ void RandomBalancerEngine::updateGroupAvg(const std::string& group_name)
                         - ((double) mAvgUsedSize));
 
   // set erase only erases if found, so this is safe without key checking
-  mGroupsOverAvg.erase(group_name);
-  mGroupsUnderAvg.erase(group_name);
+  mGroupsOverThreshold.erase(group_name);
+  mGroupsUnderThreshold.erase(group_name);
 
   eos_static_debug("diff=%.02f threshold=%.02f", diffWithAvg, mThreshold);
 
   // Group is mThreshold over or under the average used size
   if (abs(diffWithAvg) > mThreshold) {
     if (diffWithAvg > 0) {
-      mGroupsOverAvg.emplace(group_name);
+      mGroupsOverThreshold.emplace(group_name);
     } else {
-      mGroupsUnderAvg.emplace(group_name);
+      mGroupsUnderThreshold.emplace(group_name);
     }
   }
-}
-
-void RandomBalancerEngine::updateGroupsAvg()
-{
-  mGroupsOverAvg.clear();
-  mGroupsUnderAvg.clear();
-  if (mGroupSizes.size() == 0) {
-    return;
-  }
-
-  for(const auto& kv: mGroupSizes) {
-    updateGroupAvg(kv.first);
-  }
-
 }
 
 groups_picked_t
-RandomBalancerEngine::pickGroupsforTransfer()
+StdDevBalancerEngine::pickGroupsforTransfer()
 {
-  if (mGroupsUnderAvg.size() == 0 || mGroupsOverAvg.size() == 0) {
-    if (mGroupsOverAvg.size() == 0) {
+  if (mGroupsUnderThreshold.size() == 0 || mGroupsOverThreshold.size() == 0) {
+    if (mGroupsOverThreshold.size() == 0) {
       eos_static_debug("No groups over the average!");
     }
 
-    if (mGroupsUnderAvg.size() == 0) {
+    if (mGroupsUnderThreshold.size() == 0) {
       eos_static_debug("No groups under the average!");
     }
 
@@ -103,29 +83,13 @@ RandomBalancerEngine::pickGroupsforTransfer()
   }
 
 
-  auto over_it = mGroupsOverAvg.begin();
-  auto under_it = mGroupsUnderAvg.begin();
-  int rndIndex = getRandom(mGroupsOverAvg.size() - 1);
+  auto over_it = mGroupsOverThreshold.begin();
+  auto under_it = mGroupsUnderThreshold.begin();
+  int rndIndex = getRandom(mGroupsOverThreshold.size() - 1);
   std::advance(over_it, rndIndex);
-  rndIndex = getRandom(mGroupsUnderAvg.size() - 1);
+  rndIndex = getRandom(mGroupsUnderThreshold.size() - 1);
   std::advance(under_it, rndIndex);
   return {*over_it, *under_it};
-}
-
-int RandomBalancerEngine::record_transfer(std::string_view source_group,
-                                          std::string_view target_group,
-                                          uint64_t filesize)
-{
-  auto source_grp = mGroupSizes.find(source_group);
-  auto target_grp = mGroupSizes.find(target_group);
-
-  if (source_grp == mGroupSizes.end() || target_grp == mGroupSizes.end()) {
-    eos_static_err("Invalid source/target groups given!");
-    return ENOENT;
-  }
-
-  source_grp->second.swapFile(&target_grp->second, filesize);
-  return 0;
 }
 
 }

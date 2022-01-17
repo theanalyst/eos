@@ -106,19 +106,19 @@ public:
   //----------------------------------------------------------------------------
   //! Set up Config based on values configured in space
   //----------------------------------------------------------------------------
-  static void Configure(FsSpace* const space, Config& cfg);
+  void Configure(FsSpace* const space, Config& cfg);
 
 private:
   AssistedThread mThread; ///< Thread scheduling jobs
   std::string mSpaceName; ///< Attached space name
   Config cfg;
 
-  std::unique_ptr<group_balancer::IBalancerEngine> mEngine;
+  std::unique_ptr<group_balancer::BalancerEngine> mEngine;
   /// last time the groups' real used space was checked
   time_t mLastCheck;
   //! Scheduled transfers (maps fid to path in proc)
   std::map<eos::common::FileId::fileid_t, std::string> mTransfers;
-
+  group_balancer::engine_conf_t mEngineConf;
   //----------------------------------------------------------------------------
   //! Produces a file conversion path to be placed in the proc directory taking
   //! into account the given group and also returns its size
