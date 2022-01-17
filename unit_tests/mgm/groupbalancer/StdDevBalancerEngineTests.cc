@@ -60,8 +60,7 @@ TEST(StdDevBalancerEngine, updatethreshold)
 
   {
     auto d = engine->get_data();
-    EXPECT_EQ(calculateAvg(d.mGroupSizes), 0.85);
-    //EXPECT_NEAR(calculateAvg(d.mGroupSizes),0.85,0.0000001);
+    EXPECT_NEAR(calculateAvg(d.mGroupSizes),0.85,0.0000001);
     EXPECT_EQ(d.mGroupSizes.size(),5);
     EXPECT_EQ(d.mGroupsOverThreshold.size(),2);
     EXPECT_EQ(d.mGroupsUnderThreshold.size(),1);
