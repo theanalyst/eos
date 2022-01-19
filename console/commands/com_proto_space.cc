@@ -335,6 +335,31 @@ bool SpaceHelper::ParseCommand(const char* arg)
     } else {
       return false;
     }
+  } else if (token == "groupbalancer") {
+    if (!tokenizer.NextToken(token)) {
+      return false;
+    }
+    auto groupbalancer = space->mutable_groupbalancer();
+
+    if (!tokenizer.NextToken(token)) {
+      return false;
+    }
+    if (token == "status") {
+      auto groupbalancer_status = groupbalancer->mutable_status();
+      std::string option;
+
+      while (tokenizer.NextToken(token)) {
+        if (token == "--detail" || token == "-d")
+          option+= "d";
+        else if (token == "-m")
+          option+= "m";
+      }
+
+      groupbalancer_status->set_options(option);
+      return true;
+    }
+
+
   } else { // no proper subcommand
     return false;
   }
@@ -490,6 +515,8 @@ void com_space_help()
       << "space rm <space-name> : remove space\n"
       << std::endl
       << "space quota <space-name> on|off : enable/disable quota\n"
+      << std::endl
+      << "space groupbalancer <space-name> status [--detail(-d)|-m] : print groupbalancer status\n"
       << std::endl;
   std::cerr << oss.str();
 }
