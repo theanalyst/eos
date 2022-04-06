@@ -23,6 +23,7 @@
 #include "gtest/gtest.h"
 #include "Namespace.hh"
 #include "common/StringConversion.hh"
+#include "common/StringUtils.hh"
 #include <regex>
 
 EOSCOMMONTESTING_BEGIN
@@ -104,5 +105,7 @@ TEST(GetSizeFromString, BasicSanity)
   ASSERT_TRUE(StringConversion::GetSizeFromString("pickles", out));
   ASSERT_EQ(out, 0);
 }
+
+
 
 EOSCOMMONTESTING_END
