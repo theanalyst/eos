@@ -816,6 +816,7 @@ LongLongAggregator::aggregateNodes(
   return true;
 };
 
+
 //----------------------------------------------------------------------------
 // Constructor
 //----------------------------------------------------------------------------
@@ -2745,6 +2746,11 @@ BaseView::SetConfigMember(std::string key, std::string value,
 std::string
 BaseView::GetConfigMember(std::string key) const
 {
+  if (mSharedHash != nullptr) {
+    return mSharedHash->get(std::move(key));
+  }
+  mSharedHash.reset(new mq::SharedHashWrapper{gOFS->mMessagingRealm.get(), mLocator});
+
   return mq::SharedHashWrapper(gOFS->mMessagingRealm.get(), mLocator).get(key);
 }
 
@@ -2755,6 +2761,10 @@ bool
 BaseView::GetConfigMembers(const std::vector<std::string>& keys,
                            std::map<std::string, std::string>& out) const
 {
+  if (mSharedHash) {
+    return mSharedHash->get(keys, out);
+  }
+  mSharedHash.reset(new mq::SharedHashWrapper{gOFS->mMessagingRealm.get(), mLocator});
   return mq::SharedHashWrapper(gOFS->mMessagingRealm.get(), mLocator).get(keys, out);
 }
 
@@ -2765,6 +2775,10 @@ bool
 BaseView::GetLocalConfigMembers(const std::vector<std::string>& keys,
                                 std::map<std::string, std::string>& out) const
 {
+  if (mSharedHash) {
+    return mSharedHash->getLocal(keys, out);
+  }
+  mSharedHash.reset(new mq::SharedHashWrapper(gOFS->mMessagingRealm.get(), mLocator));
   return mq::SharedHashWrapper(gOFS->mMessagingRealm.get(), mLocator).getLocal(keys, out);
 
 }

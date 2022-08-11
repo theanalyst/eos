@@ -46,6 +46,9 @@ namespace eos::common
 class TransferQueue;
 }
 
+namespace mq {
+  class SharedHashWrapper;
+}
 //------------------------------------------------------------------------------
 //! @file FsView.hh
 //! @brief Class representing the cluster configuration of EOS
@@ -361,7 +364,6 @@ class BaseView : public GeoTree
 public:
   std::string mName; ///< Name of the base view
   std::string mType; ///< type of the base view
-
   //----------------------------------------------------------------------------
   //! Constructor
   //----------------------------------------------------------------------------
@@ -533,6 +535,7 @@ public:
 protected:
 
   common::SharedHashLocator mLocator; ///< Locator for shared hash
+  mutable std::shared_ptr<mq::SharedHashWrapper> mSharedHash;
   std::atomic<time_t> mHeartBeat; ///< Last heartbeat time
 
 private:
