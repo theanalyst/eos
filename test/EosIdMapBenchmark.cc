@@ -36,7 +36,7 @@ void IdMapClient(int n){
   base_ss << "foo.bar:baz@bar" << std::this_thread::get_id();
   std::string tident_base = base_ss.str();
   for (int i=0; i< n; ++i) {
-    std::string client_name = "client" + std::to_string(i);
+    std::string client_name = "testuser" + std::to_string(i);
     client.name = client_name.data();
     std::string tident = tident_base + std::to_string(i);
     eos::common::Mapping::IdMap(&client, nullptr, tident.c_str(), vid);
@@ -51,7 +51,8 @@ int main(int argc, const char* argv[]) {
   std::chrono::steady_clock::time_point init = std::chrono::steady_clock::now();
 
   eos::common::Mapping::Init();
-
+  eos::common::Mapping::gVirtualUidMap["sss:\"<pwd>\":uid"]=0;
+  eos::common::Mapping::gVirtualGidMap["sss:\"<pwd>\":gid"]=0;
   int n_clients = 1;
   int num_threads = 50;
   if (argc == 2) {
