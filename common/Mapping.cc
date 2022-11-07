@@ -225,7 +225,7 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
   XrdOucString groupalias = useralias;
   useralias += "uid";
   groupalias += "gid";
-  RWMutexReadLock lock(gMapMutex);
+  //RWMutexReadLock lock(gMapMutex);
   vid.prot = client->prot;
 
   // @todo (esindril) this is just a workaround for the fact that XrdHttp
@@ -443,6 +443,7 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
   }
 
   // tident mapping
+  /*
   XrdOucString mytident = "";
   XrdOucString myrole = "";
   XrdOucString wildcardtident = "";
@@ -450,19 +451,35 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
   XrdOucString stident = "tident:";
   stident += "\"";
   stident += ReduceTident(vid.tident, wildcardtident, mytident, host);
+*/
+  std::string wildcardtident;
+  std::string host;
+  auto mytident = ReduceTident(std::string_view(vid.tident.c_str()),
+                               wildcardtident, host);
+  std::string stident = "tident:\"" + mytident;
 
   if (host == "127.0.0.1") {
     host = "localhost";
   }
-
-  myrole = mytident;
+  XrdOucString host_xrd = host.c_str();
+  auto myrole = mytident;
   myrole.erase(mytident.find("@"));
   // FUSE select's now the role via <uid>[:connectionid]
   // the connection id is already removed by ReduceTident
-  myrole.erase(myrole.find("."));
+  if (auto pos = myrole.find(".");
+      pos != std::string::npos) {
+    myrole.erase(myrole.find("."));
+  }
+  std::string swctident = "tident:\"" + wildcardtident;
+  /*
   XrdOucString swctident = "tident:";
   swctident += "\"";
-  swctident += wildcardtident;
+  swctident += wildcardtident;*/
+  std::string suidtident = stident + "\":uid";
+  std::string sgidtident = stident + "\":gid";
+  std::string swcuidtident = swctident + "\":uid";
+  std::string swcgidtident = swctident + "\":gid";
+  /*
   XrdOucString suidtident = stident;
   suidtident += "\":uid";
   XrdOucString sgidtident = stident;
@@ -471,12 +488,17 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
   swcuidtident += "\":uid";
   XrdOucString swcgidtident = swctident;
   swcgidtident += "\":gid";
-  XrdOucString sprotuidtident = swcuidtident;
-  XrdOucString sprotgidtident = swcgidtident;
+   */
+  std::string sprotuidtident = swcuidtident;
+  std::string sprotgidtident = swcgidtident;
 // there can be a protocol specific rule like sss:@<host>:uid...
+  sprotuidtident.replace(sprotuidtident.find("*"), 1, vid.prot.c_str());
+  sprotgidtident.replace(sprotgidtident.find("*"), 1, vid.prot.c_str());
+  /*
   sprotuidtident.replace("*", vid.prot);
 // there can be a protocol specific rule like sss:@<host>:gid...
-  sprotgidtident.replace("*", vid.prot);
+  sprotgidtident.replace("*", vid.prot);*/
+
   eos_static_debug("swcuidtident=%s sprotuidtident=%s myrole=%s",
                    swcuidtident.c_str(), sprotuidtident.c_str(), myrole.c_str());
 
@@ -519,8 +541,9 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
             continue;
           }
 
-          if (host.matches(it->second.c_str())) {
-            sprotuidtident.replace(host.c_str(), it->second.c_str());
+          if (host_xrd.matches(it->second.c_str())) {
+            sprotuidtident.replace(sprotuidtident.find(host), host.length(),
+                                   it->second.c_str());
 
             if (gVirtualUidMap.count(sprotuidtident.c_str())) {
               tuid = sprotuidtident.c_str();
@@ -549,8 +572,10 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
             continue;
           }
 
-          if (host.matches(it->second.c_str())) {
-            sprotuidtident.replace(host.c_str(), it->second.c_str());
+          if (host_xrd.matches(it->second.c_str())) {
+            sprotuidtident.replace(sprotgidtident.find(host), host.length(),
+                                   it->second.c_str());
+            //sprotuidtident.replace(host.c_str(), it->second.c_str());
 
             if (gVirtualUidMap.count(sprotuidtident.c_str())) {
               tuid = sprotuidtident.c_str();
@@ -728,9 +753,9 @@ Mapping::IdMap(const XrdSecEntity* client, const char* env, const char* tident,
       // try oauth2
       std::string oauthname;
       // release the map mutex to avoid any inteference with a queued up write lock and an oauth callout being slow
-      lock.Release();
+      //lock.Release();
       oauthname = gOAuth.Handle(keyname, vid);
-      lock.Grab(gMapMutex);
+      //lock.Grab(gMapMutex);
 
       // check for OAuth contents
       if (oauthname.empty() ||
