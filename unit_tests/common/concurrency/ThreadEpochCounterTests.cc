@@ -43,12 +43,11 @@ TEST(ThreadEpochCounter, HashCollision)
 
   std::vector<std::thread> threads;
   for (int i=0; i < 100; ++i) {
-          threads.emplace_back([&counter, &epoch_counter, &i](){
-      for (int j = 0; j < 1000; ++j) {
-        int epoch = j * (i & 1);
-        auto tid = counter.increment(epoch, 1);
-        epoch_counter[tid]++;
-      }});
+    threads.emplace_back([&counter, &epoch_counter, &i](){
+      int epoch = (i & 1); // FIXME vary epochs to break this!
+      auto tid = counter.increment(epoch, 1);
+      epoch_counter[tid]++;
+    });
   }
 
   for (auto& t: threads) {

@@ -17,10 +17,6 @@
 //  ************************************************************************
 //
 
-//
-// Created by Abhishek Lekshmanan on 02/02/2023.
-//
-
 #include "common/concurrency/RCULite.hh"
 #include "common/concurrency/AtomicUniquePtr.h"
 #include "gtest/gtest.h"
@@ -36,26 +32,36 @@ TEST(RCUTests, Basic)
   int sum{0};
   int i{0};
   // Test that we can create an RCU read lock
-  auto read_fn = [&rcu_domain,&i, &sum,&ptr]() {
-    rcu_domain.rcu_read_lock();
-    sum += *ptr;
-    rcu_domain.rcu_read_unlock();
+  auto read_fn = [&rcu_domain,&i, &sum,&ptr](int index) {
+    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id()) % 4096;
+    std::cout << "Starting reader at index=" << index << "tid=" << tid
+              <<  std::endl;
+    for (int j=0; j<100; ++j) {
+      rcu_domain.rcu_read_lock();
+      ASSERT_TRUE(ptr);
+      rcu_domain.rcu_read_unlock();
+    }
+    std::cout << "Done with reader at index= " << index << " tid=" << tid << std::endl;
   };
 
   std::thread writer([&rcu_domain, &ptr, &i]() {
-    for (int j=0; j < 1000; ++j) {
+    std::cout << "Starting writer";
+
+    for (int j=0; j < 5000; ++j) {
       auto old_ptr = ptr.reset(new int(i++));
       rcu_domain.rcu_synchronize();
+      std::cout << ".";
       delete old_ptr;
     }
   });
 
   std::vector<std::thread> readers;
-  for (int i=0; i<100; ++i) {
-    readers.emplace_back(read_fn);
+  for (int k=0; k<100; ++k) {
+    readers.emplace_back(read_fn, k);
   }
   for (int i=0; i<100; ++i) {
     readers[i].join();
   }
+  writer.join();
 
 } // namespace eos::common

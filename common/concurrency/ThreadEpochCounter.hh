@@ -31,6 +31,16 @@
 
 namespace eos::common {
 
+
+#ifdef __cpp_lib_hardware_interference_size
+  using std::hardware_constructive_interference_size;
+  using std::hardware_destructive_interference_size;
+#else
+  // 64 bytes on x86-64 │ L1_CACHE_BYTES │ L1_CACHE_SHIFT │ __cacheline_aligned │ ...
+  constexpr std::size_t hardware_constructive_interference_size = 64;
+  constexpr std::size_t hardware_destructive_interference_size = 64;
+#endif
+
 /**
 * @brief a simple epoch counter per thread that can be used to implement
 * RCU-like algorithms. Basically we store a bitfield of
@@ -44,6 +54,9 @@ class SimpleEpochCounter {
 public:
   size_t increment(uint64_t epoch, uint16_t count=1) noexcept {
     auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id()) % kMaxThreads;
+    // This is 2 instructions, instead of a single CAS. Given that threads
+    // will not hash to the same number, we can guarantee that we'd only have one
+    // epoch per thread
     auto old = mCounter[tid].load(std::memory_order_relaxed);
     assert(old && 0xFFFF == 0 || (old >> 16) == epoch);
     auto new_val = (epoch << 16) | (old & 0xFFFF) + count;
@@ -51,13 +64,14 @@ public:
     return tid;
   }
 
-  inline void decrement(size_t tid, uint64_t epoch) noexcept {
+  inline void decrement(size_t tid, uint64_t epoch) {
     mCounter[tid].fetch_sub(1, std::memory_order_release);
   }
 
-  inline void decrement(uint64_t epoch=0) noexcept {
+  inline void decrement(uint64_t epoch=0) {
     auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id()) % kMaxThreads;
-    decrement(tid);
+    auto old = mCounter[tid].load(std::memory_order_relaxed);
+    mCounter[tid].store(old - 1, std::memory_order_release);
   }
 
   size_t getReaders(size_t tid) noexcept {
@@ -76,7 +90,7 @@ public:
   }
 
 private:
-  std::array<std::atomic<uint64_t>, kMaxThreads> mCounter{0};
+  alignas(hardware_destructive_interference_size) std::array<std::atomic<uint64_t>, kMaxThreads> mCounter{0};
 };
 
 template<size_t kMaxThreads=4096>
@@ -90,10 +104,9 @@ public:
     // extremely unlikely that we'd have to spin here, but off the rare chance, find out the oldest epoch
     // and store that if some other thread beats us here.
     while (!mCounter[tid].compare_exchange_strong(old,new_val, std::memory_order_acq_rel)) {
-      std::cout << "HASH COLLISION!!" << std::endl;
       // HASH COLLISION!!! -> store the oldest epoch!
       if ((old >> 16) < epoch) {
-        std::cout << "Old epoch: " << (old >> 16) << " new epoch: " << epoch << std::endl;
+        //std::cout << "Old epoch: " << (old >> 16) << " new epoch: " << epoch << std::endl;
         new_val = old;
       } else if ((old >> 16) == epoch) {
         new_val = (epoch << 16) | ((old & 0xFFFF) + count);
@@ -126,7 +139,7 @@ public:
      return false;
    }
 private:
-  std::array<std::atomic<uint64_t>, kMaxThreads> mCounter{0};
+  alignas(hardware_destructive_interference_size) std::array<std::atomic<uint64_t>, kMaxThreads> mCounter{0};
 };
 
 
