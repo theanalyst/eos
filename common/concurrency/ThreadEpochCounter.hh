@@ -57,6 +57,7 @@ public:
     // This is 2 instructions, instead of a single CAS. Given that threads
     // will not hash to the same number, we can guarantee that we'd only have one
     // epoch per thread
+
     auto old = mCounter[tid].load(std::memory_order_relaxed);
     assert(old && 0xFFFF == 0 || (old >> 16) == epoch);
     auto new_val = (epoch << 16) | (old & 0xFFFF) + count;
@@ -65,7 +66,10 @@ public:
   }
 
   inline void decrement(size_t tid, uint64_t epoch) {
-    mCounter[tid].fetch_sub(1, std::memory_order_release);
+    auto old = mCounter[tid].load(std::memory_order_relaxed);
+    mCounter[tid].store(old - ((old << 16) == epoch),
+        std::memory_order_release);
+
   }
 
   inline void decrement(uint64_t epoch=0) {
