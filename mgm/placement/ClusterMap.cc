@@ -32,71 +32,19 @@ ClusterMgr::getStorageHandler(size_t max_buckets)
   return StorageHandler(*this, max_buckets);
 }
 
-std::shared_ptr<ClusterData>
-ClusterMgr::getClusterData(epoch_id_t epoch)
-{
-  if (mCurrentEpoch == 0) {
-    return nullptr;
-  }
-
-  auto current_index = mCurrentIndex.load(std::memory_order_acquire);
-  auto current_epoch = mCurrentEpoch.load(std::memory_order_acquire);
-
-  if (epoch > current_epoch || epoch < (current_epoch - mEpochSize)) {
-    return nullptr;
-  }
-
-  auto epoch_diff = (current_epoch - epoch);
-  auto circular_index = current_index - epoch_diff;
-  if (circular_index < 0) {
-    circular_index += mEpochSize;
-  }
-  return mEpochClusterData[circular_index];
-}
-
-std::shared_ptr<ClusterData>
+ClusterMgr::ClusterDataPtr
 ClusterMgr::getClusterData()
 {
-  auto current_epoch = mCurrentEpoch.load(std::memory_order_acquire);
-  if (current_epoch == 0) {
-    return nullptr;
-  }
-
-  auto current_index = mCurrentIndex.load(std::memory_order_acquire);
-
-  if (current_index == 0) {
-    // Unlikely to happen, we commit the transaction only after vector is
-    // updated, so this can only happen in the rare first epoch case where
-    // the data is requested after we update current_epoch but before we update the counter
-    return mEpochClusterData[0];
-  }
-  return mEpochClusterData.at(current_index - 1);
+  return {mClusterData.get(), &cluster_mgr_rcu};
 }
 
 void
 ClusterMgr::addClusterData(ClusterData&& data)
 {
   std::scoped_lock wlock(mClusterDataWMtx);
-  auto current_index = mCurrentIndex.load(std::memory_order_acquire);
-  if (!mWrapAround &&
-      (mEpochClusterData.size() == mEpochClusterData.capacity())) {
-    mWrapAround = true;
-    current_index = 0;
-  }
-
-  if (mWrapAround) {
-    if (current_index == mEpochClusterData.size()) {
-      current_index = 0;
-    }
-    mEpochClusterData[current_index] = std::make_shared<ClusterData>(std::move(data));
-  } else {
-    mEpochClusterData.emplace_back(std::make_shared<ClusterData>
-                                   (std::move(data)));
-  }
-
-  mCurrentEpoch++;
-  mCurrentIndex.store(current_index + 1, std::memory_order_release);
-
+  auto old_data = mClusterData.reset(new ClusterData(std::move(data)));
+  cluster_mgr_rcu.rcu_synchronize();
+  delete old_data;
 }
 
 
@@ -112,11 +60,11 @@ ClusterMgr::setDiskStatus(fsid_t disk_id, DiskStatus status)
 StorageHandler
 ClusterMgr::getStorageHandlerWithData()
 {
-  if (mCurrentEpoch == 0) {
+  if (!mClusterData) {
     return getStorageHandler();
   }
   auto cluster_data = getClusterData();
-  ClusterData cluster_data_copy(*cluster_data);
+  ClusterData cluster_data_copy(cluster_data());
   return StorageHandler(*this, std::move(cluster_data_copy));
 }
 

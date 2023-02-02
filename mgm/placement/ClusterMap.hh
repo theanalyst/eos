@@ -26,6 +26,8 @@
 #include <vector>
 #include <memory>
 #include "mgm/placement/ClusterDataTypes.hh"
+#include "common/concurrency/RCULite.hh"
+#include "common/concurrency/AtomicUniquePtr.h"
 
 namespace eos::mgm::placement {
 
@@ -34,16 +36,39 @@ class StorageHandler;
 
 class ClusterMgr {
 public:
-  ClusterMgr() : mCurrentIndex(0), mCurrentEpoch(0), mEpochSize(50) {
-    mEpochClusterData.reserve(mEpochSize);
+  struct ClusterDataPtr {
+    ClusterDataPtr(ClusterData* data_,
+                   eos::common::SimpleRCUDomain* rcu_domain_):
+      data(data_), rcu_domain_ptr(rcu_domain_)
+    {
+      rcu_domain_ptr->rcu_read_lock();
+    }
+
+    ~ClusterDataPtr() {
+      rcu_domain_ptr->rcu_read_unlock();
+    }
+
+    const ClusterData& operator()() const {
+      return *data;
+    }
+
+    ClusterData* operator->() const {
+      return data;
+    }
+
+  private:
+    ClusterData* data;
+    eos::common::SimpleRCUDomain* rcu_domain_ptr;
+  };
+
+  ClusterMgr() {
   }
 
   StorageHandler getStorageHandler(size_t max_buckets=256);
   StorageHandler getStorageHandlerWithData();
-  epoch_id_t getCurrentEpoch() const { return mCurrentEpoch; }
+  //epoch_id_t getCurrentEpoch() const { return mCurrentEpoch; }
 
-  std::shared_ptr<ClusterData> getClusterData(epoch_id_t epoch);
-  std::shared_ptr<ClusterData> getClusterData();
+  ClusterDataPtr getClusterData();
 
   bool setDiskStatus(fsid_t disk_id, DiskStatus status);
   // Not meant to be called directly! use storage handler, we might consider
@@ -51,12 +76,15 @@ public:
   void addClusterData(ClusterData&& data);
 
 private:
+  /*
   bool mWrapAround{false};
-  std::mutex mClusterDataWMtx;
   std::atomic<uint32_t> mCurrentIndex{0};
   std::atomic<epoch_id_t> mCurrentEpoch{0};
   size_t mEpochSize;
-  std::vector<std::shared_ptr<ClusterData>> mEpochClusterData;
+  std::vector<std::shared_ptr<ClusterData>> mEpochClusterData;*/
+  std::mutex mClusterDataWMtx;
+  eos::common::atomic_unique_ptr<ClusterData> mClusterData;
+  eos::common::SimpleRCUDomain cluster_mgr_rcu;
 };
 
 class StorageHandler {

@@ -88,4 +88,7 @@ private:
   std::atomic<uint64_t> mEpoch{0};
 };
 
+  using SimpleRCUDomain = RCUDomain<SimpleEpochCounter<4096>>;
+
+
 } // eos::common
