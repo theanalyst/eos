@@ -34,20 +34,20 @@ TEST_F(SimpleClusterF, RoundRobinBasic)
 
   // TODO: write a higher level function to do recursive descent
   // Choose 1 site - from ROOT
-  auto res = rr_placement.chooseItems(*cluster_data_ptr,{0,1});
+  auto res = rr_placement.chooseItems(cluster_data_ptr(),{0,1});
   ASSERT_TRUE(res);
   EXPECT_EQ(res.ids.size(), 1);
   EXPECT_EQ(res.ids[0], -1);
 
   // Choose 1 group from SITE
   auto site_id = res.ids[0];
-  auto group_res = rr_placement.chooseItems(*cluster_data_ptr,{site_id,1});
+  auto group_res = rr_placement.chooseItems(cluster_data_ptr(),{site_id,1});
   ASSERT_TRUE(group_res);
   EXPECT_EQ(group_res.ids.size(), 1);
 
 
   // choose 2 disks from group!
-  auto disks_res = rr_placement.chooseItems(*cluster_data_ptr,{group_res.ids[0],2});
+  auto disks_res = rr_placement.chooseItems(cluster_data_ptr(),{group_res.ids[0],2});
   ASSERT_TRUE(disks_res);
   EXPECT_EQ(disks_res.ids.size(), 2);
 
@@ -69,7 +69,7 @@ TEST_F(SimpleClusterF, RoundRobinBasicLoop)
   // elements are chosen
   for (int i = 0; i < 30; i++)
   {
-    auto res = rr_placement.chooseItems(*cluster_data_ptr, {0, 1});
+    auto res = rr_placement.chooseItems(cluster_data_ptr(), {0, 1});
 
     ASSERT_TRUE(res);
     ASSERT_EQ(res.ids.size(), 1);
@@ -78,7 +78,7 @@ TEST_F(SimpleClusterF, RoundRobinBasicLoop)
 
     // Choose 1 group from SITE
     auto site_id = res.ids[0];
-    auto group_res = rr_placement.chooseItems(*cluster_data_ptr, {site_id, 1});
+    auto group_res = rr_placement.chooseItems(cluster_data_ptr(), {site_id, 1});
 
     ASSERT_TRUE(group_res);
     ASSERT_EQ(group_res.ids.size(), 1);
@@ -87,7 +87,7 @@ TEST_F(SimpleClusterF, RoundRobinBasicLoop)
 
     // choose 2 disks from group!
     auto disks_res =
-        rr_placement.chooseItems(*cluster_data_ptr, {group_res.ids[0], 2});
+        rr_placement.chooseItems(cluster_data_ptr(), {group_res.ids[0], 2});
 
     ASSERT_TRUE(disks_res);
     ASSERT_EQ(disks_res.ids.size(), 2);
@@ -145,7 +145,7 @@ TEST_F(SimpleClusterF, FlatSchedulerBasic)
 
   auto cluster_data_ptr = mgr.getClusterData();
 
-  auto result = flat_scheduler.schedule(*cluster_data_ptr,
+  auto result = flat_scheduler.schedule(cluster_data_ptr(),
                                         {2});
   eos::mgm::placement::PlacementResult expected_result;
   expected_result.ids = {1,2};
@@ -155,7 +155,7 @@ TEST_F(SimpleClusterF, FlatSchedulerBasic)
   ASSERT_TRUE(result.is_valid_placement(2));
   EXPECT_EQ(result, expected_result);
 
-  auto result2 = flat_scheduler.schedule(*cluster_data_ptr,
+  auto result2 = flat_scheduler.schedule(cluster_data_ptr(),
                                          {2});
   ASSERT_TRUE(result.is_valid_placement(2));
 }
@@ -174,7 +174,7 @@ TEST_F(SimpleClusterF, FlatSchedulerBasicLoop)
   std::vector<int32_t> disk_ids_vec;
 
   for (int i=0; i <30; ++i) {
-    auto result = flat_scheduler.schedule(*cluster_data_ptr,
+    auto result = flat_scheduler.schedule(cluster_data_ptr(),
                                           {2});
     ASSERT_TRUE(result);
     ASSERT_TRUE(result.is_valid_placement(2));
@@ -232,7 +232,8 @@ TEST(FlatScheduler, SingleSite)
   ASSERT_EQ(data->buckets[1].items, site_ids_vec);
   ASSERT_EQ(data->buckets[100].items, group_ids_vec);
 
-  auto result = flat_scheduler.schedule(*mgr.getClusterData(),
+  auto cluster_data_ptr = mgr.getClusterData();
+  auto result = flat_scheduler.schedule(cluster_data_ptr(),
                                         {2});
   std::cout << result.err_msg << std::endl;
   ASSERT_TRUE(result);
@@ -290,7 +291,7 @@ TEST(ClusterMap, Concurrency)
 
       ASSERT_TRUE(data->buckets.size());
       ASSERT_TRUE(data->disks.size());
-      auto result = flat_scheduler.schedule(*data, {2});
+      auto result = flat_scheduler.schedule(data(), {2});
 
       ASSERT_TRUE(result);
       ASSERT_TRUE(result.is_valid_placement(2));
