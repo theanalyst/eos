@@ -33,4 +33,5 @@ target_link_libraries(eos-idmap-microbenchmark PRIVATE
   EosCommon-Static)
 
 target_link_libraries(eos-atomic-ptr-microbenchmark PRIVATE
-  GOOGLEBENCHMARK::GOOGLEBENCHMARK)
+  GOOGLEBENCHMARK::GOOGLEBENCHMARK
+  ${CMAKE_THREAD_LIBS_INIT})
