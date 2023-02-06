@@ -97,6 +97,44 @@ private:
   alignas(hardware_destructive_interference_size) std::array<std::atomic<uint64_t>, kMaxThreads> mCounter{0};
 };
 
+template <size_t kMaxEpochs=32768>
+class VersionEpochCounter {
+public:
+  inline uint64_t getEpochIndex(uint64_t epoch) noexcept {
+    if (epoch < kMaxEpochs)
+      return epoch;
+    // TODO: This only works assuming that we wouldn't really have
+    // readers at epoch 0 by the time kMaxEpochs is reached, which
+    // is relatively safe given kMaxEpochs amount of writes don't happen
+    // before the first reader finishes.
+    return epoch % kMaxEpochs;
+
+  }
+
+  inline size_t increment(uint64_t epoch, uint16_t count=1) noexcept {
+    auto index = getEpochIndex(epoch);
+    mCounter[index].fetch_add(count, std::memory_order_release);
+    return index;
+  }
+
+  inline void decrement(uint64_t epoch, uint16_t count=1) noexcept {
+    auto index = getEpochIndex(epoch);
+    mCounter[index].fetch_sub(count, std::memory_order_release);
+  }
+
+  inline void decrement_index(uint64_t index) noexcept {
+    mCounter[index].fetch_sub(1, std::memory_order_release);
+  }
+
+  bool epochHasReaders(uint64_t epoch) noexcept {
+    auto index = getEpochIndex(epoch);
+    return mCounter[index].load(std::memory_order_acquire) > 0;
+  }
+
+private:
+  alignas(hardware_destructive_interference_size) std::array<std::atomic<uint16_t>, kMaxEpochs> mCounter{0};
+};
+
 template<size_t kMaxThreads=4096>
 class ThreadEpochCounter {
 public:

@@ -31,9 +31,54 @@ namespace eos::common {
 
 constexpr size_t MAX_THREADS = 4096;
 
+/*
+  A Read Copy Update Like primitive that guarantees that is wait-free on the
+  readers and guarantees that all memory is protected from deletion. This
+  is similar to folly's RCU implementation, but a bit simpler to accomodate
+  our use cases.
+
+  Let's say you've a data type that is mostly a read workload with very rare
+  updates, with classical RW Locks this is what you'd be doing
+
+  void reader() {
+     std::shared_lock lock(shared_mutex);
+     process(myconfig);
+  }
+
+  A rather simple way to not pay the cost would be using something like
+  atomic_unique_ptr
+
+  void reader() {
+     auto* config_data = myconfig.get()
+     process(config_data);
+  }
+
+  void writer() {
+    auto *old_config_data = myconfig.reset(new myconfig(config_data));
+    // This works and is safe, however we don't know when is a good checkpoint
+    // in the program to delete the old_config_data. Deleting when another reader
+    // is still accessing the data is something we want to avoid
+
+  }
+
+  void reader() {
+    std::shared_lock rlock(my_rcu_domain);
+    process(myconfig.get());
+  }
+
+  void writer() {
+    auto* old_config_data = myconfig.reset(new config(config_data));
+    rcu_synchronize();
+    delete (old_config_data);
+  }
+
+
+ */
+
 template <typename ListT = SimpleEpochCounter<4096>>
 class RCUDomain {
 public:
+
   RCUDomain() = default;
 
   inline int rcu_read_lock() {
@@ -46,6 +91,10 @@ public:
 
   inline void rcu_read_unlock(uint64_t tid) {
     mReadersCounter.decrement(mEpoch.load(std::memory_order_acquire), tid);
+  }
+
+  inline void rcu_read_unlock_index(uint64_t index) {
+    mReadersCounter.decrement_index(index);
   }
 
   inline void rcu_synchronize() {
@@ -85,7 +134,9 @@ public:
 private:
 
   ListT mReadersCounter;
-  std::atomic<uint64_t> mEpoch{0};
+  alignas(hardware_destructive_interference_size) std::atomic<uint64_t> mEpoch{0};
 };
+
+using VersionedRCUDomain = RCUDomain<VersionEpochCounter<32768>>;
 
 } // eos::common
