@@ -23,23 +23,28 @@
 
 
 #pragma once
-#include <atomic>
+#include "common/concurrency/AlignMacros.hh"
 #include <array>
-#include <thread>
-#include <iostream>
+#include <atomic>
 #include <cassert>
+#include <iostream>
+#include <thread>
 
 namespace eos::common {
 
+namespace detail {
 
-#ifdef __cpp_lib_hardware_interference_size
-  using std::hardware_constructive_interference_size;
-  using std::hardware_destructive_interference_size;
-#else
-  // 64 bytes on x86-64 │ L1_CACHE_BYTES │ L1_CACHE_SHIFT │ __cacheline_aligned │ ...
-  constexpr std::size_t hardware_constructive_interference_size = 64;
-  constexpr std::size_t hardware_destructive_interference_size = 64;
-#endif
+template <typename, typename = void>
+struct is_state_less : std::false_type {};
+
+template <typename T>
+struct is_state_less<T,
+                     std::void_t<typename T::is_state_less>> : std::true_type {};
+
+template <typename T>
+constexpr bool is_state_less_v = is_state_less<T>::value;
+} // detail
+
 
 /**
 * @brief a simple epoch counter per thread that can be used to implement
@@ -52,6 +57,9 @@ namespace eos::common {
 template <size_t kMaxThreads=4096>
 class SimpleEpochCounter {
 public:
+
+  using is_state_less = void;
+
   size_t increment(uint64_t epoch, uint16_t count=1) noexcept {
     auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id()) % kMaxThreads;
     // This is 2 instructions, instead of a single CAS. Given that threads
@@ -65,17 +73,14 @@ public:
     return tid;
   }
 
-  inline void decrement(size_t tid, uint64_t epoch) {
-    auto old = mCounter[tid].load(std::memory_order_relaxed);
-    mCounter[tid].store(old - ((old << 16) == epoch),
-        std::memory_order_release);
-
+  inline void decrement(uint64_t epoch, size_t tid) {
+    // assert (old >> 16) == epoch);
+    mCounter[tid].fetch_sub(1, std::memory_order_release);
   }
 
-  inline void decrement(uint64_t epoch=0) {
+  inline void decrement() {
     auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id()) % kMaxThreads;
-    auto old = mCounter[tid].load(std::memory_order_relaxed);
-    mCounter[tid].store(old - 1, std::memory_order_release);
+    mCounter[tid].fetch_sub(1, std::memory_order_release);
   }
 
   size_t getReaders(size_t tid) noexcept {
@@ -96,6 +101,8 @@ public:
 private:
   alignas(hardware_destructive_interference_size) std::array<std::atomic<uint64_t>, kMaxThreads> mCounter{0};
 };
+
+static_assert(detail::is_state_less_v<SimpleEpochCounter<>>);
 
 template <size_t kMaxEpochs=32768>
 class VersionEpochCounter {
@@ -119,10 +126,6 @@ public:
 
   inline void decrement(uint64_t epoch) noexcept {
     auto index = getEpochIndex(epoch);
-    mCounter[index].fetch_sub(1, std::memory_order_release);
-  }
-
-  inline void decrement_index(uint64_t index) noexcept {
     mCounter[index].fetch_sub(1, std::memory_order_release);
   }
 

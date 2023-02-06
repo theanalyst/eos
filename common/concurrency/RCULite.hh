@@ -62,20 +62,30 @@ constexpr size_t MAX_THREADS = 4096;
   }
 
   void reader() {
-    std::shared_lock rlock(my_rcu_domain);
+    RCUReadLock rlock(my_rcu_domain);
     process(myconfig.get());
   }
 
   void writer() {
-    auto* old_config_data = myconfig.reset(new config(config_data));
-    rcu_synchronize();
+    ConfigData* old_config_data(nullptr);
+    {
+      RCUWriteLock wlock(my_rcu_domain);
+      old_config_data = myconfig.reset(new config(config_data));
+    }
+
     delete (old_config_data);
   }
+
+  // Alternatively a scopedRCUWrite will drain the readers and wait for them to
+  complete before deletion
+
+  void writer() { ScopedRCUWrite(my_rcu_domain,
+  myconfig, new config(config_data)); }
 
 
  */
 
-template <typename ListT = SimpleEpochCounter<4096>, size_t MaxWriters=1>
+template <typename ListT = VersionEpochCounter<32>, size_t MaxWriters=1>
 class RCUDomain {
 public:
 
@@ -87,11 +97,11 @@ public:
   }
 
 
-  inline int rcu_read_lock(uint64_t epoch) noexcept {
+  inline size_t rcu_read_lock(uint64_t epoch) noexcept {
     return mReadersCounter.increment(epoch);
   }
 
-  inline int rcu_read_lock() noexcept {
+  inline size_t rcu_read_lock() noexcept {
     return rcu_read_lock(mEpoch.load(std::memory_order_acquire));
   }
 
@@ -100,18 +110,19 @@ public:
     mReadersCounter.decrement(epoch, tag);
   }
 
-  inline void rcu_read_unlock() noexcept {
-    mReadersCounter.decrement(mEpoch.load(std::memory_order_acquire));
+  // rcu_read_unlock for a stateless list, which doesn't depend on return from
+  // the lock call
+  template <typename T = ListT>
+  inline auto
+  rcu_read_unlock() noexcept
+  -> std::enable_if_t<detail::is_state_less_v<T>, void>
+  {
+    mReadersCounter.decrement();
   }
 
   inline void rcu_read_unlock(uint64_t tag) noexcept {
     mReadersCounter.decrement(mEpoch.load(std::memory_order_acquire), tag);
   }
-
-  inline void rcu_read_unlock_index(uint64_t index) noexcept {
-    mReadersCounter.decrement_index(index);
-  }
-
 
   inline void rcu_write_lock() noexcept {
     auto writers = mWritersCount.load(std::memory_order_acquire);
@@ -201,6 +212,6 @@ struct ScopedRCUWrite {
   typename Ptr::pointer old_val;
 };
 
-using VersionedRCUDomain = RCUDomain<VersionEpochCounter<32>>;
-
+using VersionedRCUDomain = RCUDomain<VersionEpochCounter<32>,1>;
+using SimpleRCUDomain = RCUDomain<SimpleEpochCounter<4096>,1>;
 } // eos::common

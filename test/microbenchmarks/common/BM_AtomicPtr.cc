@@ -60,13 +60,13 @@ static void BM_SharedMutexLock(benchmark::State& state)
 
 static void BM_RCUReadLock(benchmark::State& state)
 {
-  eos::common::RCUDomain rcu_domain;
+  eos::common::SimpleRCUDomain rcu_domain;
   std::unique_ptr<std::string> p(new std::string("foobar"));
   std::string *x;
   for (auto _ : state) {
-    auto tid = rcu_domain.rcu_read_lock();
+    rcu_domain.rcu_read_lock();
     benchmark::DoNotOptimize(x=p.get());
-    rcu_domain.rcu_read_unlock(tid);
+    rcu_domain.rcu_read_unlock();
   }
   state.counters["frequency"] = Counter(state.iterations(),
                                         benchmark::Counter::kIsRate);
@@ -160,7 +160,7 @@ static void BM_SharedMutexRWLock(benchmark::State& state)
 
 static void BM_RCUReadWriteLock(benchmark::State& state)
 {
-  eos::common::RCUDomain rcu_domain;
+  eos::common::SimpleRCUDomain rcu_domain;
   eos::common::atomic_unique_ptr<std::string> p(new std::string("foobar"));
   std::string *x;
   auto writer_fn = [&p, &rcu_domain] {

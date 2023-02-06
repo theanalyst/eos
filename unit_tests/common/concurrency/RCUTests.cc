@@ -27,7 +27,7 @@ TEST(RCUTests, Basic)
   using namespace eos::common;
 
   // Test that we can create an RCU object
-  RCUDomain rcu_domain;
+  RCUDomain<SimpleEpochCounter<4096>,1> rcu_domain;
   atomic_unique_ptr<int> ptr(new int(0));
   int sum{0};
   int i{0};
@@ -37,9 +37,8 @@ TEST(RCUTests, Basic)
     std::cout << "Starting reader at index=" << index << "tid=" << tid
               <<  std::endl;
     for (int j=0; j<100; ++j) {
-      rcu_domain.rcu_read_lock();
+      RCUReadLock rlock(rcu_domain);
       ASSERT_TRUE(ptr);
-      rcu_domain.rcu_read_unlock();
     }
     std::cout << "Done with reader at index= " << index << " tid=" << tid << std::endl;
   };
@@ -48,10 +47,14 @@ TEST(RCUTests, Basic)
     std::cout << "Starting writer";
 
     for (int j=0; j < 5000; ++j) {
-      auto old_ptr = ptr.reset(new int(i++));
-      rcu_domain.rcu_synchronize();
+      int* old_ptr (nullptr);
+      {
+        RCUWriteLock wlock(rcu_domain);
+        old_ptr = ptr.reset(new int(i++));
+      }
       std::cout << ".";
       delete old_ptr;
+      std::this_thread::sleep_for(std::chrono::nanoseconds(1));
     }
   });
 
@@ -81,9 +84,8 @@ TEST(RCUTests, BasicVersionCounter)
     std::cout << "Starting reader at index=" << index << "tid=" << tid
               <<  std::endl;
     for (int j=0; j<100; ++j) {
-      rcu_domain.rcu_read_lock();
+      RCUReadLock rlock(rcu_domain);
       ASSERT_TRUE(ptr);
-      rcu_domain.rcu_read_unlock();
     }
     std::cout << "Done with reader at index= " << index << " tid=" << tid << std::endl;
   };
@@ -92,10 +94,12 @@ TEST(RCUTests, BasicVersionCounter)
     std::cout << "Starting writer";
 
     for (int j=0; j < 5000; ++j) {
+      rcu_domain.rcu_write_lock();
       auto old_ptr = ptr.reset(new int(i++));
       rcu_domain.rcu_synchronize();
       std::cout << ".";
       delete old_ptr;
+      std::this_thread::sleep_for(std::chrono::nanoseconds(1));
     }
   });
 
