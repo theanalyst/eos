@@ -77,9 +77,8 @@ static void BM_RCUVersionReadLock(benchmark::State& state)
   std::unique_ptr<std::string> p(new std::string("foobar"));
   std::string *x;
   for (auto _ : state) {
-    auto tid = rcu_domain.rcu_read_lock();
+    eos::common::RCUReadLock rlock(rcu_domain);
     benchmark::DoNotOptimize(x=p.get());
-    rcu_domain.rcu_read_unlock_index(tid);
   }
   state.counters["frequency"] = Counter(state.iterations(),
                                         benchmark::Counter::kIsRate);
@@ -165,6 +164,7 @@ static void BM_RCUReadWriteLock(benchmark::State& state)
   std::string *x;
   auto writer_fn = [&p, &rcu_domain] {
     for (int i=0; i < 10000; ++i) {
+      rcu_domain.rcu_write_lock();
       auto x = p.reset(new std::string("foobar2"));
       rcu_domain.rcu_synchronize();
       delete x;
@@ -177,7 +177,7 @@ static void BM_RCUReadWriteLock(benchmark::State& state)
   }
 
   for (auto _ : state) {
-    auto tid = rcu_domain.rcu_read_lock();
+    rcu_domain.rcu_read_lock();
     benchmark::DoNotOptimize(x=p.get());
     rcu_domain.rcu_read_unlock();
   }
@@ -198,9 +198,13 @@ static void BM_RCUVersionedReadWriteLock(benchmark::State& state)
   std::string *x;
   auto writer_fn = [&p, &rcu_domain] {
     for (int i=0; i < 10000; ++i) {
+      rcu_domain.rcu_write_lock();
       auto x = p.reset(new std::string("foobar2"));
       rcu_domain.rcu_synchronize();
       delete x;
+
+      eos::common::ScopedRCUWrite w(rcu_domain, p,
+                                 new std::string("foobar" + std::to_string(i)));
     }
   };
 
@@ -210,9 +214,8 @@ static void BM_RCUVersionedReadWriteLock(benchmark::State& state)
   }
 
   for (auto _ : state) {
-    auto index = rcu_domain.rcu_read_lock();
+    eos::common::RCUReadLock rlock(rcu_domain);
     benchmark::DoNotOptimize(x=p.get());
-    rcu_domain.rcu_read_unlock_index(index);
   }
 
   if (state.thread_index() == 0) {

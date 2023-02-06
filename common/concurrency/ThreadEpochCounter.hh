@@ -117,12 +117,16 @@ public:
     return index;
   }
 
-  inline void decrement(uint64_t epoch, uint16_t count=1) noexcept {
+  inline void decrement(uint64_t epoch) noexcept {
     auto index = getEpochIndex(epoch);
-    mCounter[index].fetch_sub(count, std::memory_order_release);
+    mCounter[index].fetch_sub(1, std::memory_order_release);
   }
 
   inline void decrement_index(uint64_t index) noexcept {
+    mCounter[index].fetch_sub(1, std::memory_order_release);
+  }
+
+  inline void decrement(uint64_t epoch, uint64_t index) noexcept {
     mCounter[index].fetch_sub(1, std::memory_order_release);
   }
 

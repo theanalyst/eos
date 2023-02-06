@@ -46,6 +46,8 @@ template <typename T>
 class atomic_unique_ptr
 {
 public:
+  using pointer = T*;
+  using element_type = T;
   atomic_unique_ptr() = default;
   atomic_unique_ptr(T* p) : p_(p) {}
 
