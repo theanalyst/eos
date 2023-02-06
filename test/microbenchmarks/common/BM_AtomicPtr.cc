@@ -1,5 +1,6 @@
 #include "common/concurrency/AtomicUniquePtr.h"
 #include "common/concurrency/RCULite.hh"
+#include "common/RWMutex.hh"
 #include "benchmark/benchmark.h"
 #include <memory>
 #include <shared_mutex>
@@ -83,6 +84,19 @@ static void BM_RCUVersionReadLock(benchmark::State& state)
   state.counters["frequency"] = Counter(state.iterations(),
                                         benchmark::Counter::kIsRate);
 
+}
+
+static void BM_EOSReadLock(benchmark::State& state)
+{
+  eos::common::RWMutex m;
+  std::unique_ptr<std::string> p(new std::string("foobar"));
+  std::string *x;
+  for (auto _ : state) {
+    eos::common::RWMutexReadLock lock(m);
+    benchmark::DoNotOptimize(x=p.get());
+  }
+  state.counters["frequency"] = Counter(state.iterations(),
+                                        benchmark::Counter::kIsRate);
 }
 
 static void BM_MutexRWLock(benchmark::State& state)
@@ -210,15 +224,48 @@ static void BM_RCUVersionedReadWriteLock(benchmark::State& state)
                                         benchmark::Counter::kIsRate);
 }
 
-BENCHMARK(BM_AtomicUniquePtrGet)->ThreadRange(1, 64)->UseRealTime();
-BENCHMARK(BM_UniquePtrGet)->ThreadRange(1, 64)->UseRealTime();
-BENCHMARK(BM_MutexLock)->ThreadRange(1, 64)->UseRealTime();
-BENCHMARK(BM_SharedMutexLock)->ThreadRange(1, 64)->UseRealTime();
-BENCHMARK(BM_RCUReadLock)->ThreadRange(1, 64)->UseRealTime();
-BENCHMARK(BM_RCUVersionReadLock)->ThreadRange(1,64)->UseRealTime();
+static void BM_EOSReadWriteLock(benchmark::State& state)
+{
+  eos::common::RWMutex mtx;
+  std::unique_ptr<std::string> p(new std::string("foobar"));
+  std::string *x;
+  auto writer_fn = [&p, &mtx] {
+    for (int i = 0; i < 10000; i++) {
+      eos::common::RWMutexWriteLock wlock(mtx);
+      p.reset(new std::string("foobar2"));
+    }
+  };
 
-BENCHMARK(BM_MutexRWLock)->ThreadRange(1, 64)->UseRealTime();
-BENCHMARK(BM_SharedMutexRWLock)->ThreadRange(1, 64)->UseRealTime();
-BENCHMARK(BM_RCUReadWriteLock)->ThreadRange(1, 64)->UseRealTime();
-BENCHMARK(BM_RCUVersionedReadWriteLock)->ThreadRange(1,64)->UseRealTime();
+  std::thread writer;
+  if (state.thread_index() == 0) {
+    writer = std::thread(writer_fn);
+  }
+
+  for (auto _ : state) {
+    eos::common::RWMutexReadLock rlock(mtx);
+    benchmark::DoNotOptimize(x=p.get());
+  }
+
+  if (state.thread_index() == 0) {
+    writer.join();
+  }
+
+  state.counters["frequency"] = Counter(state.iterations(),
+                                        benchmark::Counter::kIsRate);
+}
+
+
+BENCHMARK(BM_AtomicUniquePtrGet)->ThreadRange(1, 256)->UseRealTime();
+BENCHMARK(BM_UniquePtrGet)->ThreadRange(1, 256)->UseRealTime();
+BENCHMARK(BM_MutexLock)->ThreadRange(1, 256)->UseRealTime();
+BENCHMARK(BM_SharedMutexLock)->ThreadRange(1, 256)->UseRealTime();
+BENCHMARK(BM_RCUReadLock)->ThreadRange(1, 256)->UseRealTime();
+BENCHMARK(BM_RCUVersionReadLock)->ThreadRange(1,256)->UseRealTime();
+BENCHMARK(BM_EOSReadLock)->ThreadRange(1, 256)->UseRealTime();
+
+BENCHMARK(BM_MutexRWLock)->ThreadRange(1, 256)->UseRealTime();
+BENCHMARK(BM_SharedMutexRWLock)->ThreadRange(1, 256)->UseRealTime();
+BENCHMARK(BM_RCUReadWriteLock)->ThreadRange(1, 256)->UseRealTime();
+BENCHMARK(BM_RCUVersionedReadWriteLock)->ThreadRange(1,256)->UseRealTime();
+BENCHMARK(BM_EOSReadWriteLock)->ThreadRange(1, 256)->UseRealTime();
 BENCHMARK_MAIN();
