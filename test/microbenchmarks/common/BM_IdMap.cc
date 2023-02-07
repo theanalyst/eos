@@ -24,6 +24,7 @@
 #include "common/Mapping.hh"
 #include "XrdSec/XrdSecEntity.hh"
 #include "benchmark/benchmark.h"
+#include "BMThreadMacros.hh"
 #include <sstream>
 #include <thread>
 
@@ -49,7 +50,7 @@ static void BM_IdMap(benchmark::State& state)
   using namespace eos::common;
   std::atomic<uint64_t> ctr = 0;
 
-  if (state.thread_index == 0) {
+  if (BM_THREAD_INDEX(state)) {
     eos::common::Mapping::Reset();
     eos::common::Mapping::Init();
     eos::common::Mapping::gVirtualUidMap["sss:\"<pwd>\":uid"] = 0;
@@ -76,7 +77,7 @@ static void BM_IdMap(benchmark::State& state)
     ctr++;
   }
 
-  if (state.thread_index == 0) {
+  if (BM_THREAD_INDEX(state)) {
     eos::common::Mapping::Reset();
   }
 }
