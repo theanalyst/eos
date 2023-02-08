@@ -31,7 +31,7 @@ RoundRobinPlacement::chooseItems(const ClusterData& cluster_data, Args args)
     return result;
   }
 
-  auto bucket = cluster_data.buckets.at(bucket_index);
+  const auto& bucket = cluster_data.buckets.at(bucket_index);
 
   if (bucket.items.empty()) {
     result.err_msg = "Bucket " + std::to_string(bucket.id) + "is empty!";
@@ -56,7 +56,7 @@ RoundRobinPlacement::chooseItems(const ClusterData& cluster_data, Args args)
         return result;
       }
 
-      auto disk = cluster_data.disks.at(id - 1);
+      const auto& disk = cluster_data.disks.at(id - 1);
       auto disk_status = disk.status.load(std::memory_order_relaxed);
       if (disk_status < args.status) {
         continue;
@@ -140,7 +140,7 @@ FlatScheduler::scheduleDefault(const ClusterData& cluster_data,
 {
   PlacementResult result;
   do {
-    auto bucket = cluster_data.buckets.at(-args.bucket_id);
+    const auto& bucket = cluster_data.buckets.at(-args.bucket_id);
     uint8_t n_replicas = 1;
     if (bucket.bucket_type == static_cast<uint8_t>(StdBucketType::GROUP)) {
       n_replicas = args.n_replicas;
