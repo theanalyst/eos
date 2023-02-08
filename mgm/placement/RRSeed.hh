@@ -26,6 +26,7 @@
 
 #include <atomic>
 #include <vector>
+#include <cstddef>
 
 namespace eos::mgm::placement {
 
@@ -60,21 +61,9 @@ public:
   explicit RRSeed(size_t max_items) : mSeeds(max_items, 0) {}
 
   // Get a seed at an index, also reserve n_items, so that the next seed is n_items
-  // away. This will throw an std::out_of_range if you ask an out-of-bounds index!
+  // away. Please ensure the index is within range!
   T get(size_t index, size_t n_items) {
-
-    T ret = mSeeds.at(index).value.load(std::memory_order_relaxed);
-
-    // Make sure that our round robin seed is not taken over by other threads!
-    // ie in case some other thread beats us while we update the seed, we need
-    // to ensure that our seed isn't the same, we do a CAS loop which should
-    // update our rr_seed to the latest in case we fail so that multiple threads
-    // wouldn't end up with the same seed.
-    while(!mSeeds.at(index).value.compare_exchange_weak(ret, ret + n_items,
-                                                        std::memory_order_relaxed))
-    {}
-
-    return ret;
+    return mSeeds[index].value.fetch_add(n_items, std::memory_order_relaxed);
   }
 
   size_t getNumSeeds() const { return mSeeds.size(); }
