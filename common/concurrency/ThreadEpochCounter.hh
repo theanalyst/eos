@@ -45,7 +45,49 @@ template <typename T>
 constexpr bool is_state_less_v = is_state_less<T>::value;
 } // detail
 
+template <size_t kMaxEpochs=32768>
+class VersionEpochCounter {
+public:
+  inline uint64_t getEpochIndex(uint64_t epoch) noexcept {
+    if (epoch < kMaxEpochs)
+      return epoch;
+    // TODO: This only works assuming that we wouldn't really have
+    // readers at epoch 0 by the time kMaxEpochs is reached, which
+    // is relatively safe given kMaxEpochs amount of writes don't happen
+    // before the first reader finishes.
+    return epoch % kMaxEpochs;
 
+  }
+
+  inline size_t increment(uint64_t epoch, uint16_t count=1) noexcept {
+    auto index = getEpochIndex(epoch);
+    mCounter[index].fetch_add(count, std::memory_order_release);
+    return index;
+  }
+
+  inline void decrement(uint64_t epoch) noexcept {
+    auto index = getEpochIndex(epoch);
+    mCounter[index].fetch_sub(1, std::memory_order_release);
+  }
+
+  inline void decrement(uint64_t epoch, uint64_t index) noexcept {
+    mCounter[index].fetch_sub(1, std::memory_order_release);
+  }
+
+  inline size_t getReaders(uint64_t epoch) noexcept {
+    return mCounter[getEpochIndex(epoch)].load(std::memory_order_relaxed);
+  }
+
+  bool epochHasReaders(uint64_t epoch) noexcept {
+    auto index = getEpochIndex(epoch);
+    return mCounter[index].load(std::memory_order_acquire) > 0;
+  }
+
+private:
+  alignas(hardware_destructive_interference_size) std::array<std::atomic<uint16_t>, kMaxEpochs> mCounter{0};
+};
+
+namespace experimental {
 /**
 * @brief a simple epoch counter per thread that can be used to implement
 * RCU-like algorithms. Basically we store a bitfield of
@@ -53,6 +95,12 @@ constexpr bool is_state_less_v = is_state_less<T>::value;
  * simple to implement, you'd only need a simple increment and a memory_order_release
  * store. However, if we have hash collisions, we need to store the oldest epoch
  * as we're tracking the oldest epoch.
+ *
+ * This counter currently is not meant to be stable as with thread_id, hash collisions are
+ * expected and thus we won't be doing the epoch tracking correctly if a thread with a colliding
+ * hash moves onto a different epoch. A different way of doing this is just having a thread_local
+ * reader/epoch counter, and when one does a write lock, you'd have to walk through this list of
+ * thread_local pointers.
  */
 template <size_t kMaxThreads=4096>
 class SimpleEpochCounter {
@@ -104,43 +152,6 @@ private:
 
 static_assert(detail::is_state_less_v<SimpleEpochCounter<>>);
 
-template <size_t kMaxEpochs=32768>
-class VersionEpochCounter {
-public:
-  inline uint64_t getEpochIndex(uint64_t epoch) noexcept {
-    if (epoch < kMaxEpochs)
-      return epoch;
-    // TODO: This only works assuming that we wouldn't really have
-    // readers at epoch 0 by the time kMaxEpochs is reached, which
-    // is relatively safe given kMaxEpochs amount of writes don't happen
-    // before the first reader finishes.
-    return epoch % kMaxEpochs;
-
-  }
-
-  inline size_t increment(uint64_t epoch, uint16_t count=1) noexcept {
-    auto index = getEpochIndex(epoch);
-    mCounter[index].fetch_add(count, std::memory_order_release);
-    return index;
-  }
-
-  inline void decrement(uint64_t epoch) noexcept {
-    auto index = getEpochIndex(epoch);
-    mCounter[index].fetch_sub(1, std::memory_order_release);
-  }
-
-  inline void decrement(uint64_t epoch, uint64_t index) noexcept {
-    mCounter[index].fetch_sub(1, std::memory_order_release);
-  }
-
-  bool epochHasReaders(uint64_t epoch) noexcept {
-    auto index = getEpochIndex(epoch);
-    return mCounter[index].load(std::memory_order_acquire) > 0;
-  }
-
-private:
-  alignas(hardware_destructive_interference_size) std::array<std::atomic<uint16_t>, kMaxEpochs> mCounter{0};
-};
 
 template<size_t kMaxThreads=4096>
 class ThreadEpochCounter {
@@ -191,5 +202,5 @@ private:
   alignas(hardware_destructive_interference_size) std::array<std::atomic<uint64_t>, kMaxThreads> mCounter{0};
 };
 
-
+} // experimental
 } // eos::common
