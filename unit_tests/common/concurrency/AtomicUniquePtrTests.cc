@@ -98,7 +98,8 @@ TEST(AtomicUniquePtr, multireadwrite)
 {
 
   std::mutex gc_mtx;
-  std::vector<std::string*> old_ptrs;
+  std::vector<std::unique_ptr<std::string>> old_ptrs;
+  old_ptrs.reserve(20'000'000);
   eos::common::atomic_unique_ptr<std::string> p(new std::string("start"));
   auto writer_fn = [&p, &old_ptrs, &gc_mtx]() {
     auto tid_hash = std::hash<std::thread::id>{}(std::this_thread::get_id());
@@ -106,7 +107,7 @@ TEST(AtomicUniquePtr, multireadwrite)
       std::string new_str = "greetings from thread" + std::to_string(tid_hash);
       auto old_ptr = p.reset(new std::string(new_str));
       std::scoped_lock lock(gc_mtx);
-      old_ptrs.push_back(old_ptr);
+      old_ptrs.emplace_back(old_ptr);
     }
     //std::cout << "Done with writer="<<std::this_thread::get_id() << "\n";
   };

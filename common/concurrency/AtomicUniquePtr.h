@@ -81,17 +81,20 @@ public:
    * of synchronization where it is safe to delete the old value. When using
    * reset as a way to initialize the pointer, it is safe to use reset_from_null
    *
+   * An atomic exchange is used over a get/publish as 2 transactions would no longer
+   * be atomic, though calling reset from multiple threads is generally not a good
+   * idea
    *  @param p: pointer to be stored in the atomic_unique_ptr
    *  @return: the old pointer
    * */
   [[nodiscard]] T* reset(T* p)
   {
-    // T* old = p_.exchange(p, std::memory_order_acq_rel); ?
-    T* old = this->get();
-    publish(p);
-    return old;
+    return p_.exchange(p, std::memory_order_acq_rel);
   }
 
+  // not TS! spinning in an atomic compare exchange can be used to make it so,
+  // but reset_from_null is a construction routine and just like construction of
+  // the AtomicPtr itself isn't threadsafe, this shouldn't be!
   void reset_from_null(T* p) {
     assert(p_.load(std::memory_order_acquire) == nullptr);
     publish(p);
