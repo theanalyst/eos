@@ -113,8 +113,10 @@ TEST(AtomicUniquePtr, multireadwrite)
   };
 
   auto reader_fn = [&p] {
-    for (int i=0; i<1000'000; ++i)
-      ASSERT_TRUE(p.get());
+    for (int i=0; i<1'000'000; ++i) {
+      auto* q = p.get();
+      ASSERT_TRUE(q);
+    }
     //std::cout << "Done with reader="<< std::this_thread::get_id() << "\n";
   };
 
@@ -137,42 +139,48 @@ TEST(AtomicUniquePtr, multireadwrite)
 
 }
 
-TEST(SharedPtrNonTS, multireadwrite)
+TEST(SharedPtrNonTSSEGV, multireadwrite)
 {
+  GTEST_FLAG_SET(death_test_style, "threadsafe");
+  ASSERT_DEATH(
+  {
+    std::shared_ptr<std::string> p(new std::string("start"));
+    auto writer_fn = [&p]() {
+      auto tid_hash = std::hash<std::thread::id>{}(std::this_thread::get_id());
+      for (int i = 0; i < 100'000; ++i) {
+        std::string new_str =
+            "greetings from thread" + std::to_string(tid_hash);
+        p.reset(new std::string(new_str));
+      }
+      // std::cout << "Done with writer="<<std::this_thread::get_id() << "\n";
+    };
 
-  std::shared_ptr<std::string> p(new std::string("start"));
-  auto writer_fn = [&p]() {
-    auto tid_hash = std::hash<std::thread::id>{}(std::this_thread::get_id());
-    for (int i = 0; i<100'000; ++i) {
-      std::string new_str = "greetings from thread" + std::to_string(tid_hash);
-      p.reset(new std::string(new_str));
+    auto reader_fn = [&p] {
+      for (int i = 0; i < 1'000'000; ++i) {
+        auto q = p;
+        ASSERT_TRUE(q);
+      }
+      // std::cout << "Done with reader="<< std::this_thread::get_id() << "\n";
+    };
+
+    std::vector<std::thread> reader_threads;
+    std::vector<std::thread> writer_threads;
+    for (int i = 0; i < 2000; i++) {
+      reader_threads.emplace_back(reader_fn);
+      if (i % 10 == 0) {
+        writer_threads.emplace_back(writer_fn);
+      }
     }
-    //std::cout << "Done with writer="<<std::this_thread::get_id() << "\n";
-  };
 
-  auto reader_fn = [&p] {
-    for (int i=0; i<1000'000; ++i)
-      ASSERT_TRUE(p.get());
-    //std::cout << "Done with reader="<< std::this_thread::get_id() << "\n";
-  };
+    for (auto& t : reader_threads) {
+      t.join();
+    }
 
-  std::vector<std::thread> reader_threads;
-  std::vector<std::thread> writer_threads;
-  for (int i=0;i<2000;i++) {
-    reader_threads.emplace_back(reader_fn);
-    if (i%10==0) {
-      writer_threads.emplace_back(writer_fn);
+    for (auto& t : writer_threads) {
+      t.join();
     }
   }
-
-  for (auto& t: reader_threads) {
-    t.join();
-  }
-
-  for (auto& t: writer_threads) {
-    t.join();
-  }
-
+      , ".*");
 }
 
 struct MyDataSP {
@@ -182,6 +190,7 @@ struct MyDataSP {
   }
 
   void reset(std::string* new_val) {
+    std::scoped_lock wlock(mtx);
     data.reset(new_val);
   }
 
@@ -189,46 +198,49 @@ struct MyDataSP {
 
 private:
   std::shared_ptr<std::string> data;
+  std::mutex mtx;
 };
 
 
 
-TEST(SharedPtrNonTS2, multireadwrite)
+TEST(SharedPtrNonTS2SEGV, multireadwrite)
 {
+  GTEST_FLAG_SET(death_test_style, "threadsafe");
+  ASSERT_DEATH({
+    MyDataSP p("start");
+    auto writer_fn = [&p]() {
+      auto tid_hash = std::hash<std::thread::id>{}(std::this_thread::get_id());
+      for (int i = 0; i < 100'000; ++i) {
+        std::string new_str =
+            "greetings from thread" + std::to_string(tid_hash);
+        p.reset(new std::string(new_str));
+      }
+      // std::cout << "Done with writer="<<std::this_thread::get_id() << "\n";
+    };
 
-  MyDataSP p("start");
-  auto writer_fn = [&p]() {
-    auto tid_hash = std::hash<std::thread::id>{}(std::this_thread::get_id());
-    for (int i = 0; i<100'000; ++i) {
-      std::string new_str = "greetings from thread" + std::to_string(tid_hash);
-      p.reset(new std::string(new_str));
+    auto reader_fn = [&p] {
+      for (int i = 0; i < 1'000'000; ++i)
+        ASSERT_TRUE(p.get_data());
+      // std::cout << "Done with reader="<< std::this_thread::get_id() << "\n";
+    };
+
+    std::vector<std::thread> reader_threads;
+    std::vector<std::thread> writer_threads;
+    for (int i = 0; i < 2000; i++) {
+      reader_threads.emplace_back(reader_fn);
+      if (i % 10 == 0) {
+        writer_threads.emplace_back(writer_fn);
+      }
     }
-    //std::cout << "Done with writer="<<std::this_thread::get_id() << "\n";
-  };
 
-  auto reader_fn = [&p] {
-    for (int i=0; i<1000'000; ++i)
-      ASSERT_TRUE(p.get_data());
-    //std::cout << "Done with reader="<< std::this_thread::get_id() << "\n";
-  };
-
-  std::vector<std::thread> reader_threads;
-  std::vector<std::thread> writer_threads;
-  for (int i=0;i<2000;i++) {
-    reader_threads.emplace_back(reader_fn);
-    if (i%10==0) {
-      writer_threads.emplace_back(writer_fn);
+    for (auto& t : reader_threads) {
+      t.join();
     }
-  }
 
-  for (auto& t: reader_threads) {
-    t.join();
-  }
-
-  for (auto& t: writer_threads) {
-    t.join();
-  }
-
+    for (auto& t : writer_threads) {
+      t.join();
+    }
+               }, ".*");
 }
 
 struct MyDataAtomicSP {
@@ -260,7 +272,7 @@ TEST(SharedPtrTS, multireadwrite)
   };
 
   auto reader_fn = [&p] {
-    for (int i=0; i<1000'000; ++i)
+    for (int i=0; i<1'000'000; ++i)
       ASSERT_TRUE(p.get_data());
     //std::cout << "Done with reader="<< std::this_thread::get_id() << "\n";
   };
