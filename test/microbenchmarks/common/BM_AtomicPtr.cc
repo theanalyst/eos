@@ -27,6 +27,29 @@ static void BM_UniquePtrGet(benchmark::State& state)
   int *x;
   for (auto _ : state) {
     benchmark::DoNotOptimize( x = p.get());
+    benchmark::ClobberMemory();
+  }
+  state.counters["frequency"] = Counter(state.iterations(),
+                                        benchmark::Counter::kIsRate);
+}
+
+static void BM_SharedPtrCopy(benchmark::State& state)
+{
+  std::shared_ptr<std::string> p(new std::string("foobar"));
+  for (auto _ : state) {
+    std::shared_ptr<std::string> p_copy=p;
+    benchmark::ClobberMemory();
+  }
+  state.counters["frequency"] = Counter(state.iterations(),
+                                        benchmark::Counter::kIsRate);
+}
+
+static void BM_AtomicSharedPtrGet(benchmark::State& state)
+{
+  std::shared_ptr<std::string> p(new std::string("foobar"));
+  for (auto _ : state) {
+    std::shared_ptr<std::string> p_copy = std::atomic_load_explicit(&p, std::memory_order_acquire);
+    benchmark::ClobberMemory();
   }
   state.counters["frequency"] = Counter(state.iterations(),
                                         benchmark::Counter::kIsRate);
@@ -213,6 +236,8 @@ static void BM_EOSReadWriteLock(benchmark::State& state)
 
 BENCHMARK(BM_AtomicUniquePtrGet)->ThreadRange(1, 256)->UseRealTime();
 BENCHMARK(BM_UniquePtrGet)->ThreadRange(1, 256)->UseRealTime();
+BENCHMARK(BM_SharedPtrCopy)->ThreadRange(1, 256)->UseRealTime();
+BENCHMARK(BM_AtomicSharedPtrGet)->ThreadRange(1, 256)->UseRealTime();
 BENCHMARK(BM_MutexLock)->ThreadRange(1, 256)->UseRealTime();
 BENCHMARK(BM_SharedMutexLock)->ThreadRange(1, 256)->UseRealTime();
 BENCHMARK(BM_RCUVersionReadLock)->ThreadRange(1,256)->UseRealTime();
