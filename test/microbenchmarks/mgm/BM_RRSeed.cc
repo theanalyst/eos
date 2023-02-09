@@ -21,9 +21,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
-
-#include "mgm/placement/RRSeed.hh"
 #include "benchmark/benchmark.h"
+#include "mgm/placement/RRSeed.hh"
+#include "mgm/placement/ThreadLocalRRSeed.hh"
+
+using benchmark::Counter;
 
 static void BM_RRSeed(benchmark::State& state) {
   eos::mgm::placement::RRSeed seed(10);
@@ -35,4 +37,17 @@ static void BM_RRSeed(benchmark::State& state) {
                                         benchmark::Counter::kIsRate);
 }
 
+static void BM_ThreadLocalRRSeed(benchmark::State& state) {
+  using namespace eos::mgm::placement;
+  ThreadLocalRRSeed::init(10);
+  for (auto _ : state) {
+    for (int i=0;i<10; ++i)
+    benchmark::DoNotOptimize(ThreadLocalRRSeed::get(1,0));
+  }
+  state.counters["frequency"] = Counter(state.iterations()*10,
+                                        benchmark::Counter::kIsRate);
+}
+
 BENCHMARK(BM_RRSeed)->ThreadRange(1,64)->UseRealTime();
+BENCHMARK(BM_ThreadLocalRRSeed)->ThreadRange(1,64)->UseRealTime();
+BENCHMARK_MAIN();
