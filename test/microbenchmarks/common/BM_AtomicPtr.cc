@@ -95,6 +95,22 @@ static void BM_RCUVersionReadLock(benchmark::State& state)
 
 }
 
+static void BM_RCUEpochReadLock(benchmark::State& state)
+{
+  eos::common::EpochRCUDomain rcu_domain;
+  std::unique_ptr<std::string> p(new std::string("foobar"));
+  std::string *x;
+  for (auto _ : state) {
+    eos::common::RCUReadLock rlock(rcu_domain);
+    benchmark::DoNotOptimize(x=p.get());
+  }
+  state.counters["frequency"] = Counter(state.iterations(),
+                                        benchmark::Counter::kIsRate);
+
+}
+
+
+
 static void BM_EOSReadLock(benchmark::State& state)
 {
   eos::common::RWMutex m;
@@ -180,7 +196,43 @@ static void BM_RCUVersionedReadWriteLock(benchmark::State& state)
       delete x;
 
       eos::common::ScopedRCUWrite w(rcu_domain, p,
-                                 new std::string("foobar" + std::to_string(i)));
+                                    new std::string("foobar" + std::to_string(i)));
+    }
+  };
+
+  std::thread writer;
+  if (BM_THREAD_INDEX(state)) {
+    writer = std::thread(writer_fn);
+  }
+
+  for (auto _ : state) {
+    eos::common::RCUReadLock rlock(rcu_domain);
+    benchmark::DoNotOptimize(x=p.get());
+  }
+
+  if (BM_THREAD_INDEX(state)) {
+    if (writer.joinable())
+      writer.join();
+  }
+
+  state.counters["frequency"] = Counter(state.iterations(),
+                                        benchmark::Counter::kIsRate);
+}
+
+static void BM_RCUEpochReadWriteLock(benchmark::State& state)
+{
+  eos::common::EpochRCUDomain rcu_domain;
+  eos::common::atomic_unique_ptr<std::string> p(new std::string("foobar"));
+  std::string *x;
+  auto writer_fn = [&p, &rcu_domain] {
+    for (int i=0; i < 10000; ++i) {
+      rcu_domain.rcu_write_lock();
+      auto x = p.reset(new std::string("foobar2"));
+      rcu_domain.rcu_synchronize();
+      delete x;
+
+      eos::common::ScopedRCUWrite w(rcu_domain, p,
+                                    new std::string("foobar" + std::to_string(i)));
     }
   };
 
@@ -241,10 +293,12 @@ BENCHMARK(BM_AtomicSharedPtrGet)->ThreadRange(1, 256)->UseRealTime();
 BENCHMARK(BM_MutexLock)->ThreadRange(1, 256)->UseRealTime();
 BENCHMARK(BM_SharedMutexLock)->ThreadRange(1, 256)->UseRealTime();
 BENCHMARK(BM_RCUVersionReadLock)->ThreadRange(1,256)->UseRealTime();
+BENCHMARK(BM_RCUEpochReadLock)->ThreadRange(1,256)->UseRealTime();
 BENCHMARK(BM_EOSReadLock)->ThreadRange(1, 256)->UseRealTime();
 
 BENCHMARK(BM_MutexRWLock)->ThreadRange(1, 256)->UseRealTime();
 BENCHMARK(BM_SharedMutexRWLock)->ThreadRange(1, 256)->UseRealTime();
 BENCHMARK(BM_RCUVersionedReadWriteLock)->ThreadRange(1,256)->UseRealTime();
+BENCHMARK(BM_RCUEpochReadWriteLock)->ThreadRange(1,256)->UseRealTime();
 BENCHMARK(BM_EOSReadWriteLock)->ThreadRange(1, 256)->UseRealTime();
 BENCHMARK_MAIN();

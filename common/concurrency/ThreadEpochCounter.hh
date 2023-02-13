@@ -88,6 +88,39 @@ private:
 };
 
 namespace experimental {
+
+static constexpr size_t EOS_MAX_THREADS=4096;
+static std::array<std::atomic<bool>, EOS_MAX_THREADS> g_thread_in_use {false};
+
+struct ThreadID {
+  ThreadID() {
+    for (size_t i = 0; i < EOS_MAX_THREADS; ++i) {
+      bool expected = false;
+      if (!g_thread_in_use[i] &&
+          g_thread_in_use[i].compare_exchange_strong(expected, true)) {
+        tid = i;
+        return;
+      }
+    }
+    // TODO: throw exception/ log here
+    std::cout << "COULD NOT ASSIGN THREAD ID!!!!";
+    assert(true);
+  }
+
+  ~ThreadID() {
+    g_thread_in_use[tid].store(false, std::memory_order_release);
+  }
+
+  size_t get() {
+    return tid;
+  }
+
+  size_t tid;
+};
+
+static thread_local ThreadID tlocalID;
+
+
 /**
 * @brief a simple epoch counter per thread that can be used to implement
 * RCU-like algorithms. Basically we store a bitfield of
@@ -102,43 +135,56 @@ namespace experimental {
  * reader/epoch counter, and when one does a write lock, you'd have to walk through this list of
  * thread_local pointers.
  */
-template <size_t kMaxThreads=4096>
+
+struct alignas(hardware_destructive_interference_size) ThreadEpoch {
+  auto get(std::memory_order order = std::memory_order_acquire) {
+    return epoch_counter.load(order);
+  }
+
+  auto get_counter(std::memory_order order = std::memory_order_acquire) {
+    return get(order) & 0xFFFF;
+  }
+
+  std::atomic<uint64_t> epoch_counter;
+};
+
 class SimpleEpochCounter {
 public:
 
   using is_state_less = void;
 
   size_t increment(uint64_t epoch, uint16_t count=1) noexcept {
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id()) % kMaxThreads;
+    auto tid = tlocalID.get();
     // This is 2 instructions, instead of a single CAS. Given that threads
     // will not hash to the same number, we can guarantee that we'd only have one
     // epoch per thread
 
-    auto old = mCounter[tid].load(std::memory_order_relaxed);
+    auto old = mCounter[tid].get();
     assert(old && 0xFFFF == 0 || (old >> 16) == epoch);
+
     auto new_val = (epoch << 16) | (old & 0xFFFF) + count;
-    mCounter[tid].store(new_val, std::memory_order_release);
+    mCounter[tid].epoch_counter.store(new_val, std::memory_order_release);
     return tid;
   }
 
   inline void decrement(uint64_t epoch, size_t tid) {
     // assert (old >> 16) == epoch);
-    mCounter[tid].fetch_sub(1, std::memory_order_release);
+    mCounter[tid].epoch_counter.fetch_sub(1, std::memory_order_release);
   }
 
   inline void decrement() {
-    auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id()) % kMaxThreads;
-    mCounter[tid].fetch_sub(1, std::memory_order_release);
+    auto tid = tlocalID.get();
+    mCounter[tid].epoch_counter.fetch_sub(1, std::memory_order_release);
   }
 
   size_t getReaders(size_t tid) noexcept {
-    return mCounter[tid].load(std::memory_order_relaxed) & 0xFFFF;
+    return mCounter[tid].get_counter();
   }
 
 
   bool epochHasReaders(uint64_t epoch) noexcept {
-    for (int i=0; i < kMaxThreads; ++i) {
-      auto val = mCounter[i].load(std::memory_order_acquire);
+    for (int i=0; i < EOS_MAX_THREADS; ++i) {
+      auto val = mCounter[i].get();
       if ((val >> 16) == epoch && (val & 0xFFFF) > 0) {
         return true;
       }
@@ -147,11 +193,10 @@ public:
   }
 
 private:
-  alignas(hardware_destructive_interference_size) std::array<std::atomic<uint64_t>, kMaxThreads> mCounter{0};
+  std::array<ThreadEpoch, EOS_MAX_THREADS> mCounter{0};
 };
 
-static_assert(detail::is_state_less_v<SimpleEpochCounter<>>);
-
+static_assert(detail::is_state_less_v<SimpleEpochCounter>);
 
 template<size_t kMaxThreads=4096>
 class ThreadEpochCounter {

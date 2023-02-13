@@ -27,7 +27,7 @@ TEST(RCUTests, Basic)
   using namespace eos::common;
 
   // Test that we can create an RCU object
-  RCUDomain<experimental::SimpleEpochCounter<4096>,1> rcu_domain;
+  RCUDomain<experimental::SimpleEpochCounter,1> rcu_domain;
   atomic_unique_ptr<int> ptr(new int(0));
   int sum{0};
   int i{0};

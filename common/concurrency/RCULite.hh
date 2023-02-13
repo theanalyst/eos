@@ -213,4 +213,5 @@ struct ScopedRCUWrite {
 };
 
 using VersionedRCUDomain = RCUDomain<VersionEpochCounter<32>,1>;
+using EpochRCUDomain = RCUDomain<experimental::SimpleEpochCounter,1>;
 } // eos::common

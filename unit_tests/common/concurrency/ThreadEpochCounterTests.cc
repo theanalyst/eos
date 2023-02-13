@@ -15,7 +15,8 @@ TEST(SimpleEpochCounter, Basic)
 
 TEST(SimpleEpochCounter, HashCollision)
 {
-  eos::common::experimental::SimpleEpochCounter<2> counter;
+  eos::common::experimental::SimpleEpochCounter counter;
+  std::cout << "My local TID=" << eos::common::experimental::tlocalID.get() << "\n";
   ASSERT_FALSE(counter.epochHasReaders(0));
   std::array<std::atomic<int>, 2> epoch_counter = {0,0};
   std::vector<std::thread> threads;
@@ -23,7 +24,12 @@ TEST(SimpleEpochCounter, HashCollision)
     threads.emplace_back([&counter, &epoch_counter, &i](){
       int epoch = (i & 1);
       auto tid = counter.increment(epoch, 1);
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+      std::cout << "Got TID=" << tid;
+      std::cout << " local tid= " << eos::common::experimental::tlocalID.get() << "\n";
       epoch_counter[tid]++;
+      ASSERT_EQ(counter.getReaders(tid), 1);
     });
   }
 
@@ -31,8 +37,6 @@ TEST(SimpleEpochCounter, HashCollision)
     t.join();
   }
 
-  ASSERT_EQ(epoch_counter[0], counter.getReaders(0));
-  ASSERT_EQ(epoch_counter[1], counter.getReaders(1));
 }
 
 TEST(ThreadEpochCounter, HashCollision)
