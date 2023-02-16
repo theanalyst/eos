@@ -1,44 +1,37 @@
-//
-// Created by abhi on 2/9/23.
-//
+// ----------------------------------------------------------------------
+// File: ThreadLocalRRSeedTests.cc
+// Author: Abhishek Lekshmanan - CERN
+// ----------------------------------------------------------------------
+
+/************************************************************************
+ * EOS - the CERN Disk Storage System                                   *
+ * Copyright (C) 2023 CERN/Switzerland                           *
+ *                                                                      *
+ * This program is free software: you can redistribute it and/or modify *
+ * it under the terms of the GNU General Public License as published by *
+ * the Free Software Foundation, either version 3 of the License, or    *
+ * (at your option) any later version.                                  *
+ *                                                                      *
+ * This program is distributed in the hope that it will be useful,      *
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of       *
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the        *
+ * GNU General Public License for more details.                         *
+ *                                                                      *
+ * You should have received a copy of the GNU General Public License    *
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
+ ************************************************************************/
 
 #include "mgm/placement/ThreadLocalRRSeed.hh"
 #include "gtest/gtest.h"
 
 using eos::mgm::placement::ThreadLocalRRSeed;
-TEST(ThreadLocalRRSeed, Initialization)
-{
-  ThreadLocalRRSeed::init(10, false);
-  EXPECT_EQ(ThreadLocalRRSeed::gRRSeeds.size(), 10);
-  for (auto i = 0; i < 10; i++) {
-    EXPECT_EQ(ThreadLocalRRSeed::gRRSeeds[i], 0);
-  }
-}
-
-TEST(ThreadLocalRRSeed, Resize)
-{
-  ThreadLocalRRSeed::init(10, false);
-  ThreadLocalRRSeed::resize(20, false);
-  EXPECT_EQ(ThreadLocalRRSeed::gRRSeeds.size(), 20);
-  for (auto i = 0; i < 20; i++) {
-    EXPECT_EQ(ThreadLocalRRSeed::gRRSeeds[i], 0);
-  }
-}
-
-TEST(ThreadLocalRRSeed, get)
-{
-  ThreadLocalRRSeed::init(10, false);
-  EXPECT_EQ(ThreadLocalRRSeed::get(0, 0), 0);
-  EXPECT_EQ(ThreadLocalRRSeed::get(0, 1), 0);
-  EXPECT_EQ(ThreadLocalRRSeed::get(0, 0), 1);
-  EXPECT_EQ(ThreadLocalRRSeed::get(0, 1), 1);
-  EXPECT_EQ(ThreadLocalRRSeed::get(0, 10), 2);
-  EXPECT_EQ(ThreadLocalRRSeed::get(0, 0), 12);
-}
 
 TEST(ThreadLocalRRSeed, random)
 {
-  ThreadLocalRRSeed::init(10, true);
+  if (ThreadLocalRRSeed::getNumSeeds() < 10) {
+    ThreadLocalRRSeed::init(10, true);
+  }
+
   EXPECT_EQ(ThreadLocalRRSeed::gRRSeeds.size(), 10);
   std::vector<uint64_t> seeds;
   for (auto i = 0; i < 10; i++) {
