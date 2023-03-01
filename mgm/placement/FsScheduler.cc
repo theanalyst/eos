@@ -45,9 +45,9 @@ PlacementResult FSScheduler::schedule(uint8_t n_replicas)
     eos_static_crit("msg=\"Scheduler is not yet initialized\"");
     return {};
   }
-  auto cluster_data_ptr = mgr.getClusterData();
-  return mScheduler->schedule(cluster_data_ptr(),
-                              {n_replicas});
+  auto cluster_data_ptr = cluster_mgr->getClusterData();
+  return scheduler->schedule(cluster_data_ptr(),
+                             {n_replicas});
 }
 
 } // eos::mgm::placement
