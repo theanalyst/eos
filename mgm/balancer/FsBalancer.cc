@@ -21,6 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
+#include "common/RateLimit.hh"
 #include "mgm/balancer/FsBalancer.hh"
 #include "mgm/FsView.hh"
 #include "mgm/XrdMgmOfs.hh"
@@ -164,13 +165,17 @@ FsBalancer::Balance(ThreadAssistant& assistant) noexcept
   eos_static_info("msg=\"started file system balancer thread\" space=%s",
                   mSpaceName.c_str());
   VectBalanceFs vect_tx;
-
+  uint16_t log_counter = 0;
+  uint16_t log_threshold = 1;
   while (!assistant.terminationRequested()) {
     ConfigUpdate();
 
     if (!mIsEnabled) {
-      eos_static_info("msg=\"balancer disabled\" wait=%is\"",
-                      enable_refresh_delay.count());
+      common::InvokeWithBackOff(log_counter, log_threshold,
+                                []() {
+                                  eos_static_info("msg=\"balancer disabled\" wait=%is\"",
+                                                  enable_refresh_delay.count());
+                                });
       assistant.wait_for(enable_refresh_delay);
       continue;
     }
