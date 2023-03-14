@@ -104,3 +104,53 @@ TEST(RequestRateLimit, MultiThread)
     std::cout << "Run took: " << dur_ms << " (fake)ms" << std::endl;
   }
 }
+
+TEST(InvokeWithBackOff, Simple)
+{
+  using namespace eos::common;
+  uint16_t counter = 0;
+  uint16_t limit = 1;
+  uint64_t invoke_counter = 0;
+  uint64_t total_invocations =0;
+
+  while(invoke_counter < 5) {
+    invoke_counter += InvokeWithBackOff(counter, limit, []() {});
+    ++total_invocations;
+  }
+  EXPECT_EQ(counter, 16);
+  EXPECT_EQ(limit, 32);
+  EXPECT_EQ(total_invocations, 16);
+
+  while(invoke_counter < 15) {
+    invoke_counter += InvokeWithBackOff(counter, limit, []() {});
+    ++total_invocations;
+  }
+  EXPECT_EQ(counter, 16384);
+  EXPECT_EQ(limit, 32768);
+  EXPECT_EQ(total_invocations, 16384);
+  while(invoke_counter < 16) {
+    invoke_counter += InvokeWithBackOff(counter, limit, []() {});
+    ++total_invocations;
+  }
+  EXPECT_EQ(counter,32768);
+  EXPECT_EQ(limit, 0);
+  EXPECT_EQ(total_invocations, 32768);
+
+  // counter goes to 32769 gets reset to 0, limit goes to 1;
+  // you get one more invocation when the reset happens
+  while(invoke_counter < 17) {
+    invoke_counter += InvokeWithBackOff(counter, limit, []() {});
+    ++total_invocations;
+  }
+  EXPECT_EQ(counter, 1);
+  EXPECT_EQ(limit, 2);
+  EXPECT_EQ(total_invocations, 32770);
+
+  while(invoke_counter < 18) {
+    invoke_counter += InvokeWithBackOff(counter, limit, []() {});
+    ++total_invocations;
+  }
+  EXPECT_EQ(counter, 2);
+  EXPECT_EQ(limit, 4);
+  EXPECT_EQ(total_invocations, 32771);
+ }

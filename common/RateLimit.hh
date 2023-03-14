@@ -164,4 +164,29 @@ public:
   std::atomic<uint64_t> mLastTimestampUs;
 };
 
+template <typename int_type=uint16_t>
+void reset_counters(int_type& ctr, int_type& limit)
+{
+  static constexpr auto LIMIT_BY_2 = (std::numeric_limits<int_type>::max() >> 1) + 1;
+  if (ctr > LIMIT_BY_2) {
+    limit = 1;
+    ctr = 0;
+  }
+}
+
+
+template <typename int_type=uint16_t,
+          typename F>
+bool InvokeWithBackOff(int_type& ctr, int_type& limit, F&& f)
+{
+  bool status = false;
+  if (++ctr == limit) {
+    f();
+    limit <<= 1;
+    status = true;
+  }
+  reset_counters(ctr, limit);
+  return status;
+}
+
 EOSCOMMONNAMESPACE_END
