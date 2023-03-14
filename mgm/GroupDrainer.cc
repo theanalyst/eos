@@ -8,6 +8,7 @@
 #include "mgm/groupbalancer/GroupsInfoFetcher.hh"
 #include "common/utils/ContainerUtils.hh"
 #include "common/StringUtils.hh"
+#include "common/RateLimit.hh"
 #include "common/table_formatter/TableFormatterBase.hh"
 #include "namespace/interface/IFsView.hh"
 #include "mgm/FsView.hh"
@@ -51,6 +52,8 @@ GroupDrainer::GroupDrain(ThreadAssistant& assistant) noexcept
   eos::common::observer_tag_t observer_tag {};
   eos_info("%s", "msg=\"starting group drainer thread\"");
 
+  uint16_t log_counter = 0;
+  uint16_t log_threshold = 1;
   while (!assistant.terminationRequested()) {
     if (!gOFS->mMaster->IsMaster()) {
       assistant.wait_for(std::chrono::seconds(60));
@@ -67,11 +70,16 @@ GroupDrainer::GroupDrain(ThreadAssistant& assistant) noexcept
     }
 
     if (!gOFS->mConverterDriver || !config_status) {
+
       // wait for a few seconds before trying to see for reconfiguration in order
       // to not simply always check the atomic in an inf loop
-      eos_info("msg=\"Invalid GroupDrainer Configuration or Converter "
-               "not enabled, sleeping 30s!\" config_status=%d, space=%s",
-               config_status, mSpaceName.c_str());
+      common::InvokeWithBackOff(log_counter, log_threshold,
+                                [this, &config_status]() {
+        eos_info("msg=\"Invalid GroupDrainer Configuration or Converter "
+                 "not enabled, sleeping!\" config_status=%d, space=%s",
+                 config_status, mSpaceName.c_str());
+      });
+
       assistant.wait_for(std::chrono::seconds(30));
       continue;
     }
