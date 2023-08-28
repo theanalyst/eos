@@ -328,7 +328,7 @@ GroupBalancer::Status(bool detail, bool monitoring) const
 bool
 GroupBalancer::is_valid_engine(std::string_view engine_name)
 {
-  return engine_name == "std" || engine_name == "minmax";
+  return engine_name == "std" || engine_name == "minmax" || engine_name == "freespace";
 }
 
 //------------------------------------------------------------------------------
