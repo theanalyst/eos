@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "mgm/groupbalancer/FreeSpaceBalancerEngine.hh"
+#include "mgm/groupbalancer/BalancerEngineFactory.hh"
 #include <memory>
 
 using namespace eos::mgm::group_balancer;
@@ -27,4 +28,50 @@ TEST(FreeSpaceBalancerEngine, simple)
   EXPECT_EQ(d.mGroupSizes.size(), 5);
   EXPECT_EQ(d.mGroupsOverThreshold.size(), 2);
   EXPECT_EQ(d.mGroupsUnderThreshold.size(), 3);
+  EXPECT_EQ(d.mGroupsUnderThreshold, expected_targets);
+  EXPECT_EQ(d.mGroupsOverThreshold, expected_sources);
+
+}
+
+TEST(FreeSpaceBalancerEngine, blocklisting)
+{
+  std::unique_ptr<BalancerEngine> engine = make_balancer_engine(BalancerEngineT::freespace);
+  engine->populateGroupsInfo({{"group1",{GroupStatus::ON, 800, 1000}},
+                              {"group2",{GroupStatus::ON, 1800, 2000}},
+                              {"group3",{GroupStatus::ON, 500, 1000}},
+                              {"group4",{GroupStatus::ON, 700, 1500}},
+                              {"group5",{GroupStatus::ON, 1200,1500}}});
+
+
+  EXPECT_EQ(400, engine->getGroupFreeSpace());
+  EXPECT_EQ(404, engine->getFreeSpaceULimit());
+  EXPECT_EQ(396, engine->getFreeSpaceLLimit());
+
+  threshold_group_set expected_sources = {"group3","group4"};   // Freebytes > 400
+  threshold_group_set expected_targets = {"group1","group2","group5"};
+  auto d = engine->get_data();
+
+  EXPECT_EQ(d.mGroupSizes.size(), 5);
+  EXPECT_EQ(d.mGroupsOverThreshold.size(), 2);
+  EXPECT_EQ(d.mGroupsUnderThreshold.size(), 3);
+  EXPECT_EQ(d.mGroupsUnderThreshold, expected_targets);
+  EXPECT_EQ(d.mGroupsOverThreshold, expected_sources);
+
+  engine_conf_t conf {{"blocklisted_groups":"group3, group2"}};
+  threshold_group_set expected_sources = {"group4"};
+  threshold_group_set expected_targets = {"group1","group5"};
+
+  engine->configure(conf);
+  engine->recalculate();
+  engine->updateGroups();
+  EXPECT_EQ(433, engine->getGroupFreeSpace());
+  EXPECT_EQ(437, engine->getFreeSpaceULimit());
+  EXPECT_EQ(328, engine->getFreeSpaceLLimit());
+
+  auto d2 = engine->get_data();
+  EXPECT_EQ(d2.mGroupSizes.size(), 3);
+  EXPECT_EQ(d2.mGroupsOverThreshold.size(), 1);
+  EXPECT_EQ(d2.mGroupsUnderThreshold.size(), 2);
+  EXPECT_EQ(d2.mGroupsUnderThreshold, expected_targets2);
+  EXPECT_EQ(d2.mGroupsOverThreshold, expected_sources2);
 }

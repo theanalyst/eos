@@ -32,11 +32,13 @@ void FreeSpaceBalancerEngine::recalculate()
   uint16_t count{0};
   std::for_each(data.mGroupSizes.begin(), data.mGroupSizes.end(),
                 [&total_size, &total_used, &count](const auto& kv) {
-                  const auto& group_info = kv.second;
-                  if (group_info.on()) {
-                    total_size += group_info.capacity();
-                    total_used += group_info.usedBytes();
-                    ++count;
+                  if (mBlocklistedGroups.find(kv.first) == mBlocklistedGroups.end()) {
+                    const auto& group_info = kv.second;
+                    if (group_info.on()) {
+                      total_size += group_info.capacity();
+                      total_used += group_info.usedBytes();
+                      ++count;
+                    }
                   }
                 });
   mTotalFreeSpace = total_size - total_used;
@@ -61,13 +63,18 @@ uint64_t FreeSpaceBalancerEngine::getFreeSpaceLLimit() const
 
 void FreeSpaceBalancerEngine::updateGroup(const std::string& group_name)
 {
+  // clear threshold is a set erase. should always work!
+  clear_threshold(group_name);
+
+  if (mBlocklistedGroups.find(group_name) != mBlocklistedGroups.end()) {
+    return;
+  }
+
   auto kv = data.mGroupSizes.find(group_name);
 
   if (kv == data.mGroupSizes.end()) {
     return;
   }
-
-  clear_threshold(group_name);
 
   uint64_t group_free_bytes = kv->second.capacity() - kv->second.usedBytes();
   uint64_t upper_limit = getFreeSpaceULimit();
