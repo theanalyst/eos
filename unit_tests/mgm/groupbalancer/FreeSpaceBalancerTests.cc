@@ -1,6 +1,5 @@
 #include "gtest/gtest.h"
 #include "mgm/groupbalancer/FreeSpaceBalancerEngine.hh"
-#include "mgm/groupbalancer/BalancerEngineFactory.hh"
 #include <memory>
 
 using namespace eos::mgm::group_balancer;
@@ -35,7 +34,7 @@ TEST(FreeSpaceBalancerEngine, simple)
 
 TEST(FreeSpaceBalancerEngine, blocklisting)
 {
-  std::unique_ptr<BalancerEngine> engine = make_balancer_engine(BalancerEngineT::freespace);
+  auto engine = std::make_unique<FreeSpaceBalancerEngine>();
   engine->populateGroupsInfo({{"group1",{GroupStatus::ON, 800, 1000}},
                               {"group2",{GroupStatus::ON, 1800, 2000}},
                               {"group3",{GroupStatus::ON, 500, 1000}},
@@ -57,7 +56,7 @@ TEST(FreeSpaceBalancerEngine, blocklisting)
   EXPECT_EQ(d.mGroupsUnderThreshold, expected_targets);
   EXPECT_EQ(d.mGroupsOverThreshold, expected_sources);
 
-  engine_conf_t conf {{"blocklisted_groups":"group3, group2"}};
+  engine_conf_t conf {{"blocklisted_groups","group3, group2"}};
   threshold_group_set expected_sources = {"group4"};
   threshold_group_set expected_targets = {"group1","group5"};
 

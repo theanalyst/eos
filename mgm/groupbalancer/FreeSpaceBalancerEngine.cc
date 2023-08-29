@@ -31,7 +31,7 @@ void FreeSpaceBalancerEngine::recalculate()
   uint64_t total_used{0};
   uint16_t count{0};
   std::for_each(data.mGroupSizes.begin(), data.mGroupSizes.end(),
-                [&total_size, &total_used, &count](const auto& kv) {
+                [&](const auto& kv) {
                   if (mBlocklistedGroups.find(kv.first) == mBlocklistedGroups.end()) {
                     const auto& group_info = kv.second;
                     if (group_info.on()) {
