@@ -44,8 +44,8 @@ public:
 private:
   uint64_t mTotalFreeSpace; //!< Total Free space in the space
   uint64_t mGroupFreeSpace; //!< Per Group Free Space
-  double mMinDeviation {0.01};     //!< Allowed percent deviation from left of GroupFreeSpace
-  double mMaxDeviation {0.01};     //!< Allowed percent deviation from right of GroupFreeSpace
+  double mMinDeviation {0.02};     //!< Allowed percent deviation from left of GroupFreeSpace
+  double mMaxDeviation {0.02};     //!< Allowed percent deviation from right of GroupFreeSpace
   //! TODO future: make this part of the base class and make this feature
   //! available for all engines
   group_set_t mBlocklistedGroups; //!< Groups that will be blocked from participation

@@ -10,13 +10,13 @@ void FreeSpaceBalancerEngine::configure(const engine_conf_t& conf)
   using namespace std::string_view_literals;
   std::string err;
 
-  mMinDeviation = extract_percent_value(conf, "min_threshold"sv, 0.05, &err);
+  mMinDeviation = extract_percent_value(conf, "min_threshold"sv, 2, &err);
 
   if (!err.empty()) {
     eos_static_err("msg=\"failed to set min_deviation\" err=%s", err.c_str());
   }
 
-  mMaxDeviation = extract_percent_value(conf, "max_threshold"sv, 0.05, &err);
+  mMaxDeviation = extract_percent_value(conf, "max_threshold"sv, 2, &err);
 
   if (!err.empty()) {
     eos_static_err("msg=\"failed to set max_deviation\" err=%s", err.c_str());
