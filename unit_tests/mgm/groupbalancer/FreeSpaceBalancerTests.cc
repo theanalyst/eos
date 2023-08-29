@@ -57,8 +57,8 @@ TEST(FreeSpaceBalancerEngine, blocklisting)
   EXPECT_EQ(d.mGroupsOverThreshold, expected_sources);
 
   engine_conf_t conf {{"blocklisted_groups","group3, group2"}};
-  threshold_group_set expected_sources = {"group4"};
-  threshold_group_set expected_targets = {"group1","group5"};
+  threshold_group_set expected_sources2 = {"group4"};
+  threshold_group_set expected_targets2 = {"group1","group5"};
 
   engine->configure(conf);
   engine->recalculate();
