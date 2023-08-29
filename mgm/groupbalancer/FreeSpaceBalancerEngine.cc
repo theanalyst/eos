@@ -44,17 +44,17 @@ void FreeSpaceBalancerEngine::recalculate()
                                          // makes no sense, round down is fine
 }
 
-uint64_t getGroupFreeSpace() const
+uint64_t FreeSpaceBalancerEngine::getGroupFreeSpace() const
 {
   return mGroupFreeSpace;
 }
 
-uint64_t getFreeSpaceULimit() const
+uint64_t FreeSpaceBalancerEngine::getFreeSpaceULimit() const
 {
   return static_cast<uint64_t>(mGroupFreeSpace * (1 + mMaxDeviation));
 }
 
-uint64_t getFreeSpaceLLimit() const
+uint64_t FreeSpaceBalancerEngine::getFreeSpaceLLimit() const
 {
   return static_cast<uint64_t>(mGroupFreeSpace * (1 - mMinDeviation));
 }
