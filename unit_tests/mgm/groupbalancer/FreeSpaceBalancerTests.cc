@@ -43,8 +43,8 @@ TEST(FreeSpaceBalancerEngine, blocklisting)
 
 
   EXPECT_EQ(400, engine->getGroupFreeSpace());
-  EXPECT_EQ(404, engine->getFreeSpaceULimit());
-  EXPECT_EQ(396, engine->getFreeSpaceLLimit());
+  EXPECT_EQ(408, engine->getFreeSpaceULimit());
+  EXPECT_EQ(392, engine->getFreeSpaceLLimit());
 
   threshold_group_set expected_sources = {"group3","group4"};   // Freebytes > 400
   threshold_group_set expected_targets = {"group1","group2","group5"};
