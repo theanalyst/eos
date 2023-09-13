@@ -1281,7 +1281,7 @@ clean_helm_cluster:
     - dnf config-manager --add-repo https://linuxsoft.cern.ch/cern/rhel/$(rpm --eval '%{rhel}')/CERN/$(uname -i)/ --set-enabled
     - dnf install cern-gpg-keys --nogpgcheck -y
     - rpm --import /etc/pki/rpm-gpg/*
-    - dnf install --enablerepo=epel --nogpg -y gcc-c++ cmake make rpm-build which git sssd-client sudo createrepo
+    - dnf install --enablerepo=epel --nogpg -y gcc-c++ cmake make rpm-build which git sssd-client sudo createrepo_c
   script:
     - cd nginx
     - ./makesrpm.sh
