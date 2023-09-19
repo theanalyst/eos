@@ -79,4 +79,9 @@ target_link_libraries(eos-flatscheduler-microbenchmark PRIVATE
 target_link_libraries(eos-inflighttracker-microbenchmark PRIVATE
   benchmark::benchmark
   EosCommon-Static
+  XrdEosMgm-Static
+  XROOTD::SERVER
+  PROTOBUF::PROTOBUF
+  EosConsoleHelpers-Objects
+  EosConsoleCommands-Objects
   ${ABSL_LIBRARIES})
