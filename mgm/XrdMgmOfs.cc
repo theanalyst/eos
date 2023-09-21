@@ -38,6 +38,7 @@
 #include "common/plugin_manager/PluginManager.hh"
 #include "common/Strerror_r_wrapper.hh"
 #include "common/BufferManager.hh"
+#include "common/async/ExecutorMgr.hh"
 #include "namespace/Constants.hh"
 #include "namespace/interface/ContainerIterators.hh"
 #include "namespace/utils/Attributes.hh"
@@ -379,6 +380,7 @@ XrdMgmOfs::XrdMgmOfs(XrdSysError* ep):
   mTapeGcMgm.reset(new tgc::RealTapeGcMgm(*this));
   mTapeGc.reset(new tgc::MultiSpaceTapeGc(*mTapeGcMgm));
   mFsScheduler.reset(new eos::mgm::placement::FSScheduler());
+  mFuseXPool.reset(new eos::common::ExecutorMgr("threadpool",4));
 }
 
 //------------------------------------------------------------------------------

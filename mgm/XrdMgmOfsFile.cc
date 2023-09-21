@@ -30,6 +30,7 @@
 #include "common/ParseUtils.hh"
 #include "common/StringTokenizer.hh"
 #include "common/Strerror_r_wrapper.hh"
+#include "common/async/ExecutorMgr.hh"
 #include "mgm/Access.hh"
 #include "mgm/FileSystem.hh"
 #include "mgm/XrdMgmOfs.hh"
@@ -1237,6 +1238,7 @@ XrdMgmOfsFile::open(eos::common::VirtualIdentity* invid,
                 "open file - file has a valid extended attribute lock ", path);
   }
 
+  std::vector<eos::common::OpaqueFuture<void>> completions;
   if (isRW) {
     // Allow updates of 0-size RAIN files so that we are able to write from the
     // FUSE mount with lazy-open mode enabled.
@@ -1315,7 +1317,6 @@ XrdMgmOfsFile::open(eos::common::VirtualIdentity* invid,
         gOFS->MgmStats.Add("OpenWrite", vid.uid, vid.gid, 1);
       }
     }
-
     // -------------------------------------------------------------------------
     // write case
     // -------------------------------------------------------------------------
@@ -1453,6 +1454,12 @@ XrdMgmOfsFile::open(eos::common::VirtualIdentity* invid,
 	      gOFS->eosView->updateFileStore(ref_fmd.get());
             }
 
+            completions.emplace_back(
+                                     gOFS->mFuseXPool->PushTask([&cmd_id,&cmd_pid](){
+                                       gOFS->FuseXCastRefresh(cmd_id, cmd_pid);
+                                     })
+                                     );
+            //gOFS->FuseXCastRefresh(cmd_id, cmd_pid);
           } catch (eos::MDException& e) {
             fmd.reset();
             errno = e.getErrno();
@@ -1850,8 +1857,14 @@ XrdMgmOfsFile::open(eos::common::VirtualIdentity* invid,
 	gOFS->eosView->updateFileStore(fmd.get());
 	cmd->notifyMTimeChange(gOFS->eosDirectoryService);
 	gOFS->eosView->updateContainerStore(cmd.get());
-        gOFS->FuseXCastRefresh(fmd_id, cmd_id);
-        gOFS->FuseXCastRefresh(cmd_id, pcmd_id);
+
+
+        auto fut = gOFS->mFuseXPool->PushTask([fmd_id, cmd_id, pcmd_id](){
+          gOFS->FuseXCastRefresh(fmd_id, cmd_id);
+          gOFS->FuseXCastRefresh(cmd_id, pcmd_id);
+        }
+          );
+        completions.emplace_back(std::move(fut));
         COMMONTIMING("fusex::bc", &tm);
       } catch (eos::MDException& e) {
         errno = e.getErrno();
