@@ -1431,14 +1431,22 @@ XrdMgmOfsFile::open(eos::common::VirtualIdentity* invid,
             eos::ContainerIdentifier cmd_pid = cmd->getParentIdentifier();
             gOFS->mReplicationTracker->Create(fmd);
             ns_wr_lock.Release();
-            gOFS->eosView->updateContainerStore(cmd.get());
-            gOFS->eosView->updateFileStore(fmd.get());
+            std::unique_ptr<eos::IFileMD> _fmd(fmd->clone());
+            std::unique_ptr<eos::IContainerMD> _cmd(cmd->clone());
+            std::unique_ptr<eos::IFileMD> _ref_fmd(ref_fmd ? ref_fmd->clone() : nullptr);
+            auto cont_fut = gOFS->mFuseXPool->PushTask([_fmd = std::move(_fmd),
+                                                        _cmd = std::move(_cmd),
+                                                        _ref_fmd = std::move(_ref_fmd)]() mutable {
+              eos_static_info("%s","ABHI - update container/filestore!");
+              gOFS->eosView->updateContainerStore(_cmd.get());
+              gOFS->eosView->updateFileStore(_fmd.get());
 
-            if (ref_fmd) {
-              gOFS->eosView->updateFileStore(ref_fmd.get());
-            }
+              if (_ref_fmd) {
+                gOFS->eosView->updateFileStore(_ref_fmd.get());
+              }
+            });
 
-
+            completions.emplace_back(std::move(cont_fut));
             completions.emplace_back(
                                      gOFS->mFuseXPool->PushTask([&cmd_id,&cmd_pid](){
                                        gOFS->FuseXCastRefresh(cmd_id, cmd_pid);
@@ -1835,12 +1843,20 @@ XrdMgmOfsFile::open(eos::common::VirtualIdentity* invid,
         }
 
         COMMONTIMING("filemd::update", &tm);
-        gOFS->eosView->updateFileStore(fmd.get());
+        //        gOFS->eosView->updateFileStore(fmd.get());
         cmd->setMTimeNow();
         cmd->notifyMTimeChange(gOFS->eosDirectoryService);
-        gOFS->eosView->updateContainerStore(cmd.get());
+        // gOFS->eosView->updateContainerStore(cmd.get());
+        std::unique_ptr<eos::IFileMD> _fmd(fmd->clone());
+        std::unique_ptr<eos::IContainerMD> _cmd(cmd->clone());
+        auto cont_fut = gOFS->mFuseXPool->PushTask([_fmd=std::move(_fmd),
+                                                    _cmd=std::move(_cmd)]() mutable {
+          gOFS->eosView->updateFileStore(_fmd.get());
+          gOFS->eosView->updateContainerStore(_cmd.get());
+        });
 
-	COMMONTIMING("filemd::updated",&tm);
+        completions.emplace_back(std::move(cont_fut));
+        COMMONTIMING("filemd::updated",&tm);
         auto fut = gOFS->mFuseXPool->PushTask([fmd_id, cmd_id, pcmd_id](){
           gOFS->FuseXCastRefresh(fmd_id, cmd_id);
           gOFS->FuseXCastRefresh(cmd_id, pcmd_id);
