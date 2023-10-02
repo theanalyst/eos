@@ -83,5 +83,4 @@ target_link_libraries(eos-inflighttracker-microbenchmark PRIVATE
   XROOTD::SERVER
   PROTOBUF::PROTOBUF
   EosConsoleHelpers-Objects
-  EosConsoleCommands-Objects
-  ${ABSL_LIBRARIES})
+  EosConsoleCommands-Objects)

@@ -63,5 +63,5 @@ static void BM_InFlightTrackerStallMT(benchmark::State& state)
 
 BENCHMARK(BM_InFlightTrackerCreate);
 BENCHMARK(BM_InFlightTrackerCreateMT)->Range(1,512)->ThreadRange(1, 256)->UseRealTime();
-BENCHMARK(BM_InFlightTrackerStallMT)->Range(1,512)->ThreadRange(1, 256)->UseRealTime();
+BENCHMARK(BM_InFlightTrackerStallMT)->Range(1024,8192)->ThreadRange(1, 256)->UseRealTime();
 BENCHMARK_MAIN();

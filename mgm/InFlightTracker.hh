@@ -225,10 +225,10 @@ public:
 private:
   std::atomic<bool> mAcceptingRequests {true};
   std::atomic<int64_t> mInFlight {0};
-  absl::flat_hash_map<pthread_t, size_t> mInFlightPids;
-  absl::flat_hash_map<pthread_t, uid_t> mInFlightUid;
-  absl::flat_hash_map<uid_t, size_t> mInFlightVids;
-  absl::flat_hash_map<uid_t, size_t> mInFlightStalls;
+  std::map<pthread_t, size_t> mInFlightPids;
+  std::map<pthread_t, uid_t> mInFlightUid;
+  std::map<uid_t, size_t> mInFlightVids;
+  std::map<uid_t, size_t> mInFlightStalls;
   std::mutex mInFlightPidMutex;
 
 };
