@@ -1454,12 +1454,6 @@ XrdMgmOfsFile::open(eos::common::VirtualIdentity* invid,
 	      gOFS->eosView->updateFileStore(ref_fmd.get());
             }
 
-            completions.emplace_back(
-                                     gOFS->mFuseXPool->PushTask([&cmd_id,&cmd_pid](){
-                                       gOFS->FuseXCastRefresh(cmd_id, cmd_pid);
-                                     })
-                                     );
-            //gOFS->FuseXCastRefresh(cmd_id, cmd_pid);
           } catch (eos::MDException& e) {
             fmd.reset();
             errno = e.getErrno();
