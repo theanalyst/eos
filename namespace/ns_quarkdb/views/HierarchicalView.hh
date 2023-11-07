@@ -341,14 +341,14 @@ private:
   //! Lookup a given path - deferred function.
   //----------------------------------------------------------------------------
   folly::Future<FileOrContainerMD>
-  getPathDeferred(folly::Future<FileOrContainerMD> fut, std::deque<std::string> pendingChunks,
+  getPathDeferred(folly::Future<FileOrContainerMD>&& fut, std::deque<std::string> pendingChunks,
     bool follow, size_t expendedEffort);
 
   //----------------------------------------------------------------------------
   //! Lookup a given path - deferred function.
   //----------------------------------------------------------------------------
   folly::Future<FileOrContainerMD>
-  getPathDeferred(folly::Future<IContainerMDPtr> fut, std::deque<std::string> pendingChunks,
+  getPathDeferred(folly::Future<IContainerMDPtr>&& fut, std::deque<std::string> pendingChunks,
     bool follow, size_t expendedEffort);
 
   //----------------------------------------------------------------------------

@@ -202,7 +202,7 @@ static FileOrContainerMD toFileOrContainerMD(IContainerMDPtr ptr)
 // Lookup a given path - deferred function.
 //------------------------------------------------------------------------------
 folly::Future<FileOrContainerMD>
-QuarkHierarchicalView::getPathDeferred(folly::Future<FileOrContainerMD> fut,
+QuarkHierarchicalView::getPathDeferred(folly::Future<FileOrContainerMD>&& fut,
                                   std::deque<std::string> pendingChunks,
                                   bool follow, size_t expendedEffort)
 {
@@ -213,7 +213,7 @@ QuarkHierarchicalView::getPathDeferred(folly::Future<FileOrContainerMD> fut,
   // The Executor pool will "resume" computation later, once the network
   // request is completed.
   //----------------------------------------------------------------------------
-  return fut.via(pExecutor.get())
+  return std::move(fut).via(pExecutor.get())
          .thenValue(std::bind(&QuarkHierarchicalView::getPathInternal, this, _1, pendingChunks,
                          follow, expendedEffort));
 }
@@ -222,14 +222,14 @@ QuarkHierarchicalView::getPathDeferred(folly::Future<FileOrContainerMD> fut,
 // Lookup a given path - deferred function.
 //------------------------------------------------------------------------------
 folly::Future<FileOrContainerMD>
-QuarkHierarchicalView::getPathDeferred(folly::Future<IContainerMDPtr> fut,
+QuarkHierarchicalView::getPathDeferred(folly::Future<IContainerMDPtr>&& fut,
                                   std::deque<std::string> pendingChunks,
                                   bool follow, size_t expendedEffort)
 {
   //----------------------------------------------------------------------------
   // Same as getPathDeferred taking FileOrContainerMD.
   //----------------------------------------------------------------------------
-  return fut.via(pExecutor.get())
+  return std::move(fut).via(pExecutor.get())
          .thenValue(toFileOrContainerMD)
          .thenValue(std::bind(&QuarkHierarchicalView::getPathInternal, this, _1, pendingChunks,
                          follow, expendedEffort));
@@ -862,7 +862,7 @@ QuarkHierarchicalView::getUriInternal(std::deque<std::string> currentChunks,
     //--------------------------------------------------------------------------
     // Lookup parent chunk..
     //--------------------------------------------------------------------------
-    folly::Future<IContainerMDPtr> pending = pContainerSvc->getContainerMDFut(nextToLookup->getParentId());
+    folly::Future<IContainerMDPtr> pending = pContainerSvc->getContainerMDFut(nextToLookup->getParentId()).via(pExecutor.get());
 
     if(pending.isReady()) {
       //------------------------------------------------------------------------
@@ -876,7 +876,7 @@ QuarkHierarchicalView::getUriInternal(std::deque<std::string> currentChunks,
     // Cache miss, "pause" execution until we receive the necessary metadata
     // from QDB.
     //--------------------------------------------------------------------------
-    return pending.via(pExecutor.get())
+    return std::move(pending).via(pExecutor.get())
       .thenValue(std::bind(&QuarkHierarchicalView::getUriInternal, this,
                            std::move(currentChunks), _1));
   }
@@ -901,7 +901,7 @@ QuarkHierarchicalView::getUriInternalCid(std::deque<std::string> currentChunks,
   //----------------------------------------------------------------------------
   // Pause execution, give back future.
   //----------------------------------------------------------------------------
-  return pending.via(pExecutor.get())
+  return std::move(pending).via(pExecutor.get())
     .thenValue(std::bind(&QuarkHierarchicalView::getUriInternal, this,
                          std::move(currentChunks), _1));
 }
@@ -952,7 +952,7 @@ QuarkHierarchicalView::getUriInternalFid(FileIdentifier fid) const
   //----------------------------------------------------------------------------
   // Pause execution, give back future.
   //----------------------------------------------------------------------------
-  return pending.via(pExecutor.get())
+  return std::move(pending).via(pExecutor.get())
     .thenValue(std::bind(&QuarkHierarchicalView::getUriInternalFmdPtr, this, _1));
 }
 
