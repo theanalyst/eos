@@ -1282,7 +1282,7 @@ RWMutex::RecordMutexOp(uint64_t ptr_val, LOCK_T op)
     return;
   }
 
-  pid_t tid = syscall(SYS_gettid);
+  auto tid = std::this_thread::get_id();
   std::unique_lock lock(sOpMutex);
   auto& mtx_op_map = sTidMtxOpMap[tid];
   mtx_op_map[ptr_val] = op;
@@ -1297,7 +1297,7 @@ void
 RWMutex::PrintMutexOps(std::ostringstream& oss)
 {
 #ifdef EOS_INSTRUMENTED_RWMUTEX
-  pid_t tid = syscall(SYS_gettid);
+  auto tid = std::this_thread::get_id();
   std::unique_lock lock(sOpMutex);
   const auto it = sTidMtxOpMap.find(tid);
 

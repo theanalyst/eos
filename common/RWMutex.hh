@@ -348,7 +348,7 @@ public:
 
 #ifdef EOS_INSTRUMENTED_RWMUTEX
   typedef std::map<uint64_t, std::string> MapMutexNameT;
-  typedef std::map<pid_t, std::map<uint64_t, LOCK_T>> MapMutexOpT;
+  typedef std::map<std::thread::id, std::map<uint64_t, LOCK_T>> MapMutexOpT;
   static const char* LOCK_STATE[];
   static std::mutex sOpMutex;
   static MapMutexNameT sMtxNameMap;
