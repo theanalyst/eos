@@ -2036,7 +2036,7 @@ public:
   std::unique_ptr<Egroup> EgroupRefresh;
   //!  Recycle object running the recycle bin deletion thread
   std::unique_ptr<Recycle> Recycler;
-  //!  Device Tracking Thread
+  //!  Device Tracking Threads
   std::unique_ptr<Devices> DeviceTracker;
 
   //!  Variable enforcing a globally applied recycle bin policy
@@ -2048,7 +2048,8 @@ public:
   std::string mQdbPassword; ///< Quarkdb cluster password
   eos::QdbContactDetails mQdbContactDetails; ///< QuarkDB contact details
   std::string mQClientDir; ///<QClient metadata directory
-  std::string mQClientRocksDBOptions; ///<QClient specific rocksdb options
+  std::string mQClientFlusherConfig; //<Qclient Flusher config
+
   int mHttpdPort; ///< port of the http server, default 8000
   int mFusexPort; ///< port of the FUSEX broadcast MQZ, default 1100
   int mGRPCPort; ///< port of the GRPC server, default 50051

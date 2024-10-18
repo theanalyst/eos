@@ -110,8 +110,8 @@ QdbMaster::BootNamespace()
   namespaceConfig["qdb_password"] = gOFS->mQdbPassword;
   namespaceConfig["qdb_flusher_md"] = SSTR(instance_id << "_md");
   namespaceConfig["qdb_flusher_quota"] = SSTR(instance_id << "_quota");
-  if (!gOFS->mQClientRocksDBOptions.empty()) {
-    namespaceConfig["qclient_rocksdb_options"] = gOFS->mQClientRocksDBOptions;
+  if (!gOFS->mQClientFlusherConfig.empty()) {
+    namespaceConfig["qclient_flusher_config"] = gOFS->mQClientFlusherConfig;
   }
   FillNsCacheConfig(gOFS->ConfEngine, namespaceConfig);
 

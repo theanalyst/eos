@@ -144,9 +144,9 @@ bool QuarkNamespaceGroup::initialize(eos::common::RWMutex* nsMtx,
     return false;
   }
 
-  it = config.find("qclient_rocksdb_options");
+  it = config.find("qclient_flusher_config");
   if (it != config.end()) {
-    mRocksDBOptions = it->second;
+    flusherConfig = it->second;
   }
 
   return true;

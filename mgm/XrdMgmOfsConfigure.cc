@@ -625,14 +625,14 @@ XrdMgmOfs::Configure(XrdSysError& Eroute)
           }
         }
 
-        if (!strcmp("qclient_rocksdb_options",var)) {
+        if (!strcmp("qclient_flusher_config",var)) {
           if (!(val = Config.GetWord())) {
-            Eroute.Emsg("Config", "argument for qclient_rocksdb_options is invalid");
+            Eroute.Emsg("Config", "argument for qclient_flusher_config is invalid");
             NoGo = 1;
           } else {
-            mQClientRocksDBOptions = val;
+            mQClientFlusherConfig = val;
 
-            Eroute.Say("=====> mgmofs.qclient_rocksdb_options : ", mQClientRocksDBOptions.c_str());
+            Eroute.Say("=====> mgmofs.qclient_flusher_config: ", mQClientFlusherConfig.c_str());
           }
         }
 

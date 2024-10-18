@@ -158,7 +158,7 @@ private:
   std::string queuePath;            //< Namespace queue path
   std::string flusherMDTag;         //< Tag for MD flusher
   std::string flusherQuotaTag;      //< Tag for quota flusher
-  std::string mRocksDBOptions;
+  std::string flusherConfig;        //< Configuration for qclient flusher
   //----------------------------------------------------------------------------
   // Initialize file and container services
   //----------------------------------------------------------------------------
