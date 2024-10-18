@@ -144,9 +144,14 @@ bool QuarkNamespaceGroup::initialize(eos::common::RWMutex* nsMtx,
     return false;
   }
 
+  it = config.find("qclient_flusher_type");
+  if (it != config.end()) {
+    flusherType = it->second;
+  }
+
   it = config.find("qclient_rocksdb_options");
   if (it != config.end()) {
-    mRocksDBOptions = it->second;
+    flusherRocksDBOptions = it->second;
   }
 
   return true;
@@ -284,7 +289,12 @@ MetadataFlusher* QuarkNamespaceGroup::getMetadataFlusher()
 
   if (!mMetadataFlusher) {
     std::string path = SSTR(queuePath << "/" << flusherMDTag);
-    mMetadataFlusher.reset(new MetadataFlusher(path, contactDetails, mRocksDBOptions));
+    if (flusherType.empty()) {
+      mMetadataFlusher.reset(new MetadataFlusher(path, contactDetails));
+    } else {
+      mMetadataFlusher.reset(new MetadataFlusher(path, contactDetails,
+                                                 flusherType, flusherRocksDBOptions));
+    }
   }
 
   return mMetadataFlusher.get();
