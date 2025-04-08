@@ -254,7 +254,7 @@ QdbMaster::ConfigureTimeouts(uint64_t& master_init_lease)
 void
 QdbMaster::Supervisor(ThreadAssistant& assistant) noexcept
 {
-  ThreadAssistant::setSelfThreadName(QDBMASTER_THREAD_NAME);
+  //ThreadAssistant::setSelfThreadName(QDBMASTER_THREAD_NAME);
   bool new_is_master = false;
   std::string old_master_id;
   uint64_t master_init_lease = 60000; // 60 seconds
