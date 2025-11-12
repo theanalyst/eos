@@ -2246,36 +2246,29 @@ XrdMgmOfsFile::open(eos::common::VirtualIdentity* invid,
     // if the scheduled fs need to be accessed through a dataproxy, try to get it
     // if any of the two fails, the scheduling operation fails
     Scheduler::PlacementArguments plctargs;
-    plctargs.alreadyused_filesystems = &selectedfs;
+    {
+      unsigned long long _bookingsize;
+      if (isRepair) {
+        _bookingsize = bookingsize ? bookingsize : gOFS->getFuseBookingSize();
+      } else {
+        _bookingsize = isFuse ? (isTouch ? 0 : gOFS->getFuseBookingSize()) :
+                               bookingsize;
+      }
 
-    if (isRepair) {
-      plctargs.bookingsize = bookingsize ? bookingsize : gOFS->getFuseBookingSize();
-    } else {
-      plctargs.bookingsize = isFuse ? (isTouch ? 0 : gOFS->getFuseBookingSize()) :
-                             bookingsize;
+      using namespace eos::mgm::scheduler;
+      plctargs.setFileParams(space, Path(path), GroupTag(containertag),
+                             Lid(layoutId), (ino64_t)fmd->getId(),
+                             BookingSize(_bookingsize), open_flags & O_TRUNC, vid)
+              .setFsParams(&selectedfs, &excludefs, &selectedfs)
+              .setPlctParams(plctplcy, &targetgeotag, forced_group,
+                             openOpaque->Get("eos.schedulingstrategy"));
+      plctargs.dataproxys = &proxys;
+      plctargs.firewallentpts = &firewalleps;
+
+      if (!plctargs.isValid()) {
+        return Emsg(epname, error, EINVAL, "open - invalid placement argument", path);
+      }
     }
-
-    plctargs.dataproxys = &proxys;
-    plctargs.firewallentpts = &firewalleps;
-    plctargs.forced_scheduling_group_index = forced_group;
-    plctargs.grouptag = containertag;
-    plctargs.lid = layoutId;
-    plctargs.inode = (ino64_t) fmd->getId();
-    plctargs.path = path;
-    plctargs.plctTrgGeotag = &targetgeotag;
-    plctargs.plctpolicy = plctplcy;
-    plctargs.sched_strategy_cstr = openOpaque->Get("eos.schedulingstrategy");
-    plctargs.exclude_filesystems = &excludefs;
-    plctargs.selected_filesystems = &selectedfs;
-    plctargs.spacename = &space;
-    plctargs.truncate = open_flags & O_TRUNC;
-    plctargs.vid = &vid;
-
-    if (!plctargs.isValid()) {
-      // there is something wrong in the arguments of file placement
-      return Emsg(epname, error, EINVAL, "open - invalid placement argument", path);
-    }
-
 
     COMMONTIMING("Scheduler::FilePlacement", &tm);
     eos::common::RWMutexReadLock fs_rd_lock(FsView::gFsView.ViewMutex);
@@ -2408,27 +2401,20 @@ XrdMgmOfsFile::open(eos::common::VirtualIdentity* invid,
         // if the scheduled fs need to be accessed through a dataproxy, try to get it
         // if any of the two fails, the scheduling operation fails
         Scheduler::PlacementArguments plctargs;
-        plctargs.alreadyused_filesystems = &excludefs;
-        plctargs.bookingsize = bookingsize;
-        plctargs.dataproxys = &proxys;
-        plctargs.firewallentpts = &firewalleps;
-        plctargs.forced_scheduling_group_index = forced_group;
-        plctargs.grouptag = containertag;
-        plctargs.lid = layoutId;
-        plctargs.inode = (ino64_t) fmd->getId();
-        plctargs.path = path;
-        plctargs.plctTrgGeotag = &targetgeotag;
-        plctargs.plctpolicy = plctplcy;
-        plctargs.sched_strategy_cstr = openOpaque->Get("eos.schedulingstrategy");
-        plctargs.exclude_filesystems = &excludefs;
-        plctargs.selected_filesystems = &selectedfs;
-        plctargs.spacename = &space;
-        plctargs.truncate = open_flags & O_TRUNC;
-        plctargs.vid = &vid;
+        {
+          using namespace eos::mgm::scheduler;
+          plctargs.setFileParams(space, Path(path), GroupTag(containertag),
+                                 Lid(layoutId), (ino64_t)fmd->getId(),
+                                 BookingSize(bookingsize), open_flags & O_TRUNC, vid)
+                  .setFsParams(&excludefs, &excludefs, &selectedfs)
+                  .setPlctParams(plctplcy, &targetgeotag, forced_group,
+                                 openOpaque->Get("eos.schedulingstrategy"));
+          plctargs.dataproxys = &proxys;
+          plctargs.firewallentpts = &firewalleps;
 
-        if (!plctargs.isValid()) {
-          // there is something wrong in the arguments of file placement
-          return Emsg(epname, error, EINVAL, "open - invalid placement argument", path);
+          if (!plctargs.isValid()) {
+            return Emsg(epname, error, EINVAL, "open - invalid placement argument", path);
+          }
         }
 
         COMMONTIMING("Scheduler::FilePlacement", &tm);
@@ -3008,26 +2994,20 @@ XrdMgmOfsFile::open(eos::common::VirtualIdentity* invid,
       // Attempt to use a firewall entrypoint or a dataproxy if required, if any
       // of the two fail, then scheduling fails
       Scheduler::PlacementArguments plctargs;
-      plctargs.alreadyused_filesystems = &selectedfs;
-      plctargs.bookingsize = plain_book_sz;
-      plctargs.dataproxys = &proxys;
-      plctargs.firewallentpts = &firewalleps;
-      plctargs.forced_scheduling_group_index = forced_group;
-      plctargs.grouptag = containertag;
-      plctargs.lid = plain_lid;
-      plctargs.inode = (ino64_t) fmd->getId();
-      plctargs.path = path;
-      plctargs.plctTrgGeotag = &targetgeotag;
-      plctargs.plctpolicy = plctplcy;
-      plctargs.sched_strategy_cstr = openOpaque->Get("eos.schedulingstrategy");
-      plctargs.exclude_filesystems = &excludefs;
-      plctargs.selected_filesystems = &pio_replacement_fs;
-      plctargs.spacename = &space;
-      plctargs.truncate = false;
-      plctargs.vid = &rootvid;
+      {
+        using namespace eos::mgm::scheduler;
+        plctargs.setFileParams(space, Path(path), GroupTag(containertag),
+                               Lid(plain_lid), (ino64_t)fmd->getId(),
+                               BookingSize(plain_book_sz), false, rootvid)
+                .setFsParams(&selectedfs, &excludefs, &pio_replacement_fs)
+                .setPlctParams(plctplcy, &targetgeotag, forced_group,
+                               openOpaque->Get("eos.schedulingstrategy"));
+        plctargs.dataproxys = &proxys;
+        plctargs.firewallentpts = &firewalleps;
 
-      if (!plctargs.isValid()) {
-        return Emsg(epname, error, EIO, "open - invalid placement argument", path);
+        if (!plctargs.isValid()) {
+          return Emsg(epname, error, EIO, "open - invalid placement argument", path);
+        }
       }
 
       COMMONTIMING("Scheduler::FilePlacement", &tm);
